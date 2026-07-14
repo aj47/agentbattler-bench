@@ -27,7 +27,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
-          cache: false
 
       # package.json intentionally has no dependencies. Do not add an install step here:
       # trusted runs execute only the checked-in runner and fixture sources.

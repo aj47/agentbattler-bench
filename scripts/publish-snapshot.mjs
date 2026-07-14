@@ -16,7 +16,7 @@ import {
 } from '../src/snapshot.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_SNAPSHOT_ROOT = path.join(ROOT, '.artifacts/publication/model-suite-2026-07-13');
+const DEFAULT_POINTER = path.join(ROOT, '.artifacts/publication/latest.json');
 const API_VERSION = '2026-03-10';
 
 function invariant(condition, message) {
@@ -24,7 +24,7 @@ function invariant(condition, message) {
 }
 
 function parseArguments(argv) {
-  const options = { snapshotRoot: DEFAULT_SNAPSHOT_ROOT };
+  const options = { snapshotRoot: null };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--snapshot-root') options.snapshotRoot = path.resolve(argv[++index]);
@@ -168,6 +168,11 @@ async function verifyRelease(snapshot, scratch) {
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
+  if (!options.snapshotRoot) {
+    const pointer = JSON.parse(await readFile(DEFAULT_POINTER, 'utf8'));
+    invariant(typeof pointer.snapshotRoot === 'string', 'Publication package pointer is invalid');
+    options.snapshotRoot = path.resolve(pointer.snapshotRoot);
+  }
   const unpublishedPath = path.join(options.snapshotRoot, 'snapshot.unpublished.json');
   const unpublished = await readSnapshot(unpublishedPath, { requirePublished: false });
   const datasetRoot = path.join(options.snapshotRoot, 'dataset');

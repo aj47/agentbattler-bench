@@ -37,12 +37,13 @@ function invariant(condition, message) {
 }
 
 function parseArguments(argv) {
-  const options = { outputRoot: DEFAULT_OUTPUT_ROOT, datasetRepo: 'techfren/agentbattler-bench', releaseRepository: 'aj47/agentbattler-bench' };
+  const options = { outputRoot: DEFAULT_OUTPUT_ROOT, datasetRepo: 'techfren/agentbattler-bench', releaseRepository: 'aj47/agentbattler-bench', snapshotId: null };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--output') options.outputRoot = path.resolve(argv[++index]);
     else if (value === '--dataset-repo') options.datasetRepo = argv[++index];
     else if (value === '--release-repository') options.releaseRepository = argv[++index];
+    else if (value === '--snapshot-id') options.snapshotId = argv[++index];
     else throw new Error(`Unexpected argument: ${value}`);
   }
   return options;
@@ -89,7 +90,7 @@ async function inspectTextForSecrets(file) {
 function safeSnapshotId(generatedAt) {
   const date = new Date(generatedAt);
   invariant(!Number.isNaN(date.valueOf()), 'Generation suite has an invalid generatedAt');
-  return `model-suite-${date.toISOString().slice(0, 10)}`;
+  return `model-suite-${date.toISOString().toLowerCase().replace(/[:.]/g, '-')}`;
 }
 
 function datasetCard(snapshotId) {
@@ -139,7 +140,8 @@ async function main() {
   const checksumResult = await verifyChecksumManifest(checksums, { root: RESULT_ROOT });
   invariant(checksumResult.ok, `Model-suite checksum mismatch: ${JSON.stringify(checksumResult.mismatches)}`);
 
-  const snapshotId = safeSnapshotId(suite.generatedAt);
+  const snapshotId = options.snapshotId ?? safeSnapshotId(suite.generatedAt);
+  invariant(/^[a-z0-9][a-z0-9.-]*$/.test(snapshotId), 'Invalid snapshot ID');
   const snapshotRoot = path.join(options.outputRoot, snapshotId);
   const datasetRoot = path.join(snapshotRoot, 'dataset');
   const releaseRoot = path.join(snapshotRoot, 'release');
@@ -147,7 +149,7 @@ async function main() {
   await rm(snapshotRoot, { recursive: true, force: true });
   await mkdir(stagingRoot, { recursive: true });
 
-  await run(process.execPath, [path.join(ROOT, 'scripts/build-site-data.mjs')], { cwd: ROOT });
+  await run(process.execPath, [path.join(ROOT, 'scripts/build-site-data.mjs'), '--local'], { cwd: ROOT });
   const siteDataPath = path.join(ROOT, 'web/generated/site-data.json');
   const siteData = await readJson(siteDataPath);
   const runs = [];
@@ -227,8 +229,9 @@ async function main() {
   await copy(siteDataPath, path.join(datasetRoot, `snapshots/${snapshotId}/site/site-data.json`));
   await copy(MANIFEST_PATH, path.join(datasetRoot, `snapshots/${snapshotId}/raw/agents/manifest.json`));
   await copy(SUITE_PATH, path.join(datasetRoot, `snapshots/${snapshotId}/raw/generation-suite.json`));
-  for (const file of ['result.json', 'checksums.json', 'SHA256SUMS', 'positions.json']) {
-    await copy(path.join(RESULT_ROOT, file), path.join(datasetRoot, `snapshots/${snapshotId}/raw/matches/${file}`));
+  for (const file of await walk(RESULT_ROOT)) {
+    const relative = path.relative(RESULT_ROOT, file);
+    await copy(file, path.join(datasetRoot, `snapshots/${snapshotId}/raw/matches`, relative));
   }
 
   const manifestRelative = `snapshots/${snapshotId}/manifest.json`;
@@ -284,6 +287,7 @@ async function main() {
     },
   });
   await writeFile(path.join(releaseRoot, 'snapshot.unpublished.json'), `${canonicalJson(snapshot, { space: 2 })}\n`);
+  await writeFile(path.join(options.outputRoot, 'latest.json'), `${canonicalJson({ snapshotRoot }, { space: 2 })}\n`);
   console.log(`Packaged ${snapshotId}: ${runs.length} runs, ${matches.length} matches, ${moves.length} moves.`);
   console.log(`Dataset staging: ${datasetRoot}`);
   console.log(`Release staging: ${releaseRoot}`);

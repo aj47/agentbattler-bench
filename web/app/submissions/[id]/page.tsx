@@ -6,6 +6,7 @@ import { CopyButton } from '../../../components/CopyButton';
 import { Metric } from '../../../components/Metric';
 import { VerificationBadge } from '../../../components/VerificationBadge';
 import { formatDuration, formatNumber, getAgent, shortHash, siteData } from '../../../lib/data';
+import { publication } from '../../../lib/publication';
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,7 @@ export default async function SubmissionPage({ params }: PageProps) {
   const agent = getAgent((await params).id);
   if (!agent) notFound();
   const command = agent.generation.command.join(' ');
+  const trace = publication.agents[agent.id];
 
   return (
     <main className="shell detail-page">
@@ -57,6 +59,7 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><span>input tokens</span><strong>{formatNumber(agent.generation.inputTokens)}</strong></div>
               <div><span>output tokens</span><strong>{formatNumber(agent.generation.outputTokens)}</strong></div>
             </div>
+            {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">inspect raw trace ↗</a><a href={trace.downloadUrl}>download JSONL</a></p> : null}
             <details className="evidence-disclosure">
               <summary>exact generation command <span>show</span></summary>
               <div className="code-wrap"><CopyButton value={command} /><pre><code>{command}</code></pre></div>
@@ -89,6 +92,7 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><dt>size</dt><dd>{formatNumber(agent.artifact.sizeBytes)} bytes</dd></div>
               <div><dt>prompt SHA</dt><dd title={agent.generation.promptSha256}>{shortHash(agent.generation.promptSha256, 20)}</dd></div>
               <div><dt>session</dt><dd>{shortHash(agent.generation.sessionId, 20)}</dd></div>
+              {publication.datasetRevision ? <div><dt>dataset commit</dt><dd title={publication.datasetRevision}>{shortHash(publication.datasetRevision, 20)}</dd></div> : null}
             </dl>
           </section>
           <details className="source-panel">

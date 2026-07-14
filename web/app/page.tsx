@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
 import { formatDate, formatDuration, formatNumber, getMatch, resultLabel, siteData } from '../lib/data';
+import { publication } from '../lib/publication';
 
 export default function HomePage() {
   const { benchmark, agents } = siteData;
@@ -13,7 +14,7 @@ export default function HomePage() {
       <section className="hero shell">
         <div className="status-line">
           <span className="live-dot" />
-          <span>local evidence snapshot</span>
+          <span>published evidence snapshot</span>
           <span className="status-separator">/</span>
           <span>{formatDate(benchmark.updatedAt)}</span>
         </div>
@@ -28,6 +29,8 @@ export default function HomePage() {
             <strong>{benchmark.version}</strong>
             <span>result {benchmark.resultSha256Short}</span>
             <Link href="/methodology/">read the protocol →</Link>
+            {publication.datasetUrl ? <a href={publication.datasetUrl} target="_blank" rel="noreferrer">browse public dataset →</a> : null}
+            {publication.releaseUrl ? <a href={publication.releaseUrl} target="_blank" rel="noreferrer">download immutable snapshot →</a> : null}
           </div>
         </div>
         <div className="metrics-strip">
@@ -41,7 +44,7 @@ export default function HomePage() {
       <section className="notice-band">
         <div className="shell notice-inner">
           <strong>Exploratory snapshot</strong>
-          <p>These artifacts predate the canonical Harbor submission flow. Their hashes and local result bundle are verified; independent reproduction is not yet claimed.</p>
+          <p>These artifacts predate the canonical Harbor submission flow. Their hashes and pinned public result bundle are verified; independent reproduction is not yet claimed.</p>
           <Link href="/methodology/#verification">verification levels →</Link>
         </div>
       </section>

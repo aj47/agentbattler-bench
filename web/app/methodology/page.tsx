@@ -26,7 +26,7 @@ export default function MethodologyPage() {
         <div className="methodology-copy">
           <section id="pipeline">
             <span className="chapter-number">01</span><h2>Evidence pipeline</h2>
-            <p>A generation run begins in a disposable workspace with the target prompt and an explicit model. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. The website is built from those same committed artifacts and refuses to publish if integrity checks fail.</p>
+            <p>A generation run begins in a disposable workspace with the target prompt and an explicit model. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Full evidence is stored in a revision-pinned Hugging Face Dataset and mirrored in an immutable GitHub Release; the website refuses to build unless the downloaded bytes match the committed snapshot manifest.</p>
             <div className="protocol-steps"><div><strong>generate</strong><span>source + harness telemetry</span></div><div><strong>verify</strong><span>hashes + contract probes</span></div><div><strong>battle</strong><span>positions + seeds + traces</span></div><div><strong>publish</strong><span>standings + dossiers + replay</span></div></div>
           </section>
           <section id="contract">
@@ -40,7 +40,7 @@ export default function MethodologyPage() {
             <div className="verification-levels">
               <div><span className="level-mark level-exploratory">E</span><div><strong>Exploratory local</strong><p>Bundle integrity checked locally; no canonical Harbor reproduction.</p></div></div>
               <div><span className="level-mark">S</span><div><strong>Self-run</strong><p>Canonical submission validates and executes in the declared environment.</p></div></div>
-              <div><span className="level-mark">T</span><div><strong>Trace-reviewed</strong><p>Submission evidence and a sample of execution traces receive review.</p></div></div>
+              <div><span className="level-mark">T</span><div><strong>Trace-reviewed</strong><p>Submission evidence and every passing generation trace receive review.</p></div></div>
               <div><span className="level-mark">M</span><div><strong>Maintainer-verified</strong><p>Independent maintainers reproduce the declared benchmark result.</p></div></div>
             </div>
           </section>

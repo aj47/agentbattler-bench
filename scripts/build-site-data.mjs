@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,9 +9,18 @@ import {
   sha256File,
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
+import {
+  fetchVerified,
+  githubReleaseAssetUrl,
+  huggingFaceResolveUrl,
+  readSnapshot,
+  verifyFile,
+} from '../src/snapshot.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'web/generated/site-data.json');
+const PUBLICATION_OUTPUT = path.join(ROOT, 'web/generated/publication.json');
+const SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest.json');
 const MANIFEST_PATH = path.join(ROOT, 'agents/model-suite/manifest.json');
 const SUITE_PATH = path.join(ROOT, 'results/model-suite/generation-suite.json');
 const RESULT_PATH = path.join(ROOT, 'results/model-suite/matches/result.json');
@@ -40,7 +49,59 @@ function shortHash(value) {
   return value?.slice(0, 12) ?? null;
 }
 
+function huggingFaceBlobUrl(snapshot, artifactPath) {
+  const repo = snapshot.dataset.repoId.split('/').map(encodeURIComponent).join('/');
+  const objectPath = artifactPath.split('/').map(encodeURIComponent).join('/');
+  return `https://huggingface.co/datasets/${repo}/blob/${snapshot.dataset.revision}/${objectPath}`;
+}
+
+async function preparePublishedSnapshot() {
+  if (process.argv.includes('--local')) return false;
+  let snapshot;
+  try {
+    snapshot = await readSnapshot(SNAPSHOT_PATH);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+  const artifact = snapshot.dataset.siteData;
+  const cache = path.join(ROOT, '.artifacts/cache', snapshot.snapshotId, artifact.sha256, path.basename(artifact.path));
+  try {
+    await verifyFile(cache, artifact);
+  } catch {
+    const url = huggingFaceResolveUrl(snapshot, artifact);
+    await fetchVerified([url, url, url], cache, artifact);
+  }
+  const data = await readJson(cache);
+  invariant(data.schemaVersion === 'agentbattler.site-data.v1', 'Published site data has an unsupported schema');
+  invariant(data.matches.length === snapshot.totals.matches, 'Published site data match count disagrees with snapshot');
+  invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
+  const traceEvidence = Object.fromEntries(data.agents.map((agent) => {
+    const tracePath = `${snapshot.dataset.root}/traces/${agent.id}/${agent.generation.sessionId}.jsonl`;
+    const traceArtifact = { path: tracePath, sha256: '0'.repeat(64), sizeBytes: 0 };
+    return [agent.id, {
+      tracePath,
+      viewerUrl: huggingFaceBlobUrl(snapshot, tracePath),
+      downloadUrl: huggingFaceResolveUrl(snapshot, traceArtifact),
+    }];
+  }));
+  await mkdir(path.dirname(OUTPUT), { recursive: true });
+  await copyFile(cache, OUTPUT);
+  await writeFile(PUBLICATION_OUTPUT, `${canonicalJson({
+    snapshotId: snapshot.snapshotId,
+    snapshotSha256: snapshot.snapshotSha256,
+    datasetUrl: `https://huggingface.co/datasets/${snapshot.dataset.repoId}/tree/${snapshot.dataset.revision}`,
+    datasetRevision: snapshot.dataset.revision,
+    releaseUrl: `https://github.com/${snapshot.release.repository}/releases/tag/${snapshot.release.tag}`,
+    archiveUrl: githubReleaseAssetUrl(snapshot),
+    agents: traceEvidence,
+  }, { space: 2 })}\n`);
+  console.log(`Prepared pinned website data from ${snapshot.dataset.repoId}@${shortHash(snapshot.dataset.revision)}.`);
+  return true;
+}
+
 async function main() {
+  if (await preparePublishedSnapshot()) return;
   const [manifest, suite, result, checksums] = await Promise.all([
     readJson(MANIFEST_PATH),
     readJson(SUITE_PATH),
@@ -208,6 +269,15 @@ async function main() {
 
   await mkdir(path.dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, `${canonicalJson(data, { space: 2 })}\n`);
+  await writeFile(PUBLICATION_OUTPUT, `${canonicalJson({
+    snapshotId: null,
+    snapshotSha256: null,
+    datasetUrl: null,
+    datasetRevision: null,
+    releaseUrl: null,
+    archiveUrl: null,
+    agents: {},
+  }, { space: 2 })}\n`);
   console.log(`Prepared ${agents.length} agents and ${matches.length} matches for ${path.relative(ROOT, OUTPUT)}`);
   console.log(`Verified result ${shortHash(resultSha256)} and ${checksums.entries.length} bundle checksums.`);
 }

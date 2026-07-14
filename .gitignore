@@ -1,5 +1,12 @@
 node_modules/
+jobs/
+web/.next/
+web/node_modules/
+web/out/
+web/generated/site-data.json
+trials/
 results/latest/
 results/smoke-*/
+results/model-suite/
 *.log
 .DS_Store

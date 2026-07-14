@@ -15,6 +15,6 @@
     "generate:model-suite": "node scripts/generate-model-suite.mjs",
     "validate:model-suite": "node bin/agentbattler.mjs validate --manifest agents/model-suite/manifest.json --pairing all-pairs",
     "benchmark:model-suite": "node bin/agentbattler.mjs run --manifest agents/model-suite/manifest.json --pairing all-pairs --output results/model-suite/matches --no-smoke",
-    "replay:model-suite": "node bin/agentbattler.mjs replay results/model-suite/matches/result.json"
+    "replay:model-suite": "node scripts/replay-snapshot.mjs"
   }
 }

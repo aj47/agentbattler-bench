@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-07-13T19:07:29.238Z",
+  "dataset": {
+    "manifest": {
+      "path": "snapshots/model-suite-2026-07-13-v2/manifest.json",
+      "sha256": "7160a7c006fde3eb9ade6340100d40f90be08ca703b4588419af619185f59f2a",
+      "sizeBytes": 5401
+    },
+    "repoId": "techfren/agentbattler-bench",
+    "repoType": "dataset",
+    "revision": "ea73b969c7ac7c63247991973aa2796664ab0131",
+    "root": "snapshots/model-suite-2026-07-13-v2",
+    "siteData": {
+      "path": "snapshots/model-suite-2026-07-13-v2/site/site-data.json",
+      "sha256": "9f2485db53dbafb35bae3d5994e555258a57a06d11cfafff7cdadb72fbe09051",
+      "sizeBytes": 870209
+    }
+  },
+  "release": {
+    "archive": {
+      "path": "agentbattler-model-suite-2026-07-13-v2.tar.gz",
+      "sha256": "ce808f68d802308daf597342dbf8008ca54bab3297ef8547bacad0c0d337c692",
+      "sizeBytes": 203561
+    },
+    "repository": "aj47/agentbattler-bench",
+    "tag": "snapshot-model-suite-2026-07-13-v2"
+  },
+  "schemaVersion": "agentbattler.snapshot.v1",
+  "snapshotId": "model-suite-2026-07-13-v2",
+  "snapshotSha256": "db1d36e96cd860dc7fae8db37d81757ba2b18737250f1430fa7a96c2b1dc2b41",
+  "source": {
+    "gitCommit": "6c65c7401b751f70f9eb07a12a93963aefdc9d74"
+  },
+  "totals": {
+    "matches": 72,
+    "moves": 2302,
+    "runs": 3,
+    "tokens": 556657,
+    "toolCalls": 25
+  }
+}

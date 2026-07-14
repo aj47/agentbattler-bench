@@ -1,5 +1,9 @@
 # AgentBattler Bench
 
+## Published benchmark data
+
+Raw generation traces and tournament result bodies are no longer stored in Git history. The current sealed pointer is [`snapshots/latest.json`](snapshots/latest.json): it pins the public [Hugging Face Dataset](https://huggingface.co/datasets/techfren/agentbattler-bench) by commit and mirrors the same evidence tree in an immutable [GitHub Release](https://github.com/aj47/agentbattler-bench/releases/tag/snapshot-model-suite-2026-07-13-v2). `npm run replay:model-suite` downloads the Release archive, verifies its size and SHA-256, and replays all 72 games locally. See [docs/storage.md](docs/storage.md) for the publication and retention contract.
+
 AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
 
 The current roster is intentionally a fixture roster. It contains one human reference and two clearly labeled, hand-authored non-reference fixtures. The fixtures validate the runner; they are **not** Auggie, Claude Code, Codex, model-quality, or harness-comparison results. See [PRD.md](PRD.md) for the product boundary and [agents/manifest.json](agents/manifest.json) for exact provenance.

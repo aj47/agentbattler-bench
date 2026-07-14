@@ -1,5 +1,15 @@
 # Replaying a result
 
+## Published model-suite snapshot
+
+From a clean checkout, replay the externally stored Terra/Sol/Luna snapshot with:
+
+```sh
+npm run replay:model-suite
+```
+
+The command reads [`snapshots/latest.json`](../snapshots/latest.json), downloads the tag-scoped immutable GitHub Release archive, checks its declared byte size and SHA-256, extracts it into the ignored local cache, and verifies all 72 games, grades, summary values, and replay-bundle checksums. Raw result bodies do not need to be checked into the source repository.
+
 ## Locally generated result
 
 From a clean checkout with Node.js 20 or newer:

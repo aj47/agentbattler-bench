@@ -1,5 +1,9 @@
 # Evidence and publication model
 
+## Current published snapshot
+
+[`snapshots/latest.json`](../snapshots/latest.json) is the compact source-of-truth pointer for the published model-suite evidence. It pins a Hugging Face Dataset commit containing normalized tables, raw traces, generated artifacts, match bodies, and website data, plus an immutable GitHub Release archive of the same staging tree. Consumers verify exact byte sizes and SHA-256 values before use; mutable branches and expiring Actions artifacts are not canonical evidence. The storage lifecycle is documented in [storage.md](storage.md).
+
 ## What a trusted run records
 
 The checked-in roster and position suite are immutable inputs at a particular commit. The trusted workflow packages:

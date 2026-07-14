@@ -1,0 +1,72 @@
+{
+  "agents": [
+    {
+      "displayName": "GPT-5.6 Terra",
+      "id": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationMetadata": "results/model-suite/generations/terra/metadata.json",
+        "harness": "codex-cli",
+        "harnessVersion": "0.144.0",
+        "isFixture": false,
+        "kind": "codex-cli-generated",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "626797a29f025a5134e5b959be282a8d18380c915c54bb31ba8dd84e08d027b3",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/model-suite/terra.js",
+      "sourceSha256": "46b139aa97f13bbe4301078927c9c5dd390670eafa403231ffb4e397419f316e"
+    },
+    {
+      "displayName": "GPT-5.6 Sol",
+      "id": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationMetadata": "results/model-suite/generations/sol/metadata.json",
+        "harness": "codex-cli",
+        "harnessVersion": "0.144.0",
+        "isFixture": false,
+        "kind": "codex-cli-generated",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "626797a29f025a5134e5b959be282a8d18380c915c54bb31ba8dd84e08d027b3",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/model-suite/sol.js",
+      "sourceSha256": "8ffd7bf33b8521f93b9f358d45b9f4fceb825d4e1a58fca32754bbdc5996f8e9"
+    },
+    {
+      "displayName": "GPT-5.6 Luna",
+      "id": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationMetadata": "results/model-suite/generations/luna/metadata.json",
+        "harness": "codex-cli",
+        "harnessVersion": "0.144.0",
+        "isFixture": false,
+        "kind": "codex-cli-generated",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "626797a29f025a5134e5b959be282a8d18380c915c54bb31ba8dd84e08d027b3",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/model-suite/luna.js",
+      "sourceSha256": "fa0af8d639ccbd1201aa976f38a5ad84e037dd67c5c81da14ea5b9f150aace3c"
+    }
+  ],
+  "comparison": {
+    "harness": "codex-cli",
+    "harnessVersion": "0.144.0",
+    "kind": "model-comparison",
+    "prompt": "benchmark/challenges/chess-agent-v1.md",
+    "promptSha256": "626797a29f025a5134e5b959be282a8d18380c915c54bb31ba8dd84e08d027b3",
+    "reasoningEffort": "high"
+  },
+  "description": "Local Codex model comparison generated from one fixed prompt at high reasoning in isolated empty workspaces.",
+  "manifestId": "codex-model-suite-2026-07-13T19-07-29-236Z",
+  "schemaVersion": "agentbattler.agent-manifest.v1"
+}

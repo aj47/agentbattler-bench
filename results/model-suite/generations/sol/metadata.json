@@ -1,0 +1,169 @@
+{
+  "agent": {
+    "path": "agents/model-suite/sol.js",
+    "sha256": "8ffd7bf33b8521f93b9f358d45b9f4fceb825d4e1a58fca32754bbdc5996f8e9",
+    "sizeBytes": 8206
+  },
+  "probeSummary": {
+    "allPassed": true,
+    "passed": 6,
+    "total": 6
+  },
+  "probes": [
+    {
+      "detail": null,
+      "legal": true,
+      "move": "a2a4",
+      "positionId": "initial-position",
+      "runtimeMs": 130.399,
+      "status": "ok"
+    },
+    {
+      "detail": null,
+      "legal": true,
+      "move": "e1e2",
+      "positionId": "king-in-rook-check",
+      "runtimeMs": 70.646,
+      "status": "ok"
+    },
+    {
+      "detail": null,
+      "legal": true,
+      "move": "a1a8",
+      "positionId": "both-sides-castling",
+      "runtimeMs": 94,
+      "status": "ok"
+    },
+    {
+      "detail": null,
+      "legal": true,
+      "move": "e5d6",
+      "positionId": "white-en-passant",
+      "runtimeMs": 71.624,
+      "status": "ok"
+    },
+    {
+      "detail": null,
+      "legal": true,
+      "move": "a7a8q",
+      "positionId": "white-promotion-choice",
+      "runtimeMs": 76.07,
+      "status": "ok"
+    },
+    {
+      "detail": null,
+      "legal": true,
+      "move": "e2e8",
+      "positionId": "rook-pinned-to-king",
+      "runtimeMs": 71.279,
+      "status": "ok"
+    }
+  ],
+  "prompt": {
+    "path": "benchmark/challenges/chess-agent-v1.md",
+    "sha256": "626797a29f025a5134e5b959be282a8d18380c915c54bb31ba8dd84e08d027b3"
+  },
+  "run": {
+    "codexVersion": "0.144.0",
+    "command": [
+      "codex",
+      "exec",
+      "--model",
+      "gpt-5.6-sol",
+      "--sandbox",
+      "workspace-write",
+      "--ephemeral",
+      "--ignore-user-config",
+      "--ignore-rules",
+      "--skip-git-repo-check",
+      "--json",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "web_search=\"disabled\"",
+      "-c",
+      "features.apps=false",
+      "-c",
+      "features.multi_agent=false",
+      "-c",
+      "features.hooks=false",
+      "-c",
+      "features.shell_snapshot=false",
+      "-c",
+      "mcp_servers={}",
+      "-C",
+      "/var/folders/1t/tn_3vh3x0nv_snwb7xrv97th0000gn/T/agentbattler-sol-lRWahi/workspace",
+      "-"
+    ],
+    "durationMs": 181813,
+    "exitCode": 0,
+    "isolation": {
+      "approvalPolicy": "never",
+      "appsEnabled": false,
+      "authCopiedIntoEphemeralHome": true,
+      "codexHome": "ephemeral-temporary-directory",
+      "configuredMcpServers": 0,
+      "emptyWorkspaceAtStart": true,
+      "ephemeralSession": true,
+      "finalWorkspaceEntries": [
+        {
+          "name": "agent.js",
+          "type": "file"
+        }
+      ],
+      "hooksEnabled": false,
+      "ignoreRules": true,
+      "ignoreUserConfig": true,
+      "isolatedHomeEntriesAfterRun": [
+        "cache",
+        "config.toml",
+        "goals_1.sqlite",
+        "installation_id",
+        "logs_2.sqlite",
+        "memories_1.sqlite",
+        "models_cache.json",
+        "plugins",
+        "skills",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "tmp"
+      ],
+      "multiAgentEnabled": false,
+      "onlyAgentFileCreated": true,
+      "sandbox": "workspace-write",
+      "shellSnapshotEnabled": false,
+      "skillDirectoryPresentAtStart": false,
+      "webSearch": "disabled"
+    },
+    "modelRequested": "gpt-5.6-sol",
+    "reasoningEffort": "high",
+    "runCount": 1,
+    "sessionId": "019f5cdd-a27c-7ca2-a7e9-b512e6e2179b"
+  },
+  "schemaVersion": "agentbattler.codex-generation-metadata.v1",
+  "telemetry": {
+    "cachedInputTokens": 86528,
+    "eventCount": 17,
+    "eventTypes": {
+      "item.completed": 9,
+      "item.started": 5,
+      "thread.started": 1,
+      "turn.completed": 1,
+      "turn.started": 1
+    },
+    "inputTokens": 105028,
+    "mcpCallCount": 0,
+    "outputTokens": 8031,
+    "reasoningTokens": 3033,
+    "toolCallBreakdown": {
+      "command_execution": 4,
+      "file_change": 1
+    },
+    "toolCallCount": 5,
+    "totalTokens": 113059,
+    "turnCount": 1
+  }
+}

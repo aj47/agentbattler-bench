@@ -1,0 +1,81 @@
+name: Trusted benchmark
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: Validate, run, and package replay evidence
+    # A manual dispatch from a feature branch must not become a trusted run.
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the trusted commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Select Node.js 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: false
+
+      # package.json intentionally has no dependencies. Do not add an install step here:
+      # trusted runs execute only the checked-in runner and fixture sources.
+      - name: Record runtime versions
+        run: |
+          mkdir -p results/workflow-logs
+          node --version | tee results/workflow-logs/node-version.log
+          npm --version | tee results/workflow-logs/npm-version.log
+
+      - name: Validate checked-in inputs
+        run: npm run validate 2>&1 | tee results/workflow-logs/validate.log
+
+      - name: Run tests
+        run: npm test 2>&1 | tee results/workflow-logs/test.log
+
+      - name: Run benchmark
+        run: npm run benchmark 2>&1 | tee results/workflow-logs/benchmark.log
+
+      - name: Replay recorded result
+        run: npm run replay -- results/latest/result.json 2>&1 | tee results/workflow-logs/replay.log
+
+      - name: Package complete replay evidence
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          COMMIT_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/replay-bundle"
+          mkdir -p "$bundle/agents" "$bundle/benchmark/positions" "$bundle/results/latest" "$bundle/logs"
+          cp agents/manifest.json agents/*.js "$bundle/agents/"
+          cp benchmark/positions/v1.json "$bundle/benchmark/positions/"
+          if [ -d results/latest ]; then cp -R results/latest/. "$bundle/results/latest/"; fi
+          if [ -d results/workflow-logs ]; then cp -R results/workflow-logs/. "$bundle/logs/"; fi
+          node --input-type=module -e 'import fs from "node:fs"; const keys=["RUN_ID","RUN_ATTEMPT","COMMIT_SHA","REPOSITORY","WORKFLOW_REF","EVENT_NAME"]; fs.writeFileSync(process.argv[1], JSON.stringify(Object.fromEntries(keys.map(k=>[k,process.env[k]])), null, 2)+"\n")' "$bundle/workflow.json"
+          cd "$bundle"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          printf 'Replay bundle prepared for commit `%s`, run `%s`, attempt `%s`.\n' "$COMMIT_SHA" "$RUN_ID" "$RUN_ATTEMPT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload replay evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agentbattler-replay-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/replay-bundle
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,20 @@
+{
+  "name": "agentbattler-bench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public, replayable chess-agent harness benchmark proof loop",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate": "node bin/agentbattler.mjs validate",
+    "benchmark": "node bin/agentbattler.mjs run",
+    "replay": "node bin/agentbattler.mjs replay",
+    "generate:model-suite": "node scripts/generate-model-suite.mjs",
+    "validate:model-suite": "node bin/agentbattler.mjs validate --manifest agents/model-suite/manifest.json --pairing all-pairs",
+    "benchmark:model-suite": "node bin/agentbattler.mjs run --manifest agents/model-suite/manifest.json --pairing all-pairs --output results/model-suite/matches --no-smoke",
+    "replay:model-suite": "node bin/agentbattler.mjs replay results/model-suite/matches/result.json"
+  }
+}

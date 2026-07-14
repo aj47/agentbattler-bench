@@ -1,0 +1,35 @@
+{
+  "algorithm": "sha256",
+  "entries": [
+    {
+      "path": "agents/luna.js",
+      "sha256": "fa0af8d639ccbd1201aa976f38a5ad84e037dd67c5c81da14ea5b9f150aace3c",
+      "sizeBytes": 6816
+    },
+    {
+      "path": "agents/manifest.json",
+      "sha256": "20ade613b24e83a8211e4032ca15302bca5eb5aeea12dfc431a990b0e176e461",
+      "sizeBytes": 2817
+    },
+    {
+      "path": "agents/sol.js",
+      "sha256": "8ffd7bf33b8521f93b9f358d45b9f4fceb825d4e1a58fca32754bbdc5996f8e9",
+      "sizeBytes": 8206
+    },
+    {
+      "path": "agents/terra.js",
+      "sha256": "46b139aa97f13bbe4301078927c9c5dd390670eafa403231ffb4e397419f316e",
+      "sizeBytes": 5923
+    },
+    {
+      "path": "positions.json",
+      "sha256": "6e6c3eb8b9b683eed6ae0f5a107823d072f199c754dd92d4bbb0e2af97df0089",
+      "sizeBytes": 2199
+    },
+    {
+      "path": "result.json",
+      "sha256": "def488986ac68cc320d792f3a0e9dda1030db4a3a28e0d95e3d5ae665a6a9ccb",
+      "sizeBytes": 1276135
+    }
+  ]
+}

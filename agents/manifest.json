@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "agentbattler.agent-manifest.v1",
+  "manifestId": "phase1-fixture-roster-v1",
+  "description": "Phase 1 local proof-loop roster. The two fixture agents are test doubles, not outputs from Auggie, Claude Code, Codex, or any other compared harness.",
+  "agents": [
+    {
+      "id": "reference-baseline",
+      "displayName": "Human reference baseline",
+      "role": "reference",
+      "source": "agents/reference-baseline.js",
+      "sourceSha256": "51a9fc4f6fe3118af7a48cd991dd924dd26be0a312ebdee3ff11417fb6a74520",
+      "provenance": {
+        "kind": "human-authored-reference",
+        "isFixture": false,
+        "generatedByHarness": false,
+        "harness": null,
+        "model": null,
+        "prompt": null,
+        "promptSha256": null,
+        "note": "Checked-in human-authored implementation used as the reference control."
+      }
+    },
+    {
+      "id": "fixture-first-legal",
+      "displayName": "Fixture: first legal move",
+      "role": "non-reference-fixture",
+      "source": "agents/fixture-first-legal.js",
+      "sourceSha256": "09b3bd96d9fb6a3d68d1e2267004091ba9b5eb01afa05afd1b641fcc3f5fc2dc",
+      "provenance": {
+        "kind": "deterministic-test-fixture",
+        "isFixture": true,
+        "generatedByHarness": false,
+        "harness": null,
+        "model": null,
+        "prompt": null,
+        "promptSha256": null,
+        "note": "Hand-authored contract fixture. It must not be presented as evidence about a coding-agent harness."
+      }
+    },
+    {
+      "id": "fixture-seeded-legal",
+      "displayName": "Fixture: FEN-seeded legal move",
+      "role": "non-reference-fixture",
+      "source": "agents/fixture-seeded-legal.js",
+      "sourceSha256": "f9ae5073298c766d58e992ea7c2cc74b17b38878de43dc68a23e93592843a5e6",
+      "provenance": {
+        "kind": "deterministic-test-fixture",
+        "isFixture": true,
+        "generatedByHarness": false,
+        "harness": null,
+        "model": null,
+        "prompt": null,
+        "promptSha256": null,
+        "note": "Hand-authored contract fixture. It must not be presented as evidence about a coding-agent harness."
+      }
+    }
+  ]
+}

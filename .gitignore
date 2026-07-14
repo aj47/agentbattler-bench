@@ -1,0 +1,5 @@
+node_modules/
+results/latest/
+results/smoke-*/
+*.log
+.DS_Store

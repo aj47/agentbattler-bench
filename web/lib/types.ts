@@ -1,0 +1,147 @@
+export type VerificationLevel = 'exploratory' | 'self-run' | 'trace-reviewed' | 'maintainer-verified';
+
+export type Probe = {
+  positionId: string;
+  status: string;
+  move: string | null;
+  legal: boolean;
+  runtimeMs: number;
+  detail: string | null;
+};
+
+export type MatchSummary = {
+  id: string;
+  opponentId: string;
+  opponentName: string;
+  color: 'white' | 'black';
+  score: number;
+  outcome: string;
+  reason: string;
+  positionId: string;
+  seed: number;
+  plies: number;
+};
+
+export type Agent = {
+  id: string;
+  displayName: string;
+  harness: string;
+  harnessVersion: string;
+  model: string;
+  reasoningEffort: string;
+  verification: {
+    level: VerificationLevel;
+    label: string;
+    detail: string;
+  };
+  standing: {
+    rank: number;
+    elo: number;
+    games: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    points: number;
+  };
+  generation: {
+    modelRequested: string;
+    codexVersion: string;
+    durationMs: number;
+    turns: number;
+    toolCalls: number;
+    toolBreakdown: Record<string, number>;
+    mcpCalls: number;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    reasoningTokens: number;
+    totalTokens: number;
+    promptPath: string;
+    promptSha256: string;
+    sessionId: string;
+    command: string[];
+    isolation: Record<string, unknown>;
+    probes: Probe[];
+    probeSummary: { allPassed: boolean; passed: number; total: number };
+  };
+  artifact: {
+    sourcePath: string;
+    sourceSha256: string;
+    sizeBytes: number;
+    source: string;
+  };
+  matches: MatchSummary[];
+  decisiveGames: number;
+};
+
+export type MatchAgent = {
+  id: string;
+  name: string;
+  harness: string;
+  model: string;
+  sourceSha256: string;
+};
+
+export type Ply = {
+  ply: number;
+  color: 'w' | 'b';
+  agentId: string;
+  input: string;
+  move: string | null;
+  resultingFen: string | null;
+  runtimeMs: number;
+  status: string;
+};
+
+export type Match = {
+  id: string;
+  white: MatchAgent;
+  black: MatchAgent;
+  position: {
+    id: string;
+    initialFen: string;
+    seed: number;
+    maxPlies: number;
+  };
+  final: {
+    outcome: string;
+    reason: string;
+    failure: unknown;
+  };
+  plies: Ply[];
+  resultSha256: string;
+};
+
+export type SiteData = {
+  schemaVersion: string;
+  benchmark: {
+    name: string;
+    version: string;
+    description: string;
+    status: string;
+    updatedAt: string;
+    manifestId: string;
+    manifestSha256: string;
+    resultSha256: string;
+    resultSha256Short: string;
+    promptSha256: string;
+    globalConfigUnchanged: boolean;
+    totals: {
+      agents: number;
+      matches: number;
+      uniqueScenarios: number;
+      decisive: number;
+      draws: number;
+      voids: number;
+      agentInvocations: number;
+      generationTokens: number;
+      generationToolCalls: number;
+      generationMcpCalls: number;
+      matchDurationMs: number;
+    };
+    warning: string;
+  };
+  agents: Agent[];
+  matches: Match[];
+  latestDecisiveId: string | null;
+};

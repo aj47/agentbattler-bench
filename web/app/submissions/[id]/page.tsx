@@ -3,10 +3,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { CopyButton } from '../../../components/CopyButton';
+import { EntryIdentity } from '../../../components/EntryIdentity';
+import { MatchHistory } from '../../../components/MatchHistory';
 import { Metric } from '../../../components/Metric';
+import { ProofSpine } from '../../../components/ProofSpine';
 import { VerificationBadge } from '../../../components/VerificationBadge';
 import { formatDuration, formatNumber, getAgent, shortHash, siteData } from '../../../lib/data';
 import { publication } from '../../../lib/publication';
+import { runProofNodes } from '../../../lib/proof';
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -26,13 +30,13 @@ export default async function SubmissionPage({ params }: PageProps) {
   const trace = publication.agents[agent.id];
 
   return (
-    <main className="shell detail-page">
-      <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">leaderboard</Link><span>/</span><span>{agent.id}</span></nav>
+    <main className="shell detail-page dossier-page">
+      <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/results/">results</Link><span>/</span><span>{agent.id}</span></nav>
       <header className="detail-hero">
         <div>
-          <span className="eyebrow">submission dossier · rank {String(agent.standing.rank).padStart(2, '0')}</span>
+          <span className="eyebrow">Composite entry · rank {String(agent.standing.rank).padStart(2, '0')}</span>
           <h1>{agent.harness}<br /><span>{agent.model}</span></h1>
-          <p>{agent.displayName} is an executable artifact generated at high reasoning effort, then probed and run through the local chess suite.</p>
+          <p>This dossier connects how the executable artifact was generated to how it performed. The entry is the complete run identity below—not the model name alone.</p>
         </div>
         <div className="detail-status">
           <VerificationBadge level={agent.verification.level} label={agent.verification.label} />
@@ -40,16 +44,21 @@ export default async function SubmissionPage({ params }: PageProps) {
         </div>
       </header>
 
-      <section className="metrics-strip detail-metrics">
-        <Metric label="provisional Elo" value={agent.standing.elo} detail={`rank ${agent.standing.rank} of ${siteData.agents.length}`} />
-        <Metric label="record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points`} />
-        <Metric label="generation time" value={formatDuration(agent.generation.durationMs)} detail={`${agent.generation.turns} agent turns`} />
-        <Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={`${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
+      <section className="identity-section" aria-labelledby="identity-title">
+        <div className="section-heading compact"><div><span className="eyebrow">Ranked entry identity</span><h2 id="identity-title">What exactly was ranked?</h2></div><span className="provisional-label">task {siteData.benchmark.version}</span></div>
+        <EntryIdentity agent={agent} />
+      </section>
+
+      <ProofSpine nodes={runProofNodes(siteData, publication, agent)} level={agent.verification.level} label={`${agent.displayName} proof spine`} />
+
+      <section className="dual-summary">
+        <div><span className="eyebrow">Generation measurement</span><div className="summary-metrics"><Metric label="generation time" value={formatDuration(agent.generation.durationMs)} detail={`${agent.generation.turns} agent turns`} /><Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={`${formatNumber(agent.generation.reasoningTokens)} reasoning`} /></div></div>
+        <div><span className="eyebrow">Performance measurement</span><div className="summary-metrics"><Metric label="provisional Elo" value={agent.standing.elo} detail="uncertainty unavailable" /><Metric label="record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.games} games · ${agent.standing.points} points`} /></div></div>
       </section>
 
       <section className="dossier-grid">
         <div className="dossier-main">
-          <section className="evidence-section" aria-labelledby="telemetry-title">
+          <section className="evidence-section" id="generation" aria-labelledby="telemetry-title">
             <div className="section-heading compact"><div><span className="eyebrow">generation trace</span><h2 id="telemetry-title">Harness telemetry</h2></div></div>
             <div className="telemetry-grid">
               <div><span>Codex version</span><strong>{agent.generation.codexVersion}</strong></div>
@@ -60,13 +69,13 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><span>output tokens</span><strong>{formatNumber(agent.generation.outputTokens)}</strong></div>
             </div>
             {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">open HF trace viewer ↗</a><a href={trace.sessionUrl} target="_blank" rel="noreferrer">native session</a><a href={trace.cliEventsUrl} target="_blank" rel="noreferrer">CLI events</a></p> : null}
-            <details className="evidence-disclosure">
+            <details className="evidence-disclosure" id="prompt">
               <summary>exact generation command <span>show</span></summary>
               <div className="code-wrap"><CopyButton value={command} /><pre><code>{command}</code></pre></div>
             </details>
           </section>
 
-          <section className="evidence-section" aria-labelledby="probes-title">
+          <section className="evidence-section" id="probes" aria-labelledby="probes-title">
             <div className="section-heading compact"><div><span className="eyebrow">preflight</span><h2 id="probes-title">Contract probes</h2></div><span className="pass-count">{agent.generation.probeSummary.passed}/{agent.generation.probeSummary.total} passed</span></div>
             <div className="data-table probe-table">
               <div className="data-head"><span>position</span><span>move</span><span>legal</span><span>runtime</span></div>
@@ -76,15 +85,12 @@ export default async function SubmissionPage({ params }: PageProps) {
 
           <section className="evidence-section" aria-labelledby="matches-title">
             <div className="section-heading compact"><div><span className="eyebrow">competition record</span><h2 id="matches-title">Match history</h2></div><span className="provisional-label">{agent.matches.length} games</span></div>
-            <div className="data-table match-history">
-              <div className="data-head"><span>result</span><span>opponent</span><span>side</span><span>position</span><span>replay</span></div>
-              {agent.matches.map((match) => <Link className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></Link>)}
-            </div>
+            <MatchHistory matches={agent.matches} />
           </section>
         </div>
 
         <aside className="dossier-aside">
-          <section className="integrity-panel">
+          <section className="integrity-panel" id="artifact">
             <span className="eyebrow">artifact integrity</span>
             <dl>
               <div><dt>source</dt><dd>{agent.artifact.sourcePath}</dd></div>

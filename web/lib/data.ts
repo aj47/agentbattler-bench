@@ -40,3 +40,7 @@ export function resultLabel(outcome: string): string {
   if (outcome === '1/2-1/2') return 'Draw';
   return 'Void';
 }
+
+export function agentUniqueScenarios(agent: Agent): number {
+  return new Set(agent.matches.map((match) => `${match.opponentId}|${match.positionId}|${match.color}`)).size;
+}

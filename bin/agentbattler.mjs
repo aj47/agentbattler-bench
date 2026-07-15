@@ -21,6 +21,7 @@ import {
   sha256File,
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
+import { comparisonPairs } from '../src/pairing.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_MANIFEST_PATH = path.join(ROOT, 'agents/manifest.json');
@@ -76,7 +77,7 @@ async function loadAndValidate({
     invariant(references === 1, 'Reference pairing requires exactly one reference agent');
     invariant(nonReferences >= 1, 'Reference pairing requires at least one non-reference agent');
   } else {
-    invariant(pairing === 'all-pairs', `Unsupported pairing mode: ${pairing}`);
+    invariant(['all-pairs', 'cross-model'].includes(pairing), `Unsupported pairing mode: ${pairing}`);
   }
 
   const positionIds = new Set();
@@ -175,20 +176,14 @@ function workflowUrl() {
 
 async function validateCommand(options) {
   const { manifest, suite, agents } = await loadAndValidate(options);
+  const pairs = comparisonPairs(agents, options.pairing);
+  const scheduledGames = pairs.length * suite.positions.reduce(
+    (sum, position) => sum + (position.seeds.length * 2),
+    0,
+  );
   console.log(`Validated ${agents.length} agents, ${suite.positions.length} positions, and ${agents.length * suite.positions.length} sandboxed contract probes.`);
+  console.log(`Pairing ${options.pairing}: ${pairs.length} agent pairs and ${scheduledGames} scheduled games.`);
   console.log(`Manifest: ${manifest.manifestId}; suite: ${suite.suiteId}`);
-}
-
-function comparisonPairs(agents, pairing) {
-  if (pairing === 'reference') {
-    const reference = agents.find((agent) => agent.role === 'reference');
-    return agents.filter((agent) => agent !== reference).map((challenger) => [reference, challenger]);
-  }
-  const pairs = [];
-  for (let first = 0; first < agents.length; first += 1) {
-    for (let second = first + 1; second < agents.length; second += 1) pairs.push([agents[first], agents[second]]);
-  }
-  return pairs;
 }
 
 async function mapConcurrent(items, concurrency, work) {
@@ -322,7 +317,7 @@ function parseArguments(argv) {
     else if (!input) input = value;
     else throw new Error(`Unexpected argument: ${value}`);
   }
-  invariant(['reference', 'all-pairs'].includes(options.pairing), 'Pairing must be reference or all-pairs');
+  invariant(['reference', 'all-pairs', 'cross-model'].includes(options.pairing), 'Pairing must be reference, all-pairs, or cross-model');
   return { command, input, options };
 }
 
@@ -331,7 +326,7 @@ async function main() {
   if (command === 'validate') return validateCommand(options);
   if (command === 'run') return runCommand(options);
   if (command === 'replay') return replayCommand(input);
-  throw new Error('Usage: agentbattler <validate|run|replay> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs] [--no-smoke]');
+  throw new Error('Usage: agentbattler <validate|run|replay> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model] [--no-smoke]');
 }
 
 main().catch((error) => {

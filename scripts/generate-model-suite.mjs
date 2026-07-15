@@ -23,31 +23,46 @@ import { sanitizePublicTrace } from '../src/trace-sanitizer.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROMPT_PATH = path.join(ROOT, 'benchmark/challenges/chess-agent-v1.md');
-const POSITIONS_PATH = path.join(ROOT, 'benchmark/positions/v1.json');
-const AGENTS_DIR = path.join(ROOT, 'agents/model-suite');
-const RESULT_ROOT = path.join(ROOT, 'results/model-suite');
+const POSITIONS_PATH = path.join(ROOT, 'benchmark/positions/v2.json');
+const AGENTS_DIR = process.env.AGENTBATTLER_AGENTS_DIR
+  ? path.resolve(process.env.AGENTBATTLER_AGENTS_DIR)
+  : path.join(ROOT, 'agents/model-suite');
+const RESULT_ROOT = process.env.AGENTBATTLER_RESULT_ROOT
+  ? path.resolve(process.env.AGENTBATTLER_RESULT_ROOT)
+  : path.join(ROOT, 'results/model-suite');
 const GENERATIONS_DIR = path.join(RESULT_ROOT, 'generations');
 const GLOBAL_CONFIG = path.join(os.homedir(), '.codex/config.toml');
 const AUTH_PATH = path.join(os.homedir(), '.codex/auth.json');
 const CODEX_VERSION = '0.144.0';
 const REASONING_EFFORT = 'high';
 const SYSTEM_SKILL_NAMES = ['imagegen', 'openai-docs', 'plugin-creator', 'skill-creator', 'skill-installer'];
-const MODELS = [
+const MODEL_FAMILIES = [
   { id: 'terra', model: 'gpt-5.6-terra', displayName: 'GPT-5.6 Terra' },
   { id: 'sol', model: 'gpt-5.6-sol', displayName: 'GPT-5.6 Sol' },
   { id: 'luna', model: 'gpt-5.6-luna', displayName: 'GPT-5.6 Luna' },
 ];
+const GENERATIONS_PER_MODEL = Number.parseInt(process.env.AGENTBATTLER_GENERATIONS_PER_MODEL ?? '5', 10);
+if (!Number.isSafeInteger(GENERATIONS_PER_MODEL) || GENERATIONS_PER_MODEL < 1) {
+  throw new Error('AGENTBATTLER_GENERATIONS_PER_MODEL must be a positive integer');
+}
+const MODELS = Array.from({ length: GENERATIONS_PER_MODEL }, (_, index) => MODEL_FAMILIES.map((family) => ({
+  ...family,
+  id: `${family.id}-${String(index + 1).padStart(2, '0')}`,
+  displayName: `${family.displayName} #${index + 1}`,
+  modelFamilyId: family.id,
+  generationIndex: index + 1,
+}))).flat();
+const CHILD_ENV_ALLOWLIST = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL', 'NO_COLOR'];
 
 function countBy(values) {
   return Object.fromEntries([...new Set(values)].sort().map((value) => [value, values.filter((item) => item === value).length]));
 }
 
 function chatGptEnvironment(overrides = {}) {
-  const environment = { ...process.env, ...overrides };
-  delete environment.OPENAI_API_KEY;
-  delete environment.CODEX_API_KEY;
-  delete environment.CODEX_ACCESS_TOKEN;
-  return environment;
+  const inherited = Object.fromEntries(CHILD_ENV_ALLOWLIST.flatMap((key) => (
+    typeof process.env[key] === 'string' ? [[key, process.env[key]]] : []
+  )));
+  return { ...inherited, ...overrides };
 }
 
 function isolatedCodexEnvironment(codexHome, overrides = {}) {
@@ -58,6 +73,7 @@ function isolatedCodexEnvironment(codexHome, overrides = {}) {
     XDG_CONFIG_HOME: path.join(codexHome, 'xdg-config'),
     XDG_DATA_HOME: path.join(codexHome, 'xdg-data'),
     XDG_CACHE_HOME: path.join(codexHome, 'xdg-cache'),
+    TMPDIR: path.join(codexHome, 'tmp'),
     CODEX_NON_INTERACTIVE: '1',
     ...overrides,
   });
@@ -108,7 +124,7 @@ async function requireChatGptAuthentication() {
 }
 
 async function prepareIsolatedCodexHome(codexHome) {
-  await Promise.all(['xdg-config', 'xdg-data', 'xdg-cache'].map((name) => mkdir(path.join(codexHome, name), { recursive: true })));
+  await Promise.all(['xdg-config', 'xdg-data', 'xdg-cache', 'tmp'].map((name) => mkdir(path.join(codexHome, name), { recursive: true })));
   const child = spawn('codex', ['login', 'status'], {
     env: isolatedCodexEnvironment(codexHome),
     shell: false,
@@ -285,6 +301,8 @@ async function generateOne(entry, prompt, promptSha256, positions) {
       schemaVersion: 'agentbattler.codex-generation-metadata.v1',
       run: {
         modelRequested: entry.model,
+        modelFamilyId: entry.modelFamilyId,
+        generationIndex: entry.generationIndex,
         reasoningEffort: REASONING_EFFORT,
         codexVersion: CODEX_VERSION,
         sessionId: telemetry.sessionId,
@@ -377,23 +395,30 @@ async function main() {
   await mkdir(AGENTS_DIR, { recursive: true });
   await rm(GENERATIONS_DIR, { recursive: true, force: true });
   await mkdir(GENERATIONS_DIR, { recursive: true });
-  const generated = await Promise.all(MODELS.map((entry) => generateOne(entry, prompt, promptSha256, positionsDocument.positions)));
+  const generated = [];
+  for (const entry of MODELS) {
+    console.log(`Generating ${entry.id} (${entry.model})...`);
+    generated.push(await generateOne(entry, prompt, promptSha256, positionsDocument.positions));
+  }
   const globalConfigHashAfter = await optionalSha256(GLOBAL_CONFIG);
   const manifest = {
     schemaVersion: 'agentbattler.agent-manifest.v1',
     manifestId: `codex-model-suite-${new Date().toISOString().replace(/[:.]/g, '-')}`,
-    description: 'Local Codex model comparison generated from one fixed prompt at high reasoning in isolated empty workspaces.',
+    description: `${GENERATIONS_PER_MODEL} independent Codex generations per model from one fixed prompt at high reasoning in isolated empty workspaces.`,
     comparison: {
       kind: 'model-comparison',
       harness: 'codex-cli',
       harnessVersion: CODEX_VERSION,
       reasoningEffort: REASONING_EFFORT,
+      generationsPerModel: GENERATIONS_PER_MODEL,
       prompt: 'benchmark/challenges/chess-agent-v1.md',
       promptSha256,
     },
     agents: generated.map(({ entry, metadata }) => ({
       id: entry.id,
       displayName: entry.displayName,
+      modelFamilyId: entry.modelFamilyId,
+      generationIndex: entry.generationIndex,
       role: 'model-challenger',
       source: metadata.agent.path,
       sourceSha256: metadata.agent.sha256,
@@ -404,6 +429,8 @@ async function main() {
         harness: 'codex-cli',
         harnessVersion: CODEX_VERSION,
         modelRequested: entry.model,
+        modelFamilyId: entry.modelFamilyId,
+        generationIndex: entry.generationIndex,
         reasoningEffort: REASONING_EFFORT,
         prompt: 'benchmark/challenges/chess-agent-v1.md',
         promptSha256,
@@ -415,7 +442,10 @@ async function main() {
   const suiteMetadata = {
     schemaVersion: 'agentbattler.codex-generation-suite.v1',
     generatedAt: new Date().toISOString(),
-    models: MODELS.map(({ id, model }) => ({ id, model })),
+    generationsPerModel: GENERATIONS_PER_MODEL,
+    families: MODEL_FAMILIES.map(({ id, model, displayName }) => ({ id, model, displayName })),
+    generationOrder: MODELS.map(({ id }) => id),
+    models: MODELS.map(({ id, model, modelFamilyId, generationIndex }) => ({ id, model, modelFamilyId, generationIndex })),
     reasoningEffort: REASONING_EFFORT,
     authentication: {
       method: 'chatgpt',

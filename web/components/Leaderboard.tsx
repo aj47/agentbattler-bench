@@ -8,10 +8,10 @@ export function Leaderboard({ agents }: { agents: Agent[] }) {
     <section className="leaderboard" aria-labelledby="leaderboard-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">current standings</span>
-          <h2 id="leaderboard-title">Harness-generated agents</h2>
+          <span className="eyebrow">artifact drill-down</span>
+          <h2 id="leaderboard-title">All 15 generated engines</h2>
         </div>
-        <span className="provisional-label">sequential Elo · provisional</span>
+        <span className="provisional-label">individual engine Elo · provisional</span>
       </div>
       <div className="leaderboard-head" aria-hidden="true">
         <span>rank</span><span>harness / artifact</span><span>model</span><span>verification</span><span>record</span><span>elo</span>

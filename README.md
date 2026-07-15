@@ -99,8 +99,13 @@ Prerequisites: Node.js 20+, Docker (default), host `devin` for `auth status` pre
 # pin/build the Devin CLI image
 npm run devin:image
 
-# cheap smoke: one sample of the default FREE model (swe-1.7)
+# cheap smoke with the generator default FREE model (swe-1.7)
 AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite
+
+# reproduce the checked-in exploratory sample (agents/devin-suite/devin-glm-5-2-high-01.js)
+AGENTBATTLER_DEVIN_MODELS=glm-5.2-high \
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 \
+  npm run generate:devin-suite
 
 # host fallback without Docker isolation
 AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite:host
@@ -119,6 +124,8 @@ npm run validate:devin-suite
 npm run benchmark:devin-suite
 npm run replay:devin-suite
 ```
+
+The generator default remains **`swe-1.7`**. The committed exploratory sample in this PR is **`glm-5.2-high`** (`devin-glm-5-2-high-01.js`) so free High-promo quality is visible without changing the cheap default smoke model.
 
 Artifacts:
 

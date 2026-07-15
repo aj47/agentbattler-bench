@@ -68,8 +68,13 @@ publishable evidence.
 # build the pinned image
 npm run devin:image
 
-# one sample (free model by default: swe-1.7) — Docker by default
+# one sample (generator default free model: swe-1.7) — Docker by default
 AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite
+
+# match the checked-in exploratory sample (glm-5.2-high)
+AGENTBATTLER_DEVIN_MODELS=glm-5.2-high \
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 \
+  npm run generate:devin-suite
 
 # host fallback
 AGENTBATTLER_DEVIN_RUNTIME=host \

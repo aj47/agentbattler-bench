@@ -273,35 +273,38 @@ async function finalizeGeneration({
 
   // Prefer recovering agent.js if the harness left junk (e.g. package.json)
   // but still produced the contract file. Hard-fail when agent.js is missing.
-  let workspaceEntries = (await readdir(workspace, { withFileTypes: true }))
+  // Capture pre-cleanup entries for truthful provenance (onlyAgentFileCreated).
+  const rawWorkspaceEntries = (await readdir(workspace, { withFileTypes: true }))
     .map((item) => ({
       name: item.name,
       type: item.isFile() ? 'file' : item.isDirectory() ? 'directory' : 'other',
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const hasAgent = workspaceEntries.some((item) => item.type === 'file' && item.name === 'agent.js');
+  const rawFileEntries = rawWorkspaceEntries.filter((item) => item.type === 'file');
+  const onlyAgentFileCreated = rawFileEntries.length === 1 && rawFileEntries[0].name === 'agent.js';
+  const hasAgent = rawFileEntries.some((item) => item.name === 'agent.js');
   if (!hasAgent) {
     throw new Error(
       `${entry.id} did not produce agent.js; workspace entries: `
-      + `${workspaceEntries.map(({ name, type }) => `${name} (${type})`).join(', ') || '(none)'}`,
+      + `${rawWorkspaceEntries.map(({ name, type }) => `${name} (${type})`).join(', ') || '(none)'}`,
     );
   }
   // Remove non-contract leftovers so the published workspace is only agent.js.
-  for (const item of workspaceEntries) {
+  for (const item of rawWorkspaceEntries) {
     if (item.name === 'agent.js') continue;
     await rm(path.join(workspace, item.name), { recursive: true, force: true });
   }
-  workspaceEntries = (await readdir(workspace, { withFileTypes: true }))
+  const finalWorkspaceEntries = (await readdir(workspace, { withFileTypes: true }))
     .map((item) => ({
       name: item.name,
       type: item.isFile() ? 'file' : item.isDirectory() ? 'directory' : 'other',
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const fileEntries = workspaceEntries.filter((item) => item.type === 'file');
-  if (fileEntries.length !== 1 || fileEntries[0].name !== 'agent.js') {
+  const finalFileEntries = finalWorkspaceEntries.filter((item) => item.type === 'file');
+  if (finalFileEntries.length !== 1 || finalFileEntries[0].name !== 'agent.js') {
     throw new Error(
-      `${entry.id} left unexpected workspace files after cleanup: ${fileEntries.map(({ name }) => name).join(', ') || '(none)'}`
-      + `; full entries: ${workspaceEntries.map(({ name, type }) => `${name} (${type})`).join(', ') || '(none)'}`,
+      `${entry.id} left unexpected workspace files after cleanup: ${finalFileEntries.map(({ name }) => name).join(', ') || '(none)'}`
+      + `; full entries: ${finalWorkspaceEntries.map(({ name, type }) => `${name} (${type})`).join(', ') || '(none)'}`,
     );
   }
 
@@ -328,8 +331,12 @@ async function finalizeGeneration({
       command,
       isolation: {
         emptyWorkspaceAtStart: emptyWorkspaceEntries.length === 0,
-        finalWorkspaceEntries: workspaceEntries,
-        onlyAgentFileCreated: fileEntries.length === 1 && fileEntries[0].name === 'agent.js',
+        // Pre-cleanup: what Devin actually left (may include package.json etc.).
+        workspaceEntriesBeforeCleanup: rawWorkspaceEntries,
+        onlyAgentFileCreated,
+        // Post-cleanup published contract workspace (always only agent.js if we got here).
+        finalWorkspaceEntries,
+        cleanedNonContractWorkspaceFiles: !onlyAgentFileCreated,
         hostHomeMounted: false,
         hostConfigNotMounted: true,
         credentialCopiedIntoEphemeralDataHome: true,

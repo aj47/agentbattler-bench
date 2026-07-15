@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertDevinModelsAllowed,
   buildDevinCliArgs,
   buildDevinDockerArgs,
   buildIsolatedDevinConfig,
@@ -9,6 +10,7 @@ import {
   DEVIN_HARNESS_VERSION,
   DEVIN_IMAGE,
   DEVIN_PERMISSION_MODE,
+  FREE_DEVIN_MODELS,
   modelSlug,
   parseDevinExport,
   parseDevinVersion,
@@ -196,4 +198,33 @@ test('parses ATIF-v1.x Devin CLI export documents', () => {
   assert.equal(summary.outputTokens, 20);
   assert.equal(summary.cachedInputTokens, 50);
   assert.equal(summary.totalTokens, 120);
+});
+
+test('free-model allowlist is fail-closed; bare glm-5.2 requires paid opt-in', () => {
+  assert.ok(FREE_DEVIN_MODELS.includes('glm-5.2-high'));
+  assert.ok(!FREE_DEVIN_MODELS.includes('glm-5.2'));
+  assert.deepEqual(
+    assertDevinModelsAllowed(['swe-1.7', 'glm-5.2-high', 'kimi-k2.7']),
+    ['swe-1.7', 'glm-5.2-high', 'kimi-k2.7'],
+  );
+  assert.throws(
+    () => assertDevinModelsAllowed(['glm-5.2']),
+    /non-allowlisted|glm-5\.2/,
+  );
+  assert.throws(
+    () => assertDevinModelsAllowed(['kimi-k2.6']),
+    /non-allowlisted/,
+  );
+  assert.throws(
+    () => assertDevinModelsAllowed(['mistral-large']),
+    /non-allowlisted/,
+  );
+  assert.throws(
+    () => assertDevinModelsAllowed(['swe-1.6-fast']),
+    /non-allowlisted/,
+  );
+  assert.deepEqual(
+    assertDevinModelsAllowed(['glm-5.2', 'swe-1.6-fast'], { allowPaid: true }),
+    ['glm-5.2', 'swe-1.6-fast'],
+  );
 });

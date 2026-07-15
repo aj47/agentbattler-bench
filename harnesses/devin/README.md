@@ -51,7 +51,7 @@ publishable evidence.
 | Concern | Codex / Pi | Devin lane |
 |---|---|---|
 | Auth | ChatGPT OAuth (Codex subscription) | Devin account (`devin auth login` on host; credential copy only into ephemeral home) |
-| Models | `gpt-5.6-{terra,sol,luna}` | Devin models you pin (default **free** `swe-1.7`; paid models require opt-in) |
+| Models | `gpt-5.6-{terra,sol,luna}` | Free allowlist only by default (`swe-1.7`/`1.6`/`1.5`, `glm-5.2-high`, `kimi-k2.7`); anything else needs `AGENTBATTLER_ALLOW_PAID_MODELS=1` |
 | Runtime | Codex home isolation / Docker Pi image | Docker Devin image (default) or host XDG |
 | Official sealed snapshot | Published Codex+Pi cross-harness | **Not** part of the sealed HF snapshot |
 
@@ -76,13 +76,13 @@ AGENTBATTLER_DEVIN_RUNTIME=host \
 AGENTBATTLER_GENERATIONS_PER_MODEL=1 \
   npm run generate:devin-suite
 
-# multi-sample free model only
-AGENTBATTLER_DEVIN_MODELS=swe-1.7 \
-AGENTBATTLER_GENERATIONS_PER_MODEL=3 \
+# multi-sample free models only (fail-closed allowlist)
+AGENTBATTLER_DEVIN_MODELS=swe-1.7,glm-5.2-high \
+AGENTBATTLER_GENERATIONS_PER_MODEL=2 \
   npm run generate:devin-suite
 
-# paid models are blocked unless you opt in (quota burn):
-# AGENTBATTLER_ALLOW_PAID_MODELS=1 AGENTBATTLER_DEVIN_MODEL=swe-1-6-fast ...
+# non-allowlisted models (bare glm-5.2, *fast*, frontier, …) need:
+# AGENTBATTLER_ALLOW_PAID_MODELS=1
 
 npm run validate:devin-suite
 npm run benchmark:devin-suite

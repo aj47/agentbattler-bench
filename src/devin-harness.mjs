@@ -443,3 +443,37 @@ export function parseDevinVersion(text) {
   invariant(match, `Could not parse Devin CLI version from: ${text}`);
   return match[1];
 }
+
+/**
+ * CLI-confirmed free / PROMO-free Devin model IDs only.
+ * Do not add bare `glm-5.2` or `glm-5.2-max` — only the free High promo is confirmed free.
+ * Paid variants (`*fast*`, `*lightning*`, frontier GPT/Claude, bare glm-5.2) require opt-in.
+ */
+export const FREE_DEVIN_MODELS = Object.freeze([
+  'swe-1.7',
+  'swe-1.6',
+  'swe-1.5',
+  'glm-5.2-high',
+  'kimi-k2.7',
+]);
+
+/**
+ * Refuse models outside the free allowlist unless allowPaid is true.
+ * Fail-closed: unknown IDs are blocked even if they do not look "paid".
+ */
+export function assertDevinModelsAllowed(models, { allowPaid = false } = {}) {
+  invariant(Array.isArray(models) && models.length > 0, 'at least one Devin model is required');
+  const free = new Set(FREE_DEVIN_MODELS.map((id) => id.toLowerCase()));
+  const blocked = models
+    .map((model) => String(model).trim())
+    .filter((model) => model.length > 0 && !free.has(model.toLowerCase()));
+  if (blocked.length === 0 || allowPaid) {
+    return models.map((model) => String(model).trim()).filter(Boolean);
+  }
+  throw new Error(
+    `Refusing non-allowlisted Devin model(s): ${blocked.join(', ')}. `
+    + `Confirmed free: ${FREE_DEVIN_MODELS.join(', ')}. `
+    + 'Bare glm-5.2 / glm-5.2-max are not on the free allowlist (only glm-5.2-high). '
+    + 'Set AGENTBATTLER_ALLOW_PAID_MODELS=1 only if you intentionally accept quota burn.',
+  );
+}

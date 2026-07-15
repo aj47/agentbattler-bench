@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 import { isLegalUciMove, parseFen } from '../src/chess.mjs';
 import {
+  assertDevinModelsAllowed,
   buildDevinCliArgs,
   buildDevinDockerArgs,
   buildIsolatedDevinConfig,
@@ -62,56 +63,16 @@ if (!Number.isSafeInteger(GENERATIONS_PER_MODEL) || GENERATIONS_PER_MODEL < 1) {
 
 // Default to Cognition free-tier SWE-1.7 only. Do not default to paid models
 // (e.g. swe-1-6-fast / opus / sonnet) — those burn daily Pro quota.
+// Free allowlist is fail-closed: only CLI-confirmed free IDs (see FREE_DEVIN_MODELS).
+// Bare glm-5.2 is intentionally excluded; only glm-5.2-high is confirmed free.
 const DEFAULT_MODEL = process.env.AGENTBATTLER_DEVIN_MODEL?.trim() || 'swe-1.7';
-const MODEL_LIST = (process.env.AGENTBATTLER_DEVIN_MODELS ?? DEFAULT_MODEL)
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean);
-if (MODEL_LIST.length === 0) throw new Error('AGENTBATTLER_DEVIN_MODELS selected no models');
-// Deny known paid / quota-burning models.
-// Free allowlist is only models the user/CLI UI has confirmed as Free/PROMO free.
-// Explicitly paid: swe-1.7-lightning ($/MTok), *fast*, frontier GPT/Claude/Gemini, etc.
-const PAID_MODEL_HINTS = [
-  /lightning/i,
-  /fast/i,
-  /opus/i,
-  /sonnet/i,
-  /haiku/i,
-  /gpt/i,
-  /claude/i,
-  /gemini/i,
-  /codex/i,
-  /grok/i,
-  /o3/i,
-  /o4/i,
-  /terra/i,
-  /sol(?!-)/i,
-  /luna/i,
-  /max$/i,
-];
-// Confirmed free/PROMO free in CLI UI only — do not add models by guess.
-// Prefer glm-5.2-high (the free High promo), not bare glm-5.2 / max variants.
-// swe-1.5 is free PROMO; swe-1.5-fast / swe-1.6-fast / swe-1.7-lightning are paid.
-const FREE_MODEL_ALLOWLIST = new Set([
-  'swe-1.7',
-  'swe-1.6',
-  'swe-1.5',
-  'glm-5.2-high',
-  'kimi-k2.7',
-]);
-const risky = MODEL_LIST.filter((model) => {
-  const id = model.trim().toLowerCase();
-  if (FREE_MODEL_ALLOWLIST.has(id)) return false;
-  return PAID_MODEL_HINTS.some((re) => re.test(id));
-});
-if (risky.length > 0 && process.env.AGENTBATTLER_ALLOW_PAID_MODELS !== '1') {
-  throw new Error(
-    `Refusing likely paid Devin model(s): ${risky.join(', ')}. `
-    + 'Confirmed free: swe-1.7, swe-1.6, swe-1.5, glm-5.2-high, kimi-k2.7 '
-    + '(not *fast*, not swe-1.7-lightning, not bare glm-5.2, not kimi-k2.6). '
-    + 'Set AGENTBATTLER_ALLOW_PAID_MODELS=1 only if you intentionally accept quota burn.',
-  );
-}
+const MODEL_LIST = assertDevinModelsAllowed(
+  (process.env.AGENTBATTLER_DEVIN_MODELS ?? DEFAULT_MODEL)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+  { allowPaid: process.env.AGENTBATTLER_ALLOW_PAID_MODELS === '1' },
+);
 
 const MODEL_FAMILIES = MODEL_LIST.map((model) => {
   const id = modelSlug(model);
@@ -126,7 +87,8 @@ const MODELS = Array.from({ length: GENERATIONS_PER_MODEL }, (_, index) => MODEL
   generationIndex: index + 1,
 }))).flat();
 
-const CHILD_ENV_ALLOWLIST = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL', 'NO_COLOR', 'HOME'];
+// Do not inherit host HOME — host generations override HOME into the ephemeral tree.
+const CHILD_ENV_ALLOWLIST = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL', 'NO_COLOR'];
 
 function baseChildEnv(overrides = {}) {
   const inherited = Object.fromEntries(CHILD_ENV_ALLOWLIST.flatMap((key) => (
@@ -455,6 +417,8 @@ async function generateOneHost(entry, harnessVersion, authentication) {
     const run = await runProcess('devin', args, {
       cwd: workspace,
       env: baseChildEnv({
+        // Keep HOME inside the ephemeral tree (parity with Docker HOME=/devin-home).
+        HOME: tempRoot,
         XDG_CONFIG_HOME: homes.configHome,
         XDG_DATA_HOME: homes.dataHome,
         XDG_CACHE_HOME: homes.cacheHome,

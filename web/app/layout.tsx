@@ -19,8 +19,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <Header />
         {children}
         <footer className="site-footer">
-          <span>AgentBattler · public evidence registry</span>
-          <span>prompt → harness run → artifact → probes → battles → rating</span>
+          <span>AgentBattler Bench</span>
+          <span>inspect the artifact · replay the result</span>
         </footer>
       </body>
     </html>

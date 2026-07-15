@@ -181,8 +181,8 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
 .replay-section { border-top: 1px solid var(--line); padding-top: 36px; }
 .replay-layout { display: grid; grid-template-columns: minmax(360px, 630px) minmax(290px, 1fr); gap: 50px; align-items: center; }
 .board-column { min-width: 0; }
-.chess-board { width: min(100%, 630px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); border: 1px solid var(--line-strong); }
-.chess-square { position: relative; display: grid; place-items: center; background: var(--board-light); color: #191b16; }
+.chess-board { width: min(100%, 630px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 1px solid var(--line-strong); overflow: hidden; }
+.chess-square { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; background: var(--board-light); color: #191b16; }
 .chess-square.dark { background: var(--board-dark); }
 .chess-square.last-move::after { content: ""; position: absolute; inset: 9%; border: 3px solid var(--accent); }
 .chess-piece { position: relative; z-index: 1; font-size: clamp(24px, 4.2vw, 54px); line-height: 1; text-shadow: 0 1px 0 rgba(255,255,255,.25); }

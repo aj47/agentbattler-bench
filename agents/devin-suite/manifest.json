@@ -18,11 +18,12 @@
         "permissionMode": "dangerous",
         "prompt": "benchmark/challenges/chess-agent-v1.md",
         "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
-        "provider": "devin"
+        "provider": "devin",
+        "runtime": "docker"
       },
       "role": "model-challenger",
       "source": "agents/devin-suite/devin-swe-1-6-fast-01.js",
-      "sourceSha256": "5c8bab4e60c88d10875af22d410c8ed361c5d1bd0ce81afeb01f098e423f2431"
+      "sourceSha256": "fe4beffa736ce7d32abd39b54d10e618b7e5153c5b4a30ec070ea29bbbf14c20"
     }
   ],
   "comparison": {
@@ -36,9 +37,10 @@
     "permissionMode": "dangerous",
     "prompt": "benchmark/challenges/chess-agent-v1.md",
     "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
-    "provider": "devin"
+    "provider": "devin",
+    "runtime": "docker"
   },
-  "description": "1 independent Devin CLI generation(s) per selected model from one fixed prompt in ephemeral XDG homes.",
-  "manifestId": "devin-suite-2026-07-15T20-32-05-037Z",
+  "description": "1 independent Devin CLI generation(s) per selected model from one fixed prompt (docker isolation).",
+  "manifestId": "devin-suite-2026-07-15T20-50-33-369Z",
   "schemaVersion": "agentbattler.agent-manifest.v1"
 }

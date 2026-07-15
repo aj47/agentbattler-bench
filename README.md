@@ -85,20 +85,31 @@ npm run replay:harness-suite
 
 ## Devin CLI suite
 
-Devin is an additional generation harness that does **not** use ChatGPT/Codex authentication. It runs the host `devin` binary with an ephemeral `XDG_CONFIG_HOME` / `XDG_DATA_HOME`, a stripped config (no MCP, no hooks, foreign tool-config imports disabled), and only the host Devin credentials file copied into the disposable data home. Each generation must leave exactly one `agent.js`, then pass the same v2 legality probes as the other suites.
+Devin is an additional generation harness that does **not** use ChatGPT/Codex authentication. By default it uses a **Pi-grade Docker isolation** path: digest-built `agentbattler-devin:3000.1.27` image, read-only rootfs, all capabilities dropped, no new privileges, bounded CPU/memory/PIDs, and only three writable mounts (empty workspace, ephemeral Devin home, export dir). The ephemeral home receives a stripped config (no MCP/hooks/foreign imports) and a copy of the host Devin credentials file. Each generation must leave exactly one `agent.js`, then pass the same v2 legality probes as the other suites.
+
+Optional `AGENTBATTLER_DEVIN_RUNTIME=host` falls back to host-process ephemeral XDG homes when Docker is unavailable.
 
 This lane is exploratory evidence for Devin CLI as a coding-agent harness. It is not part of the sealed Codex-plus-Pi Hugging Face snapshot, and Devin models are not the Codex Terra/Sol/Luna IDs. See [harnesses/devin/README.md](harnesses/devin/README.md) for the isolation contract.
 
-Prerequisites: Node.js 20+, `devin` on `PATH`, and `devin auth login`.
+Prerequisites: Node.js 20+, Docker (default), host `devin` for `auth status` preflight, and `devin auth login`.
 
 ```sh
-# cheap smoke: one sample of the default model
+# pin/build the Devin CLI image
+npm run devin:image
+
+# cheap smoke: one sample of the default FREE model (swe-1.7)
 AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite
 
-# multi-model / multi-sample
-AGENTBATTLER_DEVIN_MODELS=swe-1-6-fast,opus \
+# host fallback without Docker isolation
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite:host
+
+# multi-sample on free models only
+AGENTBATTLER_DEVIN_MODELS=swe-1.7 \
 AGENTBATTLER_GENERATIONS_PER_MODEL=3 \
   npm run generate:devin-suite
+
+# paid models require an explicit opt-in (burns Pro quota — avoid for smoke)
+# AGENTBATTLER_ALLOW_PAID_MODELS=1 AGENTBATTLER_DEVIN_MODEL=swe-1-6-fast ...
 
 npm run validate:devin-suite
 npm run benchmark:devin-suite
@@ -109,7 +120,7 @@ Artifacts:
 
 - `agents/devin-suite/`: generated sources and roster manifest
 - `results/devin-suite/generations/`: export, stderr, metadata
-- `results/devin-suite/generation-suite.json`: suite totals and host-state hashes
+- `results/devin-suite/generation-suite.json`: suite totals, runtime, and host-state hashes
 - `results/devin-suite/matches/`: replayable tournament body
 
 ## Evidence

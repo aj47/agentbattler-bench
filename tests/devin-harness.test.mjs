@@ -3,14 +3,18 @@ import test from 'node:test';
 
 import {
   buildDevinCliArgs,
+  buildDevinDockerArgs,
   buildIsolatedDevinConfig,
   DEVIN_HARNESS_NAME,
+  DEVIN_HARNESS_VERSION,
+  DEVIN_IMAGE,
   DEVIN_PERMISSION_MODE,
   modelSlug,
   parseDevinExport,
   parseDevinVersion,
   publicDevinCommand,
   requireDevinAuthentication,
+  resolveDevinRuntime,
 } from '../src/devin-harness.mjs';
 
 test('slugifies Devin model ids for agent paths', () => {
@@ -20,8 +24,8 @@ test('slugifies Devin model ids for agent paths', () => {
 });
 
 test('builds a stripped isolated Devin config with no MCP or foreign imports', () => {
-  const config = buildIsolatedDevinConfig({ model: 'swe-1-6-fast' });
-  assert.equal(config.agent.model, 'swe-1-6-fast');
+  const config = buildIsolatedDevinConfig({ model: 'swe-1.7' });
+  assert.equal(config.agent.model, 'swe-1.7');
   assert.deepEqual(config.mcpServers, {});
   assert.deepEqual(config.hooks, {});
   assert.equal(config.read_config_from.cursor, false);
@@ -32,7 +36,7 @@ test('builds a stripped isolated Devin config with no MCP or foreign imports', (
 
 test('builds unattended Devin CLI args with export and stripped config', () => {
   const args = buildDevinCliArgs({
-    model: 'swe-1-6-fast',
+    model: 'swe-1.7',
     promptFile: '/repo/benchmark/challenges/chess-agent-v1.md',
     configPath: '/tmp/xdg-config/devin/config.json',
     exportPath: '/tmp/out/devin-export.json',
@@ -41,7 +45,7 @@ test('builds unattended Devin CLI args with export and stripped config', () => {
   assert.deepEqual(args.slice(args.indexOf('--permission-mode'), args.indexOf('--permission-mode') + 2), [
     '--permission-mode', DEVIN_PERMISSION_MODE,
   ]);
-  assert.deepEqual(args.slice(args.indexOf('--model'), args.indexOf('--model') + 2), ['--model', 'swe-1-6-fast']);
+  assert.deepEqual(args.slice(args.indexOf('--model'), args.indexOf('--model') + 2), ['--model', 'swe-1.7']);
   assert.ok(args.includes('--prompt-file'));
   assert.ok(args.includes('--export'));
   assert.equal(DEVIN_HARNESS_NAME, 'devin-cli');
@@ -88,12 +92,12 @@ test('extracts best-effort telemetry from ATIF-like export documents', () => {
   const exportDoc = {
     format: 'atif-test',
     sessionId: 'sess-1',
-    model: 'swe-1-6-fast',
+    model: 'swe-1.7',
     messages: [
       { role: 'user', content: 'prompt' },
       {
         role: 'assistant',
-        model: 'swe-1-6-fast',
+        model: 'swe-1.7',
         content: [{ type: 'toolCall', name: 'write', arguments: { path: 'agent.js' } }],
         usage: { input: 11, output: 22 },
       },
@@ -102,7 +106,7 @@ test('extracts best-effort telemetry from ATIF-like export documents', () => {
   };
   const summary = parseDevinExport(JSON.stringify(exportDoc));
   assert.equal(summary.sessionId, 'sess-1');
-  assert.equal(summary.model, 'swe-1-6-fast');
+  assert.equal(summary.model, 'swe-1.7');
   assert.equal(summary.toolCallCount, 2);
   assert.equal(summary.toolCallBreakdown.write, 1);
   assert.equal(summary.toolCallBreakdown.bash, 1);
@@ -117,11 +121,52 @@ test('handles empty export gracefully', () => {
   assert.equal(summary.toolCallCount, 0);
 });
 
+test('defaults to docker runtime and rejects unknown runtimes', () => {
+  assert.equal(resolveDevinRuntime(undefined), 'docker');
+  assert.equal(resolveDevinRuntime('host'), 'host');
+  assert.throws(() => resolveDevinRuntime('firecracker'), /AGENTBATTLER_DEVIN_RUNTIME/);
+});
+
+test('builds Pi-grade Docker args with read-only image and ephemeral mounts only', () => {
+  const args = buildDevinDockerArgs({
+    model: 'swe-1.7',
+    workspace: '/tmp/workspace',
+    devinHome: '/tmp/devin-home',
+    exportDir: '/tmp/export',
+    promptFile: '/repo/benchmark/challenges/chess-agent-v1.md',
+    user: '1000:1000',
+  });
+  assert.equal(args[0], 'run');
+  assert.ok(args.includes(DEVIN_IMAGE));
+  assert.ok(args.includes('--read-only'));
+  assert.deepEqual(args.slice(args.indexOf('--cap-drop'), args.indexOf('--cap-drop') + 2), ['--cap-drop', 'ALL']);
+  assert.ok(args.includes('no-new-privileges'));
+  assert.equal(DEVIN_HARNESS_VERSION, '3000.1.27');
+  const rwMounts = args.filter((value) => value.endsWith(':rw'));
+  assert.deepEqual(rwMounts, [
+    '/tmp/workspace:/workspace:rw',
+    '/tmp/devin-home:/devin-home:rw',
+    '/tmp/export:/export:rw',
+  ]);
+  assert.ok(args.some((value) => value.endsWith(':/prompt/chess-agent-v1.md:ro')));
+  assert.ok(args.includes('-p'));
+  assert.ok(args.includes('--permission-mode'));
+  const publicCmd = publicDevinCommand(args, {
+    workspace: '/tmp/workspace',
+    devinHome: '/tmp/devin-home',
+    exportDir: '/tmp/export',
+    promptFile: '/repo/benchmark/challenges/chess-agent-v1.md',
+    prefix: ['docker'],
+  });
+  assert.equal(publicCmd[0], 'docker');
+  assert.ok(!publicCmd.some((value) => value.includes('/tmp/workspace')));
+});
+
 test('parses ATIF-v1.x Devin CLI export documents', () => {
   const atif = {
     schema_version: 'ATIF-v1.7',
     session_id: 'married-lock',
-    agent: { name: 'devin', version: '3000.1.27', model_name: 'SWE-1.6 Fast' },
+    agent: { name: 'devin', version: '3000.1.27', model_name: 'SWE-1.7' },
     steps: [
       {
         type: 'assistant',
@@ -142,7 +187,7 @@ test('parses ATIF-v1.x Devin CLI export documents', () => {
   const summary = parseDevinExport(JSON.stringify(atif));
   assert.equal(summary.format, 'ATIF-v1.7');
   assert.equal(summary.sessionId, 'married-lock');
-  assert.equal(summary.model, 'SWE-1.6 Fast');
+  assert.equal(summary.model, 'SWE-1.7');
   assert.equal(summary.turnCount, 2);
   assert.equal(summary.toolCallCount, 2);
   assert.equal(summary.toolCallBreakdown.write, 1);

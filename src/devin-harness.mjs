@@ -2,9 +2,21 @@
 
 export const DEVIN_HARNESS_NAME = 'devin-cli';
 export const DEVIN_PERMISSION_MODE = 'dangerous';
+/** Pinned Devin CLI version installed into the harness image. */
+export const DEVIN_HARNESS_VERSION = '3000.1.27';
+export const DEVIN_IMAGE = `agentbattler-devin:${DEVIN_HARNESS_VERSION}`;
+export const DEVIN_RUNTIME_DOCKER = 'docker';
+export const DEVIN_RUNTIME_HOST = 'host';
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+/** Resolve generation runtime: docker (default) or host XDG isolation. */
+export function resolveDevinRuntime(value = process.env.AGENTBATTLER_DEVIN_RUNTIME) {
+  const runtime = (value ?? DEVIN_RUNTIME_DOCKER).trim().toLowerCase();
+  if (runtime === DEVIN_RUNTIME_DOCKER || runtime === DEVIN_RUNTIME_HOST) return runtime;
+  throw new Error(`AGENTBATTLER_DEVIN_RUNTIME must be "${DEVIN_RUNTIME_DOCKER}" or "${DEVIN_RUNTIME_HOST}"`);
 }
 
 /** Stable id fragment for a Devin model name. */
@@ -77,16 +89,85 @@ export function buildDevinCliArgs({
   ];
 }
 
-/** Public form of the CLI command with ephemeral paths replaced. */
-export function publicDevinCommand(args, { workspace, configHome, dataHome, promptFile } = {}) {
+/**
+ * Build docker run argv (without the `docker` binary) for Pi-grade isolation.
+ * Writable mounts: workspace, ephemeral Devin home, export directory.
+ * Prompt is mounted read-only. Image filesystem is read-only.
+ */
+export function buildDevinDockerArgs({
+  image = DEVIN_IMAGE,
+  model,
+  workspace,
+  devinHome,
+  exportDir,
+  promptFile,
+  user,
+  permissionMode = DEVIN_PERMISSION_MODE,
+}) {
+  for (const [name, value] of Object.entries({
+    image, model, workspace, devinHome, exportDir, promptFile, user, permissionMode,
+  })) {
+    invariant(typeof value === 'string' && value.length > 0, `${name} is required to run Devin in Docker`);
+  }
+
+  const containerConfig = '/devin-home/xdg-config/devin/config.json';
+  const containerPrompt = '/prompt/chess-agent-v1.md';
+  const containerExport = '/export/devin-export.json';
+  const cliArgs = buildDevinCliArgs({
+    model,
+    promptFile: containerPrompt,
+    configPath: containerConfig,
+    exportPath: containerExport,
+    permissionMode,
+  });
+
+  return [
+    'run', '--rm', '--init',
+    '--network', 'bridge',
+    '--read-only',
+    '--cap-drop', 'ALL',
+    '--security-opt', 'no-new-privileges',
+    '--pids-limit', '256',
+    '--memory', '4g',
+    '--cpus', '2',
+    '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,size=512m',
+    '--user', user,
+    '--env', 'HOME=/devin-home',
+    '--env', 'XDG_CONFIG_HOME=/devin-home/xdg-config',
+    '--env', 'XDG_DATA_HOME=/devin-home/xdg-data',
+    '--env', 'XDG_CACHE_HOME=/devin-home/xdg-cache',
+    '--env', `DEVIN_PERMISSION_MODE=${permissionMode}`,
+    '--env', 'NO_COLOR=1',
+    '--volume', `${workspace}:/workspace:rw`,
+    '--volume', `${devinHome}:/devin-home:rw`,
+    '--volume', `${exportDir}:/export:rw`,
+    '--volume', `${promptFile}:${containerPrompt}:ro`,
+    '--workdir', '/workspace',
+    image,
+    ...cliArgs,
+  ];
+}
+
+/** Public form of the CLI/docker command with ephemeral paths replaced. */
+export function publicDevinCommand(args, {
+  workspace,
+  configHome,
+  dataHome,
+  promptFile,
+  devinHome,
+  exportDir,
+  prefix = ['devin'],
+} = {}) {
   const replacements = [
     [workspace, '<ephemeral-workspace>'],
     [configHome, '<ephemeral-xdg-config>'],
     [dataHome, '<ephemeral-xdg-data>'],
+    [devinHome, '<ephemeral-devin-home>'],
+    [exportDir, '<ephemeral-export>'],
     [promptFile, '<prompt-file>'],
   ].filter(([from]) => typeof from === 'string' && from.length > 0);
 
-  return ['devin', ...args.map((value) => {
+  return [...prefix, ...args.map((value) => {
     let next = value;
     for (const [from, to] of replacements) next = next.split(from).join(to);
     return next;

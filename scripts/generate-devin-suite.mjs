@@ -158,11 +158,11 @@ async function requireAuth() {
 }
 
 async function ensureDevinImage() {
-  let inspected;
-  if (process.env.AGENTBATTLER_DEVIN_IMAGE) {
-    inspected = await runProcess('docker', ['image', 'inspect', IMAGE, '--format', '{{.Id}}']);
-    if (inspected.exitCode !== 0) throw new Error(`Configured Devin image is unavailable: ${IMAGE}`);
-  } else {
+  let inspected = await runProcess('docker', ['image', 'inspect', IMAGE, '--format', '{{.Id}}']);
+  if (inspected.exitCode !== 0) {
+    if (process.env.AGENTBATTLER_DEVIN_IMAGE) {
+      throw new Error(`Configured Devin image is unavailable: ${IMAGE}`);
+    }
     console.log(`Building ${IMAGE}...`);
     const built = await runProcess('docker', [
       'build',
@@ -407,11 +407,14 @@ let promptSha256Cache = '';
 async function generateOneHost(entry, harnessVersion, authentication) {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), `agentbattler-${entry.id}-`));
   const workspace = path.join(tempRoot, 'workspace');
+  // Export lives under the ephemeral tree (parity with Docker /export) so the
+  // public command never records absolute repo paths with host identity.
+  const exportDir = path.join(tempRoot, 'export');
   const generationDir = path.join(GENERATIONS_DIR, entry.id);
-  await Promise.all([workspace, generationDir].map((directory) => mkdir(directory, { recursive: true })));
+  await Promise.all([workspace, exportDir, generationDir].map((directory) => mkdir(directory, { recursive: true })));
   const homes = await prepareEphemeralHomes(tempRoot, entry.model);
   const emptyWorkspaceEntries = await readdir(workspace);
-  const exportPath = path.join(generationDir, 'devin-export.json');
+  const exportPath = path.join(exportDir, 'devin-export.json');
   const args = buildDevinCliArgs({
     model: entry.model,
     promptFile: PROMPT_PATH,
@@ -454,6 +457,7 @@ async function generateOneHost(entry, harnessVersion, authentication) {
         workspace,
         configHome: homes.configHome,
         dataHome: homes.dataHome,
+        exportDir,
         promptFile: PROMPT_PATH,
       }),
       isolationNotes: {
@@ -572,7 +576,7 @@ async function existingGeneration(entry) {
     if (metadata.run?.modelRequested !== entry.model || metadata.run?.generationIndex !== entry.generationIndex) {
       throw new Error(`Resume metadata identity mismatch for ${entry.id}`);
     }
-    if (identity.sourceSha256 !== metadata.agent?.sha256) {
+    if (identity.sourceSha256 !== metadata.agent?.sha256 || metadata.probeSummary?.allPassed !== true) {
       throw new Error(`Resume evidence failed integrity checks for ${entry.id}`);
     }
     return { entry, metadata };
@@ -714,7 +718,7 @@ async function main() {
   await writeFile(path.join(RESULT_ROOT, 'generation-suite.json'), `${canonicalJson(suiteMetadata, { space: 2 })}\n`);
 
   if (!suiteMetadata.isolation.allHostStateUnchanged) {
-    console.warn('Warning: host Devin config or credentials hash changed during generation (suite still recorded).');
+    throw new Error('Host Devin config or credentials hash changed during isolated generation');
   }
   for (const { entry, metadata } of generated) {
     console.log(

@@ -34,8 +34,8 @@
     "generate:devin-suite": "node scripts/generate-devin-suite.mjs",
     "generate:devin-suite:resume": "AGENTBATTLER_RESUME=1 node scripts/generate-devin-suite.mjs",
     "generate:devin-suite:host": "AGENTBATTLER_DEVIN_RUNTIME=host node scripts/generate-devin-suite.mjs",
-    "validate:devin-suite": "node bin/agentbattler.mjs validate --manifest agents/devin-suite/manifest.json --positions benchmark/positions/v2.json --pairing all-pairs",
-    "benchmark:devin-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/devin-suite/manifest.json --positions benchmark/positions/v2.json --pairing all-pairs --output results/devin-suite/matches --no-smoke",
+    "validate:devin-suite": "node scripts/probe-devin-suite.mjs",
+    "benchmark:devin-suite": "AGENTBATTLER_CONCURRENCY=6 node scripts/run-devin-benchmark.mjs",
     "replay:devin-suite": "node bin/agentbattler.mjs replay results/devin-suite/matches/result.json"
   }
 }

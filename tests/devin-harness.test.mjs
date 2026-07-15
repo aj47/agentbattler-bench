@@ -71,6 +71,35 @@ test('redacts ephemeral paths in the public command', () => {
   assert.ok(!command.some((value) => value.includes('/tmp/cfg')));
 });
 
+test('host-shaped public command redacts ephemeral export paths with host identity segments', () => {
+  // Mirrors generateOneHost: export under the ephemeral tree, not results/.
+  const tempRoot = '/tmp/agentbattler-devin-glm-5-2-high-01-abc123';
+  const workspace = `${tempRoot}/workspace`;
+  const configHome = `${tempRoot}/xdg-config`;
+  const dataHome = `${tempRoot}/xdg-data`;
+  const exportDir = `${tempRoot}/export`;
+  const promptFile = '/home/lab/agentbattler-bench/benchmark/challenges/chess-agent-v1.md';
+  const args = buildDevinCliArgs({
+    model: 'glm-5.2-high',
+    promptFile,
+    configPath: `${configHome}/devin/config.json`,
+    exportPath: `${exportDir}/devin-export.json`,
+  });
+  const command = publicDevinCommand(args, {
+    workspace,
+    configHome,
+    dataHome,
+    exportDir,
+    promptFile,
+  });
+  assert.equal(command[0], 'devin');
+  assert.ok(command.includes('<prompt-file>'));
+  assert.ok(command.includes('<ephemeral-export>/devin-export.json'));
+  assert.ok(!command.some((value) => value.includes('/home/lab')));
+  assert.ok(!command.some((value) => value.includes(tempRoot)));
+  assert.ok(!command.some((value) => value.includes('results/devin-suite')));
+});
+
 test('parses devin --version output', () => {
   assert.equal(parseDevinVersion('devin 3000.1.27 (0d4bf12e)'), '3000.1.27');
   assert.throws(() => parseDevinVersion('not a version'), /Could not parse/);

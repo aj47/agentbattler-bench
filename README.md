@@ -118,9 +118,10 @@ AGENTBATTLER_GENERATIONS_PER_MODEL=2 \
 # non-allowlisted IDs (bare glm-5.2, *fast*, *lightning*, frontier, etc.) need:
 # AGENTBATTLER_ALLOW_PAID_MODELS=1
 
-# validate/benchmark require ≥2 agents in agents/devin-suite/manifest.json
-# (smoke with GENERATIONS_PER_MODEL=1 is generation-only)
+# one-agent-safe: hash + v2 legality probes (works with the committed smoke sample)
 npm run validate:devin-suite
+
+# tournament (≥2 agents required; clear error if the roster is still a single smoke sample)
 npm run benchmark:devin-suite
 npm run replay:devin-suite
 ```

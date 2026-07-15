@@ -43,8 +43,10 @@ For machines without Docker:
 AGENTBATTLER_DEVIN_RUNTIME=host npm run generate:devin-suite
 ```
 
-Host mode uses ephemeral XDG homes on the host process only. Prefer Docker for
-publishable evidence.
+Host mode uses ephemeral XDG homes on the host process only, with `HOME` remapped
+into the temp tree and the ATIF export written under the same ephemeral tree
+(not `results/…`) so public command metadata never embeds host home paths.
+Prefer Docker for publishable evidence.
 
 ## What is intentionally different from Codex / Pi
 
@@ -89,7 +91,10 @@ AGENTBATTLER_GENERATIONS_PER_MODEL=2 \
 # non-allowlisted models (bare glm-5.2, *fast*, frontier, …) need:
 # AGENTBATTLER_ALLOW_PAID_MODELS=1
 
+# one-agent-safe: identity hashes + v2 legality probes
 npm run validate:devin-suite
+
+# tournament requires ≥2 agents in the roster (fails closed with a clear message otherwise)
 npm run benchmark:devin-suite
 npm run replay:devin-suite
 ```

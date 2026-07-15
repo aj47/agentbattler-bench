@@ -46,16 +46,18 @@ export default function MethodologyPage() {
           </section>
           <section id="snapshot">
             <span className="chapter-number">04</span><h2>Current snapshot</h2>
-            <p>The website currently exposes one exploratory model-suite run: {benchmark.totals.agents} generated agents, {benchmark.totals.matches} recorded matches, and {benchmark.totals.uniqueScenarios} unique agent-pair/position scenarios. Repeated deterministic seeds are visible rather than silently presented as independent scenarios.</p>
+            <p>The website currently exposes one exploratory model-suite run: three model families, five independently generated engines per family, {benchmark.totals.matches} recorded matches, and {benchmark.totals.uniqueScenarios} unique agent-pair/position scenarios. Family scores pool all five engines while the individual spread remains visible.</p>
             <dl className="snapshot-list">
               <div><dt>generation tokens</dt><dd>{formatNumber(benchmark.totals.generationTokens)}</dd></div>
               <div><dt>generation tool calls</dt><dd>{benchmark.totals.generationToolCalls}</dd></div>
               <div><dt>generation MCP calls</dt><dd>{benchmark.totals.generationMcpCalls}</dd></div>
-              <div><dt>global config changed</dt><dd>{benchmark.globalConfigUnchanged ? 'no' : 'yes'}</dd></div>
+              <div><dt>host config observation</dt><dd>{benchmark.globalConfigUnchanged ? 'unchanged' : benchmark.globalConfigAdjudication?.admissible ? 'changed · adjudicated unrelated' : 'changed · unresolved'}</dd></div>
               <div><dt>void games</dt><dd>{benchmark.totals.voids}</dd></div>
               <div><dt>result bundle</dt><dd>{benchmark.resultSha256Short}</dd></div>
             </dl>
-            <p className="method-note">Limitation: these three artifacts predate the current Harbor submission contract and have not been independently reproduced. They remain useful UI and pipeline evidence, so they are labeled exploratory everywhere they appear.</p>
+            {benchmark.globalConfigAdjudication ? <p className="method-note">Config adjudication: {benchmark.globalConfigAdjudication.detail}</p> : null}
+            <p className="method-note">Interpretation: the five independently generated artifacts per model are the unit for generation variance. The 600 matches per family measure chess performance for those artifacts; they are not 600 independent model generations.</p>
+            <p className="method-note">Limitation: these 15 artifacts predate the current Harbor submission contract and have not been independently reproduced. They remain useful benchmark and pipeline evidence, so they are labeled exploratory everywhere they appear.</p>
           </section>
         </div>
       </div>

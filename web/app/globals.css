@@ -181,11 +181,14 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
 .replay-section { border-top: 1px solid var(--line); padding-top: 36px; }
 .replay-layout { display: grid; grid-template-columns: minmax(360px, 630px) minmax(290px, 1fr); gap: 50px; align-items: center; }
 .board-column { min-width: 0; }
-.chess-board { width: min(100%, 630px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); border: 1px solid var(--line-strong); }
-.chess-square { position: relative; display: grid; place-items: center; background: var(--board-light); color: #191b16; }
+.chess-board { position: relative; width: min(100%, 630px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 1px solid var(--line-strong); overflow: hidden; }
+.chess-square { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; background: var(--board-light); color: #191b16; }
 .chess-square.dark { background: var(--board-dark); }
-.chess-square.last-move::after { content: ""; position: absolute; inset: 9%; border: 3px solid var(--accent); }
+.chess-square.last-move::after { content: ""; position: absolute; inset: 0; background: rgba(185,244,93,.24); }
+.chess-square.move-to::after { background: rgba(185,244,93,.34); }
 .chess-piece { position: relative; z-index: 1; font-size: clamp(24px, 4.2vw, 54px); line-height: 1; text-shadow: 0 1px 0 rgba(255,255,255,.25); }
+.chess-piece-animator { position: absolute; z-index: 4; width: 12.5%; height: 12.5%; display: grid; place-items: center; pointer-events: none; animation: piece-slide 220ms cubic-bezier(.2,.72,.18,1) both; }
+@keyframes piece-slide { from { transform: translate(0, 0); } to { transform: translate(var(--move-x), var(--move-y)); } }
 .white-piece { color: #f8f4e5; text-shadow: 0 1px 1px #181a15, 0 0 1px #181a15; }
 .black-piece { color: #181a15; text-shadow: 0 1px 0 rgba(255,255,255,.18); }
 .rank-label, .file-label { position: absolute; z-index: 2; color: rgba(9,10,8,.6); font: 700 8px/1 var(--mono); }
@@ -198,12 +201,21 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
 .board-player small { color: var(--dim); font: 500 9px/1.2 var(--mono); }
 .color-chip { width: 10px; height: 10px; border: 1px solid var(--line-strong); background: var(--text); }
 .black-chip { background: #24261f; }
-.replay-controls { display: grid; grid-template-columns: 40px 40px 1fr 40px 40px; gap: 6px; margin-top: 8px; }
-.replay-controls button { min-height: 38px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font: 600 11px/1 var(--mono); }
-.replay-controls button:hover { color: var(--accent); border-color: var(--line-strong); }
-.replay-controls .play-button { color: var(--bg); background: var(--accent); border-color: var(--accent); text-transform: uppercase; }
-.ply-slider { width: 100%; margin: 18px 0 6px; accent-color: var(--accent); }
-.replay-status { display: flex; justify-content: space-between; color: var(--dim); font: 500 9px/1 var(--mono); text-transform: uppercase; }
+.replay-controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+.replay-controls button { min-height: 42px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 10px/1 var(--mono); text-transform: uppercase; }
+.replay-controls button:hover, .speed-controls button:hover { color: var(--accent); border-color: var(--line-strong); }
+.replay-controls button[data-tooltip], .speed-controls button[data-tooltip] { position: relative; }
+.replay-controls button[data-tooltip]::after, .speed-controls button[data-tooltip]::after { content: attr(data-tooltip); position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 20; transform: translateX(-50%); width: max-content; max-width: 190px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); padding: 7px 8px; box-shadow: 0 8px 22px rgba(0,0,0,.32); pointer-events: none; opacity: 0; visibility: hidden; font: 600 9px/1.2 var(--mono); text-transform: none; white-space: normal; }
+.replay-controls button[data-tooltip]::before, .speed-controls button[data-tooltip]::before { content: ""; position: absolute; left: 50%; bottom: calc(100% + 3px); z-index: 21; transform: translateX(-50%) rotate(45deg); width: 8px; height: 8px; background: var(--bg); border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); opacity: 0; visibility: hidden; pointer-events: none; }
+.replay-controls button[data-tooltip]:hover::after, .replay-controls button[data-tooltip]:focus-visible::after, .speed-controls button[data-tooltip]:hover::after, .speed-controls button[data-tooltip]:focus-visible::after, .replay-controls button[data-tooltip]:hover::before, .replay-controls button[data-tooltip]:focus-visible::before, .speed-controls button[data-tooltip]:hover::before, .speed-controls button[data-tooltip]:focus-visible::before { opacity: 1; visibility: visible; }
+.replay-controls .play-button { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.speed-controls { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--dim); font: 600 9px/1 var(--mono); text-transform: uppercase; }
+.speed-controls > span { margin-right: 4px; }
+.speed-controls button { min-height: 28px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); padding: 0 9px; cursor: pointer; font: 600 9px/1 var(--mono); }
+.speed-controls button.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.ply-slider { width: 100%; margin: 16px 0 6px; accent-color: var(--accent); }
+.replay-status { display: flex; justify-content: space-between; gap: 18px; color: var(--dim); font: 500 9px/1 var(--mono); text-transform: uppercase; }
+.replay-status span:last-child { text-align: right; }
 .move-log { border: 1px solid var(--line); background: var(--surface); }
 .move-log-head, .move-row { display: grid; grid-template-columns: 42px 1fr 1fr 80px; align-items: center; gap: 10px; padding: 0 13px; }
 .move-log-head { min-height: 34px; border-bottom: 1px solid var(--line); color: var(--dim); font: 500 8px/1 var(--mono); text-transform: uppercase; }
@@ -320,8 +332,11 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
   .result-stamp { justify-self: start; }
   .replay-layout { display: block; }
   .chess-piece { font-size: 9vw; }
-  .replay-controls { grid-template-columns: 35px 35px 1fr 35px 35px; }
-  .replay-status { gap: 12px; }
+  .replay-controls { grid-template-columns: 1fr 1fr; }
+  .replay-controls .play-button { grid-column: 1 / -1; order: -1; }
+  .speed-controls { flex-wrap: wrap; }
+  .replay-status { gap: 12px; flex-direction: column; }
+  .replay-status span:last-child { text-align: left; }
   .match-evidence { grid-template-columns: 1fr; gap: 40px; margin-top: 65px; }
   .match-evidence > div:last-child { grid-column: auto; }
   .methodology-hero { padding: 55px 0 65px; }

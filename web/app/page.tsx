@@ -1,12 +1,13 @@
 import Link from 'next/link';
 
+import { FamilyLeaderboard } from '../components/FamilyLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
-import { formatDate, formatDuration, formatNumber, getMatch, resultLabel, siteData } from '../lib/data';
+import { formatDate, formatNumber, getMatch, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
-  const { benchmark, agents } = siteData;
+  const { benchmark, families, agents } = siteData;
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
 
   return (
@@ -20,9 +21,9 @@ export default function HomePage() {
         </div>
         <div className="hero-grid">
           <div>
-            <p className="kicker">a transparent coding-agent benchmark</p>
-            <h1>Generated agents.<br /><span>Inspectable battles.</span></h1>
-            <p className="hero-copy">Compare what coding harnesses actually produce, then trace every leaderboard result back to source, generation telemetry, and move-by-move evidence.</p>
+            <p className="kicker">one prompt · five engines per model · 900 games</p>
+            <h1>Generation varies.<br /><span>The benchmark shows it.</span></h1>
+            <p className="hero-copy">Compare Terra, Sol, and Luna across five independent generations each. See the family result, the engine-to-engine spread, and every trace behind it.</p>
           </div>
           <div className="hero-aside" aria-label="Benchmark status">
             <span className="hero-aside-label">snapshot</span>
@@ -34,22 +35,24 @@ export default function HomePage() {
           </div>
         </div>
         <div className="metrics-strip">
-          <Metric label="generated agents" value={benchmark.totals.agents} detail="Sol · Terra · Luna" />
-          <Metric label="recorded matches" value={benchmark.totals.matches} detail={`${benchmark.totals.uniqueScenarios} unique scenarios`} />
-          <Metric label="agent invocations" value={formatNumber(benchmark.totals.agentInvocations)} detail={`${benchmark.totals.voids} void results`} />
-          <Metric label="match runtime" value={formatDuration(benchmark.totals.matchDurationMs)} detail={`${benchmark.totals.decisive} decisive`} />
+          <Metric label="model families" value={families.length} detail="Sol · Terra · Luna" />
+          <Metric label="generated engines" value={benchmark.totals.agents} detail="5 independent generations each" />
+          <Metric label="recorded matches" value={benchmark.totals.matches} detail={`${benchmark.totals.decisive} decisive · ${benchmark.totals.voids} void`} />
+          <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · ${benchmark.totals.generationMcpCalls} MCP`} />
         </div>
       </section>
 
       <section className="notice-band">
         <div className="shell notice-inner">
-          <strong>Exploratory snapshot</strong>
-          <p>These artifacts predate the canonical Harbor submission flow. Their hashes and pinned public result bundle are verified; independent reproduction is not yet claimed.</p>
+          <strong>Exploratory five-run suite</strong>
+          <p>All 15 engines used the same prompt and isolated Codex harness. The evidence bundle is verified; independent Harbor reproduction is not yet claimed.</p>
           <Link href="/methodology/#verification">verification levels →</Link>
         </div>
       </section>
 
       <div className="shell home-stack">
+        <FamilyLeaderboard families={families} />
+
         <Leaderboard agents={agents} />
 
         {featured ? (

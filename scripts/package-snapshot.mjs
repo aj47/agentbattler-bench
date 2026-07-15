@@ -21,6 +21,7 @@ import {
   sha256File,
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
+import { parseCodexTrace } from '../src/codex-trace.mjs';
 import { fileArtifact, SNAPSHOT_SCHEMA, writeSnapshot } from '../src/snapshot.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -93,7 +94,10 @@ function safeSnapshotId(generatedAt) {
   return `model-suite-${date.toISOString().toLowerCase().replace(/[:.]/g, '-')}`;
 }
 
-function datasetCard(snapshotId) {
+function datasetCard(snapshotId, datasetRepo, runs) {
+  const traceRoot = `snapshots/${snapshotId}/traces`;
+  const datasetUrl = `https://huggingface.co/datasets/${datasetRepo}`;
+  const traceRows = runs.map((run) => `| ${run.displayName} | [Open trace](${datasetUrl}/blob/main/${run.tracePath}) |`);
   return [
     '---',
     'pretty_name: AgentBattler Bench',
@@ -109,16 +113,29 @@ function datasetCard(snapshotId) {
     '  data_files: data/matches.jsonl',
     '- config_name: moves',
     '  data_files: data/moves.jsonl',
+    '- config_name: events',
+    '  data_files: data/events.jsonl',
     '---',
     '',
     '# AgentBattler Bench',
     '',
     `Public evidence for the ${snapshotId} coding-agent chess benchmark snapshot.`,
     '',
-    '- `data/runs.jsonl` contains normalized generation telemetry and immutable evidence paths.',
-    '- `data/matches.jsonl` contains one row per recorded game.',
-    '- `data/moves.jsonl` contains the move-by-move tournament traces.',
-    '- `traces/` preserves the raw Codex CLI event streams.',
+    '## Browse the data',
+    '',
+    `- **[Codex events](${datasetUrl}/viewer/events/train)** renders every agent message, command, output, file change, lifecycle event, and token summary as a readable table.`,
+    `- **[Generation runs](${datasetUrl}/viewer/runs/train)** contains model settings, duration, turns, tool calls, token usage, and immutable evidence paths.`,
+    `- **[Chess matches](${datasetUrl}/viewer/matches/train)** contains one row per recorded game.`,
+    `- **[Chess moves](${datasetUrl}/viewer/moves/train)** contains the move-by-move tournament record.`,
+    '',
+    '## Raw Codex traces',
+    '',
+    '| Agent | Raw JSONL |',
+    '| --- | --- |',
+    ...traceRows,
+    '',
+    `The original Codex CLI JSONL streams are preserved under \`${traceRoot}/\`. The normalized \`events\` table adds stable run and model context while retaining each exact source event in \`rawEvent\`.`,
+    '',
     '- `artifacts/` contains the generated JavaScript agents.',
     '- `raw/` and `site/` preserve the complete replay and website inputs.',
     '',
@@ -153,6 +170,7 @@ async function main() {
   const siteDataPath = path.join(ROOT, 'web/generated/site-data.json');
   const siteData = await readJson(siteDataPath);
   const runs = [];
+  const events = [];
   for (const entry of manifest.agents) {
     const metadataPath = path.join(ROOT, entry.provenance.generationMetadata);
     const tracePath = path.join(path.dirname(metadataPath), 'codex.jsonl');
@@ -196,6 +214,14 @@ async function main() {
       probePassed: metadata.probeSummary.passed,
       probeTotal: metadata.probeSummary.total,
     });
+    events.push(...parseCodexTrace(await readFile(tracePath, 'utf8'), {
+      snapshotId,
+      runId: metadata.run.sessionId,
+      agentId: entry.id,
+      displayName: entry.displayName,
+      model: entry.provenance.modelRequested,
+      reasoningEffort: entry.provenance.reasoningEffort,
+    }));
   }
 
   const matches = result.games.map((game) => ({
@@ -225,7 +251,8 @@ async function main() {
   await writeJsonLines(path.join(datasetRoot, 'data/runs.jsonl'), runs);
   await writeJsonLines(path.join(datasetRoot, 'data/matches.jsonl'), matches);
   await writeJsonLines(path.join(datasetRoot, 'data/moves.jsonl'), moves);
-  await writeFile(path.join(datasetRoot, 'README.md'), datasetCard(snapshotId));
+  await writeJsonLines(path.join(datasetRoot, 'data/events.jsonl'), events);
+  await writeFile(path.join(datasetRoot, 'README.md'), datasetCard(snapshotId, options.datasetRepo, runs));
   await copy(siteDataPath, path.join(datasetRoot, `snapshots/${snapshotId}/site/site-data.json`));
   await copy(MANIFEST_PATH, path.join(datasetRoot, `snapshots/${snapshotId}/raw/agents/manifest.json`));
   await copy(SUITE_PATH, path.join(datasetRoot, `snapshots/${snapshotId}/raw/generation-suite.json`));

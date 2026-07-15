@@ -77,6 +77,8 @@ async function preparePublishedSnapshot() {
   invariant(data.schemaVersion === 'agentbattler.site-data.v1', 'Published site data has an unsupported schema');
   invariant(data.matches.length === snapshot.totals.matches, 'Published site data match count disagrees with snapshot');
   invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
+  invariant(Array.isArray(data.families) && data.families.length > 0, 'Published site data lacks model-family results');
+  invariant(data.benchmark?.globalConfigAdjudication, 'Published site data lacks the host-config adjudication');
   const traceEvidence = Object.fromEntries(data.agents.map((agent) => {
     const tracePath = `${snapshot.dataset.root}/traces/${agent.id}/${agent.generation.sessionId}.jsonl`;
     const sessionPath = `${snapshot.dataset.root}/sessions/${agent.id}/${agent.generation.sessionId}.jsonl`;
@@ -140,6 +142,7 @@ async function main() {
     const decisive = games.filter((game) => game.final.outcome !== '1/2-1/2' && game.final.outcome !== 'void');
     agents.push({
       id: entry.id,
+      familyId: entry.provenance.modelFamilyId,
       displayName: entry.displayName,
       harness: entry.provenance.harness,
       harnessVersion: entry.provenance.harnessVersion,

@@ -58,6 +58,7 @@ function standingFor(agentId) {
 
 const agents = families.flatMap((family) => [1, 2].map((index) => ({
   id: `${family.id}-0${index}`,
+  familyId: family.id,
   displayName: `${family.displayName} #${index}`,
   standing: standingFor(`${family.id}-0${index}`),
   generation: { totalTokens: index * 100, durationMs: index * 1000, toolCalls: index },
@@ -72,6 +73,10 @@ test('model families aggregate games, pairwise records, variance, and attributed
   ]);
   assert.equal(summaries.every((family) => family.games === 8), true);
   assert.equal(summaries.flatMap((family) => family.pairwise).every((pair) => pair.games === 4), true);
+  assert.deepEqual(summaries.find((family) => family.id === 'sol').pairwise.map(({ opponentId, wins, draws, losses }) => ({ opponentId, wins, draws, losses })), [
+    { opponentId: 'terra', wins: 3, draws: 0, losses: 1 },
+    { opponentId: 'luna', wins: 4, draws: 0, losses: 0 },
+  ]);
   assert.deepEqual(summaries.find((family) => family.id === 'sol').reliability, {
     failures: 1,
     timeouts: 1,
@@ -81,5 +86,17 @@ test('model families aggregate games, pairwise records, variance, and attributed
     failures: 1,
     timeouts: 0,
     illegalMoves: 1,
+  });
+  assert.deepEqual(summaries.find((family) => family.id === 'terra').reliability, {
+    failures: 0,
+    timeouts: 0,
+    illegalMoves: 0,
+  });
+  assert.deepEqual(summaries.find((family) => family.id === 'sol').generation, {
+    totalTokens: 300,
+    medianTokens: 150,
+    totalDurationMs: 3000,
+    medianDurationMs: 1500,
+    toolCalls: 3,
   });
 });

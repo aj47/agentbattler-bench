@@ -13,7 +13,7 @@ function Reliability({ family }: { family: ModelFamily }) {
     family.reliability.timeouts ? `${family.reliability.timeouts} timeout${family.reliability.timeouts === 1 ? '' : 's'}` : null,
     family.reliability.illegalMoves ? `${family.reliability.illegalMoves} illegal` : null,
   ].filter(Boolean);
-  return <span className={styles.warning}>{parts.join(' · ')}</span>;
+  return <span className={styles.warning}>{parts.length ? parts.join(' · ') : `${family.reliability.failures} failures`}</span>;
 }
 
 export function FamilyLeaderboard({ families }: { families: ModelFamily[] }) {
@@ -61,7 +61,7 @@ export function FamilyLeaderboard({ families }: { families: ModelFamily[] }) {
                 <span key={pair.opponentId}><b>vs {pair.opponentId}</b>{pair.wins}–{pair.draws}–{pair.losses}</span>
               ))}
             </div>
-            <div className={styles.reliability}><Reliability family={family} /></div>
+            <div className={styles.reliability}><small>match forfeits</small><Reliability family={family} /></div>
           </article>
         ))}
       </div>

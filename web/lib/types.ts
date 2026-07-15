@@ -24,6 +24,7 @@ export type MatchSummary = {
 
 export type Agent = {
   id: string;
+  familyId: string;
   displayName: string;
   harness: string;
   harnessVersion: string;

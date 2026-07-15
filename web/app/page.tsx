@@ -38,7 +38,7 @@ export default function HomePage() {
           <Metric label="model families" value={families.length} detail="Sol · Terra · Luna" />
           <Metric label="generated engines" value={benchmark.totals.agents} detail="5 independent generations each" />
           <Metric label="recorded matches" value={benchmark.totals.matches} detail={`${benchmark.totals.decisive} decisive · ${benchmark.totals.voids} void`} />
-          <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · 0 MCP`} />
+          <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · ${benchmark.totals.generationMcpCalls} MCP`} />
         </div>
       </section>
 

@@ -56,6 +56,7 @@ export default function MethodologyPage() {
               <div><dt>result bundle</dt><dd>{benchmark.resultSha256Short}</dd></div>
             </dl>
             {benchmark.globalConfigAdjudication ? <p className="method-note">Config adjudication: {benchmark.globalConfigAdjudication.detail}</p> : null}
+            <p className="method-note">Interpretation: the five independently generated artifacts per model are the unit for generation variance. The 600 matches per family measure chess performance for those artifacts; they are not 600 independent model generations.</p>
             <p className="method-note">Limitation: these 15 artifacts predate the current Harbor submission contract and have not been independently reproduced. They remain useful benchmark and pipeline evidence, so they are labeled exploratory everywhere they appear.</p>
           </section>
         </div>

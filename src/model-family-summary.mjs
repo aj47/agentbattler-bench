@@ -10,18 +10,6 @@ function median(values) {
     : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function familyIdForAgent(agentId) {
-  return agentId.replace(/-\d+$/, '');
-}
-
-function scoreForGame(game, agentId) {
-  if (game.final.outcome === '1/2-1/2') return 0.5;
-  if (game.final.outcome === 'void') return 0;
-  const wonAsWhite = game.final.outcome === '1-0' && game.agents.w.id === agentId;
-  const wonAsBlack = game.final.outcome === '0-1' && game.agents.b.id === agentId;
-  return wonAsWhite || wonAsBlack ? 1 : 0;
-}
-
 function outcomeForFamily(game, familyId) {
   if (game.final.outcome === '1/2-1/2') return 'draw';
   if (game.final.outcome === 'void') return 'void';
@@ -36,11 +24,12 @@ function failedAgentId(game) {
 
 export function summarizeModelFamilies({ families, agents, games }) {
   const agentsByFamily = new Map();
+  const familyByAgentId = new Map();
   for (const agent of agents) {
-    const familyId = familyIdForAgent(agent.id);
-    const bucket = agentsByFamily.get(familyId) ?? [];
+    const bucket = agentsByFamily.get(agent.familyId) ?? [];
     bucket.push(agent);
-    agentsByFamily.set(familyId, bucket);
+    agentsByFamily.set(agent.familyId, bucket);
+    familyByAgentId.set(agent.id, agent.familyId);
   }
 
   const summaries = families.map((family) => {
@@ -74,7 +63,7 @@ export function summarizeModelFamilies({ families, agents, games }) {
     const artifactScores = artifacts.map((artifact) => artifact.scorePct);
     const failures = familyGames.filter((game) => {
       const agentId = failedAgentId(game);
-      return agentId && familyIdForAgent(agentId) === family.id;
+      return agentId && familyByAgentId.get(agentId) === family.id;
     });
 
     const pairwise = families

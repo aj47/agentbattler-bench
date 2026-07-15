@@ -21,6 +21,7 @@ import {
   sha256File,
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
+import { validateNativeCodexSession } from '../src/codex-session.mjs';
 import { parseCodexTrace } from '../src/codex-trace.mjs';
 import { fileArtifact, SNAPSHOT_SCHEMA, writeSnapshot } from '../src/snapshot.mjs';
 
@@ -96,8 +97,9 @@ function safeSnapshotId(generatedAt) {
 
 function datasetCard(snapshotId, datasetRepo, runs) {
   const traceRoot = `snapshots/${snapshotId}/traces`;
+  const sessionRoot = `snapshots/${snapshotId}/sessions`;
   const datasetUrl = `https://huggingface.co/datasets/${datasetRepo}`;
-  const traceRows = runs.map((run) => `| ${run.displayName} | [Open trace](${datasetUrl}/blob/main/${run.tracePath}) |`);
+  const traceRows = runs.map((run) => `| ${run.displayName} | [Native session](${datasetUrl}/blob/main/${run.sessionPath}) | [CLI events](${datasetUrl}/blob/main/${run.tracePath}) |`);
   return [
     '---',
     'pretty_name: AgentBattler Bench',
@@ -106,7 +108,13 @@ function datasetCard(snapshotId, datasetRepo, runs) {
     '- benchmark',
     '- chess',
     '- codex',
+    '- format:agent-traces',
     'configs:',
+    '- config_name: sessions',
+    '  default: true',
+    '  data_files:',
+    '  - split: train',
+    `    path: snapshots/${snapshotId}/sessions/**/*.jsonl`,
     '- config_name: runs',
     '  data_files: data/runs.jsonl',
     '- config_name: matches',
@@ -123,34 +131,36 @@ function datasetCard(snapshotId, datasetRepo, runs) {
     '',
     '## Browse the data',
     '',
-    `- **[Codex events](${datasetUrl}/viewer/events/train)** renders every agent message, command, output, file change, lifecycle event, and token summary as a readable table.`,
+    `- **[Codex sessions](${datasetUrl}/viewer/sessions/train)** opens the native session timeline with prompts, assistant messages, tool calls, and results.`,
+    `- **[Codex events](${datasetUrl}/viewer/events/train)** renders the CLI event stream as a searchable analytical table.`,
     `- **[Generation runs](${datasetUrl}/viewer/runs/train)** contains model settings, duration, turns, tool calls, token usage, and immutable evidence paths.`,
     `- **[Chess matches](${datasetUrl}/viewer/matches/train)** contains one row per recorded game.`,
     `- **[Chess moves](${datasetUrl}/viewer/moves/train)** contains the move-by-move tournament record.`,
     '',
-    '## Raw Codex traces',
+    '## Codex traces',
     '',
-    '| Agent | Raw JSONL |',
-    '| --- | --- |',
+    '| Agent | Agent Trace session | Analytical event stream |',
+    '| --- | --- | --- |',
     ...traceRows,
     '',
-    `The original Codex CLI JSONL streams are preserved under \`${traceRoot}/\`. The normalized \`events\` table adds stable run and model context while retaining each exact source event in \`rawEvent\`.`,
+    `Native, non-ephemeral Codex session rollouts are preserved under \`${sessionRoot}/\` for the Hugging Face Agent Trace viewer. Original \`codex exec --json\` streams are preserved under \`${traceRoot}/\`; the normalized \`events\` table adds stable run and model context while retaining each exact source event in \`rawEvent\`.`,
     '',
     '- `artifacts/` contains the generated JavaScript agents.',
     '- `raw/` and `site/` preserve the complete replay and website inputs.',
     '',
-    'Raw traces can contain sensitive information in general. This snapshot is published only after an automated credential scan and manual review. The JSONL files record Codex CLI events, not hidden model chain-of-thought.',
+    'Agent traces can contain sensitive information in general. This snapshot is published only after an automated credential scan and manual review. The JSONL files contain recorded session and CLI events, not hidden model chain-of-thought.',
     '',
   ].join('\n');
 }
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
-  const [manifest, suite, result, checksums] = await Promise.all([
+  const [manifest, suite, result, checksums, prompt] = await Promise.all([
     readJson(MANIFEST_PATH),
     readJson(SUITE_PATH),
     readJson(RESULT_PATH),
     readJson(CHECKSUM_PATH),
+    readFile(path.join(ROOT, 'benchmark/challenges/chess-agent-v1.md'), 'utf8'),
   ]);
   const { resultSha256, ...unsignedResult } = result;
   invariant(resultSha256 === canonicalJsonSha256(unsignedResult), 'Model-suite result integrity hash mismatch');
@@ -175,17 +185,32 @@ async function main() {
     const metadataPath = path.join(ROOT, entry.provenance.generationMetadata);
     const tracePath = path.join(path.dirname(metadataPath), 'codex.jsonl');
     const stderrPath = path.join(path.dirname(metadataPath), 'codex-stderr.txt');
+    const sessionPath = path.join(path.dirname(metadataPath), 'session.jsonl');
     const sourcePath = path.join(ROOT, entry.source);
     await inspectTextForSecrets(tracePath);
     await inspectTextForSecrets(stderrPath);
+    await inspectTextForSecrets(sessionPath);
     const metadata = await readJson(metadataPath);
+    const sessionContent = await readFile(sessionPath, 'utf8');
     invariant(await sha256File(sourcePath) === entry.sourceSha256, `Agent source hash mismatch for ${entry.id}`);
+    invariant(metadata.authentication?.method === 'chatgpt', `${entry.id} was not generated with ChatGPT authentication`);
+    invariant(metadata.authentication?.subscriptionAccess === true, `${entry.id} is not marked as subscription access`);
+    invariant(metadata.authentication?.apiKeyEnvironmentRemoved === true, `${entry.id} did not remove API-key environment variables`);
+    invariant(metadata.nativeSession?.sha256 === await sha256File(sessionPath), `Native session hash mismatch for ${entry.id}`);
+    invariant(metadata.nativeSession?.sizeBytes === (await stat(sessionPath)).size, `Native session size mismatch for ${entry.id}`);
+    validateNativeCodexSession(sessionContent, {
+      sessionId: metadata.run.sessionId,
+      model: entry.provenance.modelRequested,
+      prompt,
+    });
     const relativeTrace = `snapshots/${snapshotId}/traces/${entry.id}/${metadata.run.sessionId}.jsonl`;
     const relativeSource = `snapshots/${snapshotId}/artifacts/${entry.id}/agent.js`;
     const relativeMetadata = `snapshots/${snapshotId}/raw/generations/${entry.id}/metadata.json`;
+    const relativeSession = `snapshots/${snapshotId}/sessions/${entry.id}/${metadata.run.sessionId}.jsonl`;
     await copy(tracePath, path.join(datasetRoot, relativeTrace));
     await copy(stderrPath, path.join(datasetRoot, `snapshots/${snapshotId}/raw/generations/${entry.id}/codex-stderr.txt`));
     await copy(metadataPath, path.join(datasetRoot, relativeMetadata));
+    await copy(sessionPath, path.join(datasetRoot, relativeSession));
     await copy(sourcePath, path.join(datasetRoot, relativeSource));
     runs.push({
       snapshotId,
@@ -209,6 +234,7 @@ async function main() {
       artifactSha256: metadata.agent.sha256,
       artifactSizeBytes: metadata.agent.sizeBytes,
       tracePath: relativeTrace,
+      sessionPath: relativeSession,
       metadataPath: relativeMetadata,
       artifactPath: relativeSource,
       probePassed: metadata.probeSummary.passed,

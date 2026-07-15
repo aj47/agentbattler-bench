@@ -17,6 +17,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { isLegalUciMove, parseFen } from '../src/chess.mjs';
+import { validateNativeCodexSession } from '../src/codex-session.mjs';
 import { runAgentMove, validateAgent } from '../src/runner.mjs';
 import { canonicalJson, sha256, sha256File } from '../src/provenance.mjs';
 
@@ -40,6 +41,62 @@ function countBy(values) {
   return Object.fromEntries([...new Set(values)].sort().map((value) => [value, values.filter((item) => item === value).length]));
 }
 
+function chatGptEnvironment(overrides = {}) {
+  const environment = { ...process.env, ...overrides };
+  delete environment.OPENAI_API_KEY;
+  delete environment.CODEX_API_KEY;
+  delete environment.CODEX_ACCESS_TOKEN;
+  return environment;
+}
+
+async function walk(directory) {
+  const result = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) result.push(...await walk(absolute));
+    else if (entry.isFile()) result.push(absolute);
+  }
+  return result;
+}
+
+async function requireChatGptAuthentication() {
+  const auth = JSON.parse(await readFile(AUTH_PATH, 'utf8'));
+  if (auth.auth_mode !== 'chatgpt') throw new Error('Benchmark generation requires Codex ChatGPT subscription authentication');
+  if (typeof auth.tokens?.access_token !== 'string' || typeof auth.tokens?.refresh_token !== 'string') {
+    throw new Error('Codex ChatGPT authentication is incomplete; run `codex login`');
+  }
+  const preflightHome = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-auth-'));
+  try {
+    const isolatedAuth = path.join(preflightHome, 'auth.json');
+    await copyFile(AUTH_PATH, isolatedAuth);
+    await chmod(isolatedAuth, 0o600);
+    const child = spawn('codex', ['login', 'status'], {
+      env: chatGptEnvironment({
+        CODEX_HOME: preflightHome,
+        CODEX_SQLITE_HOME: preflightHome,
+        CODEX_NON_INTERACTIVE: '1',
+      }),
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on('data', (chunk) => stdout.push(chunk));
+    child.stderr.on('data', (chunk) => stderr.push(chunk));
+    const exitCode = await new Promise((resolve, reject) => {
+      child.on('error', reject);
+      child.on('close', resolve);
+    });
+    const status = `${Buffer.concat(stdout).toString('utf8')}\n${Buffer.concat(stderr).toString('utf8')}`;
+    if (exitCode !== 0 || !/Logged in using ChatGPT/i.test(status)) {
+      throw new Error('Isolated Codex authentication did not verify as ChatGPT; run `codex login`');
+    }
+    return auth.auth_mode;
+  } finally {
+    await rm(preflightHome, { recursive: true, force: true });
+  }
+}
+
 async function optionalSha256(file) {
   try {
     return await sha256File(file);
@@ -54,7 +111,6 @@ async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stder
     'exec',
     '--model', model,
     '--sandbox', 'workspace-write',
-    '--ephemeral',
     '--ignore-user-config',
     '--ignore-rules',
     '--skip-git-repo-check',
@@ -73,12 +129,11 @@ async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stder
   const started = Date.now();
   const child = spawn('codex', args, {
     cwd: workspace,
-    env: {
-      ...process.env,
+    env: chatGptEnvironment({
       CODEX_HOME: codexHome,
       CODEX_SQLITE_HOME: codexHome,
       CODEX_NON_INTERACTIVE: '1',
-    },
+    }),
     shell: false,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -172,6 +227,22 @@ async function generateOne(entry, prompt, promptSha256, positions) {
     const probes = await probeAgent(targetPath, positions);
     const isolatedHomeEntries = (await readdir(codexHome)).filter((name) => name !== 'auth.json').sort();
     const telemetry = telemetryFromJsonl(run.stdoutText);
+    const sessionFiles = (await walk(path.join(codexHome, 'sessions'))).filter((file) => file.endsWith('.jsonl'));
+    if (sessionFiles.length !== 1) throw new Error(`${entry.model} produced ${sessionFiles.length} native session files instead of one`);
+    const sessionContent = await readFile(sessionFiles[0], 'utf8');
+    const nativeSession = validateNativeCodexSession(sessionContent, {
+      sessionId: telemetry.sessionId,
+      model: entry.model,
+      prompt,
+    });
+    const nativeSessionPath = path.join(generationDir, 'session.jsonl');
+    await writeFile(nativeSessionPath, sessionContent);
+    const nativeSessionIdentity = {
+      path: `results/model-suite/generations/${entry.id}/session.jsonl`,
+      sha256: sha256(sessionContent),
+      sizeBytes: Buffer.byteLength(sessionContent),
+      ...nativeSession,
+    };
     const metadata = {
       schemaVersion: 'agentbattler.codex-generation-metadata.v1',
       run: {
@@ -188,7 +259,8 @@ async function generateOne(entry, prompt, promptSha256, positions) {
           authCopiedIntoEphemeralHome: true,
           ignoreUserConfig: true,
           ignoreRules: true,
-          ephemeralSession: true,
+          ephemeralSession: false,
+          isolatedSessionCapturedBeforeCleanup: true,
           sandbox: 'workspace-write',
           approvalPolicy: 'never',
           emptyWorkspaceAtStart: emptyWorkspaceEntries.length === 0,
@@ -217,6 +289,12 @@ async function generateOne(entry, prompt, promptSha256, positions) {
         reasoningTokens: telemetry.reasoningTokens,
         totalTokens: telemetry.totalTokens,
       },
+      authentication: {
+        method: 'chatgpt',
+        subscriptionAccess: true,
+        apiKeyEnvironmentRemoved: true,
+      },
+      nativeSession: nativeSessionIdentity,
       prompt: { path: 'benchmark/challenges/chess-agent-v1.md', sha256: promptSha256 },
       agent: {
         path: `agents/model-suite/${entry.id}.js`,
@@ -238,6 +316,7 @@ async function generateOne(entry, prompt, promptSha256, positions) {
 }
 
 async function main() {
+  await requireChatGptAuthentication();
   const [prompt, positionsDocument] = await Promise.all([
     readFile(PROMPT_PATH, 'utf8'),
     readFile(POSITIONS_PATH, 'utf8').then(JSON.parse),
@@ -287,6 +366,11 @@ async function main() {
     generatedAt: new Date().toISOString(),
     models: MODELS.map(({ id, model }) => ({ id, model })),
     reasoningEffort: REASONING_EFFORT,
+    authentication: {
+      method: 'chatgpt',
+      subscriptionAccess: true,
+      apiKeyEnvironmentRemoved: true,
+    },
     promptSha256,
     globalConfigHashBefore,
     globalConfigHashAfter,

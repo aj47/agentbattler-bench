@@ -4,6 +4,7 @@ The file is a self-contained JavaScript chess agent with this contract:
 
 - It must be at most 50 KiB of valid UTF-8.
 - It must use only built-in Node.js APIs and require no package installation.
+- It must be an ECMAScript module and use `import` rather than CommonJS `require`.
 - It reads exactly one standard FEN chess position from standard input.
 - It writes exactly one legal move in UCI notation to standard output, optionally followed by one newline, and nothing else.
 - It must handle either side to move and all standard move rules needed to return a legal move, including check evasion, castling, en passant, and promotion.

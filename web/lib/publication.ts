@@ -2,8 +2,12 @@ import rawPublication from '../generated/publication.json';
 
 type AgentEvidence = {
   tracePath: string;
+  sessionPath: string;
   viewerUrl: string;
-  downloadUrl: string;
+  sessionUrl: string;
+  sessionDownloadUrl: string;
+  cliEventsUrl: string;
+  cliEventsDownloadUrl: string;
 };
 
 export type Publication = {

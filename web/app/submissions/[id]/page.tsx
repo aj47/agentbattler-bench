@@ -59,7 +59,7 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><span>input tokens</span><strong>{formatNumber(agent.generation.inputTokens)}</strong></div>
               <div><span>output tokens</span><strong>{formatNumber(agent.generation.outputTokens)}</strong></div>
             </div>
-            {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">inspect raw trace ↗</a><a href={trace.downloadUrl}>download JSONL</a></p> : null}
+            {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">open HF trace viewer ↗</a><a href={trace.sessionUrl} target="_blank" rel="noreferrer">native session</a><a href={trace.cliEventsUrl} target="_blank" rel="noreferrer">CLI events</a></p> : null}
             <details className="evidence-disclosure">
               <summary>exact generation command <span>show</span></summary>
               <div className="code-wrap"><CopyButton value={command} /><pre><code>{command}</code></pre></div>

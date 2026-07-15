@@ -78,11 +78,17 @@ async function preparePublishedSnapshot() {
   invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
   const traceEvidence = Object.fromEntries(data.agents.map((agent) => {
     const tracePath = `${snapshot.dataset.root}/traces/${agent.id}/${agent.generation.sessionId}.jsonl`;
+    const sessionPath = `${snapshot.dataset.root}/sessions/${agent.id}/${agent.generation.sessionId}.jsonl`;
     const traceArtifact = { path: tracePath, sha256: '0'.repeat(64), sizeBytes: 0 };
+    const sessionArtifact = { path: sessionPath, sha256: '0'.repeat(64), sizeBytes: 0 };
     return [agent.id, {
       tracePath,
-      viewerUrl: huggingFaceBlobUrl(snapshot, tracePath),
-      downloadUrl: huggingFaceResolveUrl(snapshot, traceArtifact),
+      sessionPath,
+      viewerUrl: `https://huggingface.co/datasets/${snapshot.dataset.repoId}/viewer/sessions/train`,
+      sessionUrl: huggingFaceBlobUrl(snapshot, sessionPath),
+      sessionDownloadUrl: huggingFaceResolveUrl(snapshot, sessionArtifact),
+      cliEventsUrl: huggingFaceBlobUrl(snapshot, tracePath),
+      cliEventsDownloadUrl: huggingFaceResolveUrl(snapshot, traceArtifact),
     }];
   }));
   await mkdir(path.dirname(OUTPUT), { recursive: true });

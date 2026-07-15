@@ -17,7 +17,7 @@
       },
       "role": "model-challenger",
       "source": "agents/model-suite/terra.js",
-      "sourceSha256": "4bea109168935c3e822b0944d106559bb6b70f851f44178ece75cdb9c67ce679"
+      "sourceSha256": "afe8bac12b1d22c02a485d5a66d7cb937b603decf538138eec1f449b291b687f"
     },
     {
       "displayName": "GPT-5.6 Sol",
@@ -36,7 +36,7 @@
       },
       "role": "model-challenger",
       "source": "agents/model-suite/sol.js",
-      "sourceSha256": "193ad6b4300ec41d13b06c107afe0e51b0509c87b6d6eec01eff9f238821f879"
+      "sourceSha256": "140df92f838c2a4039ba38be616f5cd7fc9f8db315c473fbd079627117d240f8"
     },
     {
       "displayName": "GPT-5.6 Luna",
@@ -55,7 +55,7 @@
       },
       "role": "model-challenger",
       "source": "agents/model-suite/luna.js",
-      "sourceSha256": "e9d944ac94d2dbde64f6139595809d2c3137ccf5e721c1ac5de18bf72f253f7e"
+      "sourceSha256": "00fd30f21f9a2d2922857b88eb3d12c59c740c7cdba4a4052255c2f6ac5b7556"
     }
   ],
   "comparison": {
@@ -67,6 +67,6 @@
     "reasoningEffort": "high"
   },
   "description": "Local Codex model comparison generated from one fixed prompt at high reasoning in isolated empty workspaces.",
-  "manifestId": "codex-model-suite-2026-07-15T01-21-30-910Z",
+  "manifestId": "codex-model-suite-2026-07-15T01-40-48-712Z",
   "schemaVersion": "agentbattler.agent-manifest.v1"
 }

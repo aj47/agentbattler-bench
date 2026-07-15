@@ -1,154 +1,216 @@
-import fs from 'node:fs';
+import { readFileSync } from "node:fs";
 
-const fen = fs.readFileSync(0, 'utf8').trim();
-const fields = fen.split(/\s+/);
-const board = Array(64).fill('.');
-let at = 0;
-for (const row of (fields[0] || '').split('/')) {
-  for (const c of row) {
-    if (/\d/.test(c)) at += +c;
-    else board[at++] = c;
-  }
+const input = readFileSync(0, "utf8").trim();
+const fields = input.split(/\s+/);
+const files = "abcdefgh";
+const val = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+const knight = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
+const king = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+const diag = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+const orth = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+function square(x) {
+  return x === "-" || !x ? -1 : (8 - +x[1]) * 8 + files.indexOf(x[0]);
 }
-const turn = fields[1] === 'b' ? 'b' : 'w';
-const rights = fields[2] || '-';
-const ep = fields[3] && fields[3] !== '-' ? sq(fields[3]) : -1;
-const own = p => p !== '.' && (turn === 'w' ? p >= 'A' && p <= 'Z' : p >= 'a' && p <= 'z');
-const enemy = (p, side) => p !== '.' && (side === 'w' ? p >= 'a' && p <= 'z' : p >= 'A' && p <= 'Z');
-const sideOf = p => p >= 'A' && p <= 'Z' ? 'w' : 'b';
-const file = i => i & 7;
-const rank = i => i >> 3;
 
-function sq(s) { return (s.charCodeAt(0) - 97) + (8 - +s[1]) * 8; }
-function coord(i) { return String.fromCharCode(97 + file(i)) + (8 - rank(i)); }
-function inside(r, f) { return r >= 0 && r < 8 && f >= 0 && f < 8; }
-function pieceSide(p, s) { return p !== '.' && sideOf(p) === s; }
-
-function attacked(b, x, by) {
-  const r = rank(x), f = file(x);
-  const pr = by === 'w' ? r + 1 : r - 1;
-  if (pr >= 0 && pr < 8) {
-    for (const df of [-1, 1]) {
-      const y = pr * 8 + f + df;
-      if (f + df >= 0 && f + df < 8 && b[y] === (by === 'w' ? 'P' : 'p')) return true;
+function parse() {
+  const b = Array(64).fill(".");
+  let i = 0;
+  for (const row of fields[0].split("/")) {
+    for (const c of row) {
+      if (/\d/.test(c)) i += +c;
+      else b[i++] = c;
     }
   }
-  const n = by === 'w' ? 'N' : 'n';
-  for (const [dr, df] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+  let r = 0;
+  for (const c of fields[2] || "") r |= { K: 1, Q: 2, k: 4, q: 8 }[c] || 0;
+  return { b, t: fields[1] === "b" ? "b" : "w", r, ep: square(fields[3]) };
+}
+
+function mine(p, side) {
+  return p !== "." && (side === "w" ? p < "a" : p >= "a");
+}
+
+function enemy(p, side) {
+  return p !== "." && !mine(p, side);
+}
+
+function attacked(b, q, by) {
+  const r = q >> 3, f = q & 7;
+  const pawn = by === "w" ? "P" : "p";
+  const pr = r + (by === "w" ? 1 : -1);
+  if (pr >= 0 && pr < 8) {
+    if (f && b[pr * 8 + f - 1] === pawn) return true;
+    if (f < 7 && b[pr * 8 + f + 1] === pawn) return true;
+  }
+  const kn = by === "w" ? "N" : "n";
+  for (const [dr, df] of knight) {
     const rr = r + dr, ff = f + df;
-    if (inside(rr, ff) && b[rr * 8 + ff] === n) return true;
+    if (rr >= 0 && rr < 8 && ff >= 0 && ff < 8 && b[rr * 8 + ff] === kn) return true;
   }
-  const k = by === 'w' ? 'K' : 'k';
-  for (let dr = -1; dr <= 1; dr++) for (let df = -1; df <= 1; df++) {
-    if ((dr || df) && inside(r + dr, f + df) && b[(r + dr) * 8 + f + df] === k) return true;
-  }
-  const bishop = by === 'w' ? 'B' : 'b', rook = by === 'w' ? 'R' : 'r', queen = by === 'w' ? 'Q' : 'q';
-  for (const [dr, df, bishops] of [[-1,-1,1],[-1,1,1],[1,-1,1],[1,1,1],[-1,0,0],[1,0,0],[0,-1,0],[0,1,0]]) {
+  const bi = by === "w" ? "B" : "b", ro = by === "w" ? "R" : "r";
+  const qu = by === "w" ? "Q" : "q", ki = by === "w" ? "K" : "k";
+  for (const [dr, df] of diag) {
     let rr = r + dr, ff = f + df;
-    while (inside(rr, ff)) {
+    while (rr >= 0 && rr < 8 && ff >= 0 && ff < 8) {
       const p = b[rr * 8 + ff];
-      if (p !== '.') {
-        if (p === queen || (bishops ? p === bishop : p === rook)) return true;
-        break;
-      }
+      if (p !== ".") { if (p === bi || p === qu) return true; break; }
       rr += dr; ff += df;
     }
+  }
+  for (const [dr, df] of orth) {
+    let rr = r + dr, ff = f + df;
+    while (rr >= 0 && rr < 8 && ff >= 0 && ff < 8) {
+      const p = b[rr * 8 + ff];
+      if (p !== ".") { if (p === ro || p === qu) return true; break; }
+      rr += dr; ff += df;
+    }
+  }
+  for (const [dr, df] of king) {
+    const rr = r + dr, ff = f + df;
+    if (rr >= 0 && rr < 8 && ff >= 0 && ff < 8 && b[rr * 8 + ff] === ki) return true;
   }
   return false;
 }
 
-function inCheck(b, s) {
-  const k = s === 'w' ? 'K' : 'k';
-  const x = b.indexOf(k);
-  return x < 0 || attacked(b, x, s === 'w' ? 'b' : 'w');
+function inCheck(s, side) {
+  const k = side === "w" ? "K" : "k";
+  const q = s.b.indexOf(k);
+  return q < 0 || attacked(s.b, q, side === "w" ? "b" : "w");
 }
 
-function promotions(s) { return s === 'w' ? ['Q','R','B','N'] : ['q','r','b','n']; }
-function addPawn(ms, from, to, s, isEp = false) {
-  const last = s === 'w' ? 0 : 7;
-  if (rank(to) === last) for (const p of promotions(s)) ms.push({from, to, prom:p, ep:isEp});
-  else ms.push({from, to, ep:isEp});
+function add(a, f, t, x = "", ep = false, castle = false) {
+  a.push({ f, t, p: x, ep, castle });
 }
 
-function pseudo(b, s) {
-  const ms = [];
-  for (let from = 0; from < 64; from++) {
-    const p = b[from];
-    if (!pieceSide(p, s)) continue;
-    const u = p.toUpperCase(), r = rank(from), f = file(from);
-    if (u === 'P') {
-      const d = s === 'w' ? -1 : 1, one = from + d * 8;
-      if (one >= 0 && one < 64 && b[one] === '.') {
-        addPawn(ms, from, one, s);
-        const start = s === 'w' ? 6 : 1, two = from + d * 16;
-        if (r === start && b[two] === '.') ms.push({from, to:two});
+function moves(s) {
+  const a = [], b = s.b, side = s.t, pawn = side === "w" ? "P" : "p";
+  const dir = side === "w" ? -1 : 1, start = side === "w" ? 6 : 1, last = side === "w" ? 0 : 7;
+  const promo = ["q", "r", "b", "n"];
+  const put = (f, t, ep = false) => {
+    if ((t >> 3) === last) for (const p of promo) add(a, f, t, p, ep);
+    else add(a, f, t, "", ep);
+  };
+  for (let f = 0; f < 64; f++) {
+    const p = b[f];
+    if (!mine(p, side)) continue;
+    const r = f >> 3, c = f & 7, u = p.toLowerCase();
+    if (u === "p") {
+      const rr = r + dir;
+      if (rr >= 0 && rr < 8) {
+        const t = rr * 8 + c;
+        if (b[t] === ".") {
+          put(f, t);
+          if (r === start && b[f + 16 * dir] === ".") add(a, f, f + 16 * dir);
+        }
+        for (const dc of [-1, 1]) {
+          const cc = c + dc;
+          if (cc < 0 || cc > 7) continue;
+          const to = rr * 8 + cc, ep = to === s.ep;
+          if ((enemy(b[to], side) && b[to].toLowerCase() !== "k") || ep) put(f, to, ep);
+        }
       }
-      for (const df of [-1, 1]) {
-        const ff = f + df;
-        if (ff < 0 || ff > 7) continue;
-        const to = from + d * 8 + df;
-        if (enemy(b[to], s)) addPawn(ms, from, to, s);
-        else if (to === ep) addPawn(ms, from, to, s, true);
+    } else if (u === "n" || u === "k") {
+      const ds = u === "n" ? knight : king;
+      for (const [dr, dc] of ds) {
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr > 7 || cc < 0 || cc > 7) continue;
+        const t = rr * 8 + cc;
+        if ((b[t] === "." || (enemy(b[t], side) && b[t].toLowerCase() !== "k"))) add(a, f, t);
       }
-    } else if (u === 'N') {
-      for (const [dr, df] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
-        const rr = r + dr, ff = f + df;
-        if (inside(rr, ff) && !pieceSide(b[rr * 8 + ff], s)) ms.push({from, to:rr*8+ff});
-      }
-    } else if (u === 'K') {
-      for (let dr = -1; dr <= 1; dr++) for (let df = -1; df <= 1; df++) {
-        const rr = r + dr, ff = f + df;
-        if ((dr || df) && inside(rr, ff) && !pieceSide(b[rr*8+ff], s)) ms.push({from, to:rr*8+ff});
-      }
-      const home = s === 'w' ? 60 : 4, enemySide = s === 'w' ? 'b' : 'w';
-      if (from === home && !inCheck(b, s)) {
-        const kingRight = s === 'w' ? 'K' : 'k', queenRight = s === 'w' ? 'Q' : 'q';
-        if (rights.includes(kingRight) && b[home+1] === '.' && b[home+2] === '.' &&
-            b[home+3] === (s === 'w' ? 'R' : 'r') && !attacked(b, home+1, enemySide))
-          ms.push({from, to:home+2, castle:true});
-        if (rights.includes(queenRight) && b[home-1] === '.' && b[home-2] === '.' && b[home-3] === '.' &&
-            b[home-4] === (s === 'w' ? 'R' : 'r') && !attacked(b, home-1, enemySide))
-          ms.push({from, to:home-2, castle:true});
+      if (u === "k" && !inCheck(s, side)) {
+        const row = side === "w" ? 7 : 0, base = row * 8;
+        const rights = side === "w" ? [1, 2] : [4, 8];
+        if (f === base + 4 && (s.r & rights[0]) && b[base + 5] === "." && b[base + 6] === "." &&
+            b[base + 7] === (side === "w" ? "R" : "r") && !attacked(b, base + 5, side === "w" ? "b" : "w") &&
+            !attacked(b, base + 6, side === "w" ? "b" : "w")) add(a, f, base + 6, "", false, true);
+        if (f === base + 4 && (s.r & rights[1]) && b[base + 1] === "." && b[base + 2] === "." &&
+            b[base + 3] === "." && b[base] === (side === "w" ? "R" : "r") && !attacked(b, base + 3, side === "w" ? "b" : "w") &&
+            !attacked(b, base + 2, side === "w" ? "b" : "w")) add(a, f, base + 2, "", false, true);
       }
     } else {
-      const dirs = u === 'B' ? [[-1,-1],[-1,1],[1,-1],[1,1]] : u === 'R' ? [[-1,0],[1,0],[0,-1],[0,1]] : [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
-      for (const [dr, df] of dirs) {
-        let rr = r + dr, ff = f + df;
-        while (inside(rr, ff)) {
-          const to = rr * 8 + ff;
-          if (pieceSide(b[to], s)) break;
-          ms.push({from, to});
-          if (b[to] !== '.') break;
-          rr += dr; ff += df;
+      const ds = u === "b" ? diag : u === "r" ? orth : diag.concat(orth);
+      for (const [dr, dc] of ds) {
+        let rr = r + dr, cc = c + dc;
+        while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+          const t = rr * 8 + cc, q = b[t];
+          if (q === ".") add(a, f, t);
+          else { if (enemy(q, side) && q.toLowerCase() !== "k") add(a, f, t); break; }
+          rr += dr; cc += dc;
         }
       }
     }
   }
-  return ms;
+  return a;
 }
 
-function play(b, m, s) {
-  const n = b.slice(), p = n[m.from];
-  n[m.from] = '.'; n[m.to] = m.prom || p;
-  if (m.ep) n[m.to + (s === 'w' ? 8 : -8)] = '.';
+function play(s, m) {
+  const b = s.b.slice(), side = s.t, p = b[m.f];
+  b[m.f] = ".";
+  if (m.ep) b[m.t + (side === "w" ? 8 : -8)] = ".";
+  b[m.t] = m.p ? (side === "w" ? m.p.toUpperCase() : m.p) : p;
   if (m.castle) {
-    const d = m.to > m.from ? 1 : -1, rookFrom = d > 0 ? m.from + 3 : m.from - 4, rookTo = m.from + d;
-    n[rookTo] = n[rookFrom]; n[rookFrom] = '.';
+    const row = side === "w" ? 7 : 0, base = row * 8;
+    if ((m.t & 7) === 6) { b[base + 5] = b[base + 7]; b[base + 7] = "."; }
+    else { b[base + 3] = b[base]; b[base] = "."; }
   }
-  return n;
+  let r = s.r;
+  if (p === "K") r &= ~3;
+  if (p === "k") r &= ~12;
+  if (p.toLowerCase() === "r") {
+    if (m.f === 56) r &= ~2; if (m.f === 63) r &= ~1;
+    if (m.f === 0) r &= ~8; if (m.f === 7) r &= ~4;
+  }
+  const captured = s.b[m.t];
+  if (captured === "R") { if (m.t === 56) r &= ~2; if (m.t === 63) r &= ~1; }
+  if (captured === "r") { if (m.t === 0) r &= ~8; if (m.t === 7) r &= ~4; }
+  return { b, t: side === "w" ? "b" : "w", r, ep: p.toLowerCase() === "p" && Math.abs(m.t - m.f) === 16 ? (m.t + m.f) >> 1 : -1 };
 }
 
-function legalMoves(b, s) {
-  return pseudo(b, s).filter(m => !inCheck(play(b, m, s), s));
+function legal(s) {
+  return moves(s).filter(m => !inCheck(play(s, m), s.t));
 }
 
-const moves = legalMoves(board, turn);
-// Prefer forcing moves, while retaining deterministic legal fallback behavior.
-const value = p => ({q:900,r:500,b:330,n:320,p:100,k:20000})[p.toLowerCase()] || 0;
-const scored = moves.map(m => {
-  const capture = m.ep ? 100 : value(board[m.to]);
-  const promotion = m.prom ? value(m.prom) : 0;
-  return {m, score:capture + promotion + (m.castle ? 1 : 0)};
-}).sort((a, z) => z.score - a.score || a.m.from - z.m.from || a.m.to - z.m.to);
-const best = (scored[0] || {}).m;
-if (best) process.stdout.write(coord(best.from) + coord(best.to) + (best.prom ? best.prom.toLowerCase() : ''));
+function material(s, perspective) {
+  let n = 0;
+  for (const p of s.b) if (p !== ".") {
+    const x = val[p.toLowerCase()] || 0;
+    n += p < "a" ? x : -x;
+  }
+  return perspective === "w" ? n : -n;
+}
+
+function order(s, m) {
+  const q = s.b[m.t];
+  return (m.p ? 800 : 0) + (q !== "." ? (val[q.toLowerCase()] || 0) * 10 - (val[s.b[m.f].toLowerCase()] || 0) : 0) + (m.ep ? 1000 : 0) + (m.castle ? 30 : 0);
+}
+
+function search(s, depth, alpha, beta, perspective) {
+  const a = legal(s);
+  if (!a.length) return inCheck(s, s.t) ? (s.t === perspective ? -100000 - depth : 100000 + depth) : 0;
+  if (!depth) return material(s, perspective);
+  a.sort((x, y) => order(s, y) - order(s, x));
+  const max = s.t === perspective;
+  let best = max ? -Infinity : Infinity;
+  for (const m of a) {
+    const z = search(play(s, m), depth - 1, alpha, beta, perspective);
+    if (max) { if (z > best) best = z; if (best > alpha) alpha = best; }
+    else { if (z < best) best = z; if (best < beta) beta = best; }
+    if (beta <= alpha) break;
+  }
+  return best;
+}
+
+function uci(m) {
+  return files[m.f & 7] + (8 - (m.f >> 3)) + files[m.t & 7] + (8 - (m.t >> 3)) + (m.p || "");
+}
+
+const state = parse();
+const options = legal(state).sort((x, y) => order(state, y) - order(state, x));
+let chosen = options[0];
+let best = state.t === "w" ? -Infinity : Infinity;
+for (const m of options) {
+  const score = search(play(state, m), 2, -Infinity, Infinity, state.t);
+  if ((state.t === "w" && score > best) || (state.t === "b" && score < best)) { best = score; chosen = m; }
+}
+process.stdout.write(chosen ? uci(chosen) : "0000");

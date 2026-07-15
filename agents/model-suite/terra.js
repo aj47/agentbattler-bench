@@ -1,69 +1,109 @@
 import { readFileSync } from 'node:fs';
 
+// Squares are numbered a1=0 through h8=63.  The deliberately small engine
+// below generates moves and rejects every move that leaves its own king in
+// check; no chess library or state outside this process is used.
 const fen = readFileSync(0, 'utf8').trim().split(/\s+/);
 const rows = fen[0].split('/');
-let b = [];
-for (const row of rows) for (const x of row) {
-  if (x >= '1' && x <= '8') b.push(...'.'.repeat(+x)); else b.push(x);
+let B = Array(64).fill('.');
+for (let r = 0; r < 8; r++) {
+  let f = 0;
+  for (const c of rows[7 - r]) {
+    if (c >= '1' && c <= '8') f += +c;
+    else B[r * 8 + f++] = c;
+  }
 }
 const side = fen[1] === 'b' ? 'b' : 'w';
 const rights = fen[2] || '-';
 const ep = fen[3] && fen[3] !== '-' ? sq(fen[3]) : -1;
-const on = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
-const own = x => x !== '.' && (side === 'w' ? x === x.toUpperCase() : x === x.toLowerCase());
-const foe = x => x !== '.' && !own(x) && x.toLowerCase() !== 'k';
-function sq(s) { return (8 - +s[1]) * 8 + s.charCodeAt(0) - 97; }
-function uci(i) { return String.fromCharCode(97 + i % 8) + (8 - (i / 8 | 0)); }
-
-function attacked(a, z, white) {
-  const r = z / 8 | 0, c = z % 8;
-  const pawn = white ? 'P' : 'p', knight = white ? 'N' : 'n', king = white ? 'K' : 'k';
-  const rr = white ? r + 1 : r - 1;
-  if (rr >= 0 && rr < 8 && ((c && a[rr * 8 + c - 1] === pawn) || (c < 7 && a[rr * 8 + c + 1] === pawn))) return true;
-  for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) if (on(r + dr,c + dc) && a[(r + dr) * 8 + c + dc] === knight) return true;
-  for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) if (on(r + dr,c + dc) && a[(r + dr) * 8 + c + dc] === king) return true;
-  for (const [dr, dc, kinds] of [[-1,0,'rq'],[1,0,'rq'],[0,-1,'rq'],[0,1,'rq'],[-1,-1,'bq'],[-1,1,'bq'],[1,-1,'bq'],[1,1,'bq']]) {
-    let y = r + dr, x = c + dc;
-    while (on(y,x)) { const p = a[y * 8 + x]; if (p !== '.') { if (kinds.includes(p.toLowerCase()) && (white ? p === p.toUpperCase() : p === p.toLowerCase())) return true; break; } y += dr; x += dc; }
+const own = (p, s = side) => p !== '.' && (p === p.toUpperCase()) === (s === 'w');
+const enemy = (p, s = side) => p !== '.' && !own(p, s) && p.toLowerCase() !== 'k';
+function sq(s) { return s.charCodeAt(0) - 97 + 8 * (+s[1] - 1); }
+function uci(n) { return String.fromCharCode(97 + n % 8) + (1 + (n >> 3)); }
+function ray(b, r, f, dr, df, s, kinds) {
+  for (r += dr, f += df; r >= 0 && r < 8 && f >= 0 && f < 8; r += dr, f += df) {
+    const p = b[r * 8 + f];
+    if (p !== '.') return own(p, s) && kinds.includes(p.toLowerCase());
   }
   return false;
 }
-function play(m) {
-  const a = b.slice(), p = a[m[0]];
-  a[m[0]] = '.'; a[m[1]] = m[2] || p;
-  if (m[3]) a[m[1] + (side === 'w' ? 8 : -8)] = '.';
-  if (p.toLowerCase() === 'k' && Math.abs(m[1] - m[0]) === 2) {
-    const k = m[1] > m[0] ? m[0] + 3 : m[0] - 4, d = m[1] > m[0] ? m[0] + 1 : m[0] - 1;
-    a[d] = a[k]; a[k] = '.';
+function attacked(b, n, by) {
+  const r = n >> 3, f = n & 7;
+  // Pawns which could attack n stand one rank behind it from their direction.
+  const pr = r + (by === 'w' ? -1 : 1);
+  if (pr >= 0 && pr < 8) for (const df of [-1, 1]) {
+    const pf = f + df;
+    if (pf >= 0 && pf < 8 && b[pr * 8 + pf] === (by === 'w' ? 'P' : 'p')) return true;
   }
-  return a;
+  for (const [dr, df] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+    const x = r + dr, y = f + df;
+    if (x >= 0 && x < 8 && y >= 0 && y < 8 && b[x * 8 + y] === (by === 'w' ? 'N' : 'n')) return true;
+  }
+  for (const [dr, df] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
+    const x = r + dr, y = f + df;
+    if (x >= 0 && x < 8 && y >= 0 && y < 8 && b[x * 8 + y] === (by === 'w' ? 'K' : 'k')) return true;
+  }
+  return ray(b, r, f, 1, 1, by, 'bq') || ray(b, r, f, 1, -1, by, 'bq') ||
+    ray(b, r, f, -1, 1, by, 'bq') || ray(b, r, f, -1, -1, by, 'bq') ||
+    ray(b, r, f, 1, 0, by, 'rq') || ray(b, r, f, -1, 0, by, 'rq') ||
+    ray(b, r, f, 0, 1, by, 'rq') || ray(b, r, f, 0, -1, by, 'rq');
 }
-function safe(m) {
-  const a = play(m), k = a.indexOf(side === 'w' ? 'K' : 'k');
-  return k >= 0 && !attacked(a, k, side === 'b');
+function check(b, s) {
+  const k = s === 'w' ? 'K' : 'k';
+  const n = b.indexOf(k);
+  return n < 0 || attacked(b, n, s === 'w' ? 'b' : 'w');
 }
-let ms = [];
-function add(f,t,p='',e=false) { if (t >= 0 && t < 64 && !own(b[t]) && b[t].toLowerCase() !== 'k') ms.push([f,t,p,e]); }
-for (let i=0;i<64;i++) if (own(b[i])) {
-  const p=b[i].toLowerCase(), r=i/8|0,c=i%8, w=side==='w';
-  if (p==='p') {
-    const d=w?-8:8, start=w?6:1, last=w?0:7, t=i+d;
-    const push=t=> { if ((t/8|0)===last) for(const q of 'qrbn') add(i,t,w?q.toUpperCase():q); else add(i,t); };
-    if (t>=0&&t<64&&b[t]==='.') { push(t); if(r===start&&b[t+d]==='.') add(i,t+d); }
-    for(const dc of [-1,1]) { const x=c+dc, q=i+d+dc; if(x>=0&&x<8&&q>=0&&q<64&&(foe(b[q])||(q===ep&&b[q-d]===(w?'p':'P')))) { if(q===ep) add(i,q,'',true); else push(q); } }
-  } else if (p==='n') { for(const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) if(on(r+dr,c+dc)) add(i,(r+dr)*8+c+dc); }
-  else if (p==='b'||p==='r'||p==='q') {
-    const ds=p==='b'?[[-1,-1],[-1,1],[1,-1],[1,1]]:p==='r'?[[-1,0],[1,0],[0,-1],[0,1]]:[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
-    for(const [dr,dc] of ds) { let y=r+dr,x=c+dc; while(on(y,x)){const t=y*8+x;if(own(b[t]))break;add(i,t);if(b[t]!=='.')break;y+=dr;x+=dc;} }
-  } else if (p==='k') {
-    for(const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) if(on(r+dr,c+dc)) add(i,(r+dr)*8+c+dc);
-    const home=w?60:4, enemy=!w;
-    if(i===home&&!attacked(b,home,enemy)) {
-      const K=w?'K':'k', Q=w?'Q':'q', rook=w?'R':'r';
-      if(rights.includes(K)&&b[home+3]===rook&&b[home+1]==='.'&&b[home+2]==='.'&&!attacked(b,home+1,enemy)&&!attacked(b,home+2,enemy)) add(i,home+2);
-      if(rights.includes(Q)&&b[home-4]===rook&&b[home-1]==='.'&&b[home-2]==='.'&&b[home-3]==='.'&&!attacked(b,home-1,enemy)&&!attacked(b,home-2,enemy)) add(i,home-2);
+function apply(b, m) {
+  const c = b.slice(), p = c[m.a];
+  c[m.a] = '.'; c[m.z] = m.p ? (side === 'w' ? m.p.toUpperCase() : m.p) : p;
+  if (m.ep) c[m.z + (side === 'w' ? -8 : 8)] = '.';
+  if (m.ca) {
+    const q = m.z === 6 ? 7 : m.z === 2 ? 0 : m.z === 62 ? 63 : 56;
+    const t = m.z === 6 ? 5 : m.z === 2 ? 3 : m.z === 62 ? 61 : 59;
+    c[t] = c[q]; c[q] = '.';
+  }
+  return c;
+}
+function moves(b) {
+  const out = [], put = (a, z, x = {}) => out.push({a, z, ...x});
+  const s = side, pawn = s === 'w' ? 'P' : 'p', step = s === 'w' ? 8 : -8;
+  for (let a = 0; a < 64; a++) {
+    const p = b[a]; if (!own(p, s)) continue;
+    const r = a >> 3, f = a & 7, k = p.toLowerCase();
+    if (k === 'p') {
+      const z = a + step, last = s === 'w' ? 7 : 0, start = s === 'w' ? 1 : 6;
+      const addPawn = (to, x = {}) => { if ((to >> 3) === last) for (const q of 'qrbn') put(a, to, {p:q, ...x}); else put(a, to, x); };
+      if (z >= 0 && z < 64 && b[z] === '.') {
+        addPawn(z);
+        const z2 = a + 2 * step;
+        if (r === start && b[z2] === '.') put(a, z2);
+      }
+      for (const df of [-1, 1]) {
+        const ff = f + df, to = a + step + df;
+        if (ff >= 0 && ff < 8 && to >= 0 && to < 64 && (enemy(b[to], s) || to === ep)) addPawn(to, {ep: to === ep});
+      }
+    } else if (k === 'n' || k === 'k') {
+      const ds = k === 'n' ? [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]] : [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (const [dr, df] of ds) { const x = r + dr, y = f + df; if (x >= 0 && x < 8 && y >= 0 && y < 8 && !own(b[x*8+y], s) && b[x*8+y].toLowerCase() !== 'k') put(a, x*8+y); }
+      if (k === 'k' && !check(b, s)) {
+        const opp = s === 'w' ? 'b' : 'w';
+        if (s === 'w' && a === 4 && rights.includes('K') && b[5] === '.' && b[6] === '.' && b[7] === 'R' && !check(apply(b,{a:4,z:5}),s) && !attacked(b,6,opp)) put(4,6,{ca:1});
+        if (s === 'w' && a === 4 && rights.includes('Q') && b[1] === '.' && b[2] === '.' && b[3] === '.' && b[0] === 'R' && !check(apply(b,{a:4,z:3}),s) && !attacked(b,2,opp)) put(4,2,{ca:1});
+        if (s === 'b' && a === 60 && rights.includes('k') && b[61] === '.' && b[62] === '.' && b[63] === 'r' && !check(apply(b,{a:60,z:61}),s) && !attacked(b,62,opp)) put(60,62,{ca:1});
+        if (s === 'b' && a === 60 && rights.includes('q') && b[57] === '.' && b[58] === '.' && b[59] === '.' && b[56] === 'r' && !check(apply(b,{a:60,z:59}),s) && !attacked(b,58,opp)) put(60,58,{ca:1});
+      }
+    } else {
+      const ds = k === 'b' ? [[1,1],[1,-1],[-1,1],[-1,-1]] : k === 'r' ? [[1,0],[-1,0],[0,1],[0,-1]] : [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+      for (const [dr, df] of ds) for (let x=r+dr,y=f+df; x>=0&&x<8&&y>=0&&y<8; x+=dr,y+=df) {
+        const to=x*8+y; if (own(b[to],s)) break; if (b[to].toLowerCase() !== 'k') put(a,to); if (b[to] !== '.') break;
+      }
     }
   }
+  return out.filter(m => !check(apply(b, m), side));
 }
-const move = ms.find(safe);
-if (move) process.stdout.write(uci(move[0])+uci(move[1])+(move[2]?move[2].toLowerCase():''));
+const legal = moves(B);
+// Prefer special moves and captures, but legality rather than playing strength is the contract.
+const value = m => 3 * !!m.ca + 2 * !!m.p + +((B[m.z] !== '.') || !!m.ep);
+legal.sort((x, y) => value(y) - value(x));
+const m = legal[0];
+process.stdout.write(uci(m.a) + uci(m.z) + (m.p || '') + '\n');

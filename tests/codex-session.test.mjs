@@ -22,6 +22,9 @@ test('validates a native Codex session against its benchmark run', () => {
     turnCount: 1,
     userMessageCount: 1,
     toolCallCount: 1,
+    toolCallBreakdown: { exec_command: 1 },
+    mcpCallCount: 0,
+    availableSkillCatalogPresent: false,
     cliVersion: '0.144.0',
   });
 });
@@ -34,4 +37,13 @@ test('rejects mismatched session identity, model, or prompt', () => {
   assert.throws(() => validateNativeCodexSession(fixture, { sessionId: 'run-2' }), /ID does not match/);
   assert.throws(() => validateNativeCodexSession(fixture, { model: 'gpt-5.6-sol' }), /does not record model/);
   assert.throws(() => validateNativeCodexSession(fixture, { prompt: 'Different prompt.' }), /exact benchmark prompt/);
+});
+
+test('rejects an injected skill catalog or personal host context', () => {
+  const withSkills = `${fixture}\n${JSON.stringify({
+    type: 'response_item',
+    payload: { type: 'message', role: 'developer', content: [{ type: 'input_text', text: '<skills_instructions>private skills</skills_instructions>' }] },
+  })}`;
+  assert.throws(() => validateNativeCodexSession(withSkills), /available skills catalog/);
+  assert.throws(() => validateNativeCodexSession(fixture, { forbiddenText: ['Build the agent.'] }), /forbidden host context/);
 });

@@ -10,6 +10,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -196,13 +197,18 @@ async function main() {
     invariant(metadata.authentication?.method === 'chatgpt', `${entry.id} was not generated with ChatGPT authentication`);
     invariant(metadata.authentication?.subscriptionAccess === true, `${entry.id} is not marked as subscription access`);
     invariant(metadata.authentication?.apiKeyEnvironmentRemoved === true, `${entry.id} did not remove API-key environment variables`);
+    invariant(metadata.run?.isolation?.hostHomeInherited === false, `${entry.id} inherited the host home directory`);
+    invariant(metadata.run?.isolation?.allSystemSkillsDisabled === true, `${entry.id} did not disable all system skills`);
+    invariant(metadata.run?.isolation?.availableSkillCatalogPresent === false, `${entry.id} contains an available skill catalog`);
     invariant(metadata.nativeSession?.sha256 === await sha256File(sessionPath), `Native session hash mismatch for ${entry.id}`);
     invariant(metadata.nativeSession?.sizeBytes === (await stat(sessionPath)).size, `Native session size mismatch for ${entry.id}`);
-    validateNativeCodexSession(sessionContent, {
+    const validatedSession = validateNativeCodexSession(sessionContent, {
       sessionId: metadata.run.sessionId,
       model: entry.provenance.modelRequested,
       prompt,
+      forbiddenText: [os.homedir()],
     });
+    invariant(validatedSession.toolCallCount === metadata.telemetry.toolCallCount, `Native tool-call count mismatch for ${entry.id}`);
     const relativeTrace = `snapshots/${snapshotId}/traces/${entry.id}/${metadata.run.sessionId}.jsonl`;
     const relativeSource = `snapshots/${snapshotId}/artifacts/${entry.id}/agent.js`;
     const relativeMetadata = `snapshots/${snapshotId}/raw/generations/${entry.id}/metadata.json`;

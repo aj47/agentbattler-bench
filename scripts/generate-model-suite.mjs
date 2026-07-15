@@ -8,7 +8,6 @@ import {
   readdir,
   readFile,
   rm,
-  stat,
   writeFile,
 } from 'node:fs/promises';
 import os from 'node:os';
@@ -31,6 +30,7 @@ const GLOBAL_CONFIG = path.join(os.homedir(), '.codex/config.toml');
 const AUTH_PATH = path.join(os.homedir(), '.codex/auth.json');
 const CODEX_VERSION = '0.144.0';
 const REASONING_EFFORT = 'high';
+const SYSTEM_SKILL_NAMES = ['imagegen', 'openai-docs', 'plugin-creator', 'skill-creator', 'skill-installer'];
 const MODELS = [
   { id: 'terra', model: 'gpt-5.6-terra', displayName: 'GPT-5.6 Terra' },
   { id: 'sol', model: 'gpt-5.6-sol', displayName: 'GPT-5.6 Sol' },
@@ -47,6 +47,19 @@ function chatGptEnvironment(overrides = {}) {
   delete environment.CODEX_API_KEY;
   delete environment.CODEX_ACCESS_TOKEN;
   return environment;
+}
+
+function isolatedCodexEnvironment(codexHome, overrides = {}) {
+  return chatGptEnvironment({
+    HOME: codexHome,
+    CODEX_HOME: codexHome,
+    CODEX_SQLITE_HOME: codexHome,
+    XDG_CONFIG_HOME: path.join(codexHome, 'xdg-config'),
+    XDG_DATA_HOME: path.join(codexHome, 'xdg-data'),
+    XDG_CACHE_HOME: path.join(codexHome, 'xdg-cache'),
+    CODEX_NON_INTERACTIVE: '1',
+    ...overrides,
+  });
 }
 
 async function walk(directory) {
@@ -71,11 +84,7 @@ async function requireChatGptAuthentication() {
     await copyFile(AUTH_PATH, isolatedAuth);
     await chmod(isolatedAuth, 0o600);
     const child = spawn('codex', ['login', 'status'], {
-      env: chatGptEnvironment({
-        CODEX_HOME: preflightHome,
-        CODEX_SQLITE_HOME: preflightHome,
-        CODEX_NON_INTERACTIVE: '1',
-      }),
+      env: isolatedCodexEnvironment(preflightHome),
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -97,6 +106,32 @@ async function requireChatGptAuthentication() {
   }
 }
 
+async function prepareIsolatedCodexHome(codexHome) {
+  await Promise.all(['xdg-config', 'xdg-data', 'xdg-cache'].map((name) => mkdir(path.join(codexHome, name), { recursive: true })));
+  const child = spawn('codex', ['login', 'status'], {
+    env: isolatedCodexEnvironment(codexHome),
+    shell: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on('data', (chunk) => stdout.push(chunk));
+  child.stderr.on('data', (chunk) => stderr.push(chunk));
+  const exitCode = await new Promise((resolve, reject) => {
+    child.on('error', reject);
+    child.on('close', resolve);
+  });
+  const status = `${Buffer.concat(stdout).toString('utf8')}\n${Buffer.concat(stderr).toString('utf8')}`;
+  if (exitCode !== 0 || !/Logged in using ChatGPT/i.test(status)) {
+    throw new Error('Generation home did not verify as isolated ChatGPT authentication');
+  }
+  return SYSTEM_SKILL_NAMES.map((name) => path.join(codexHome, 'skills/.system', name, 'SKILL.md'));
+}
+
+function disabledSkillsOverride(skillFiles) {
+  return `skills.config=[${skillFiles.map((file) => `{path=${JSON.stringify(file)},enabled=false}`).join(',')}]`;
+}
+
 async function optionalSha256(file) {
   try {
     return await sha256File(file);
@@ -106,7 +141,7 @@ async function optionalSha256(file) {
   }
 }
 
-async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stderrPath }) {
+async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stderrPath, skillFiles }) {
   const args = [
     'exec',
     '--model', model,
@@ -123,17 +158,14 @@ async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stder
     '-c', 'features.hooks=false',
     '-c', 'features.shell_snapshot=false',
     '-c', 'mcp_servers={}',
+    '-c', disabledSkillsOverride(skillFiles),
     '-C', workspace,
     '-',
   ];
   const started = Date.now();
   const child = spawn('codex', args, {
     cwd: workspace,
-    env: chatGptEnvironment({
-      CODEX_HOME: codexHome,
-      CODEX_SQLITE_HOME: codexHome,
-      CODEX_NON_INTERACTIVE: '1',
-    }),
+    env: isolatedCodexEnvironment(codexHome),
     shell: false,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -166,8 +198,8 @@ function telemetryFromJsonl(text) {
     eventCount: events.length,
     eventTypes: countBy(events.map((event) => event.type)),
     turnCount: events.filter((event) => event.type === 'turn.started').length,
-    toolCallCount: toolItems.length,
-    toolCallBreakdown: countBy(toolItems.map((item) => item.type)),
+    cliToolItemCount: toolItems.length,
+    cliToolItemBreakdown: countBy(toolItems.map((item) => item.type)),
     mcpCallCount: mcpItems.length,
     inputTokens: usage.input_tokens ?? null,
     cachedInputTokens: usage.cached_input_tokens ?? null,
@@ -206,12 +238,12 @@ async function generateOne(entry, prompt, promptSha256, positions) {
   await mkdir(generationDir, { recursive: true });
   await copyFile(AUTH_PATH, path.join(codexHome, 'auth.json'));
   await chmod(path.join(codexHome, 'auth.json'), 0o600);
+  const skillFiles = await prepareIsolatedCodexHome(codexHome);
   const emptyWorkspaceEntries = await readdir(workspace);
-  const skillDirectoryPresent = await stat(path.join(codexHome, 'skills')).then(() => true, () => false);
   const stdoutPath = path.join(generationDir, 'codex.jsonl');
   const stderrPath = path.join(generationDir, 'codex-stderr.txt');
   try {
-    const run = await runCodex({ ...entry, prompt, workspace, codexHome, stdoutPath, stderrPath });
+    const run = await runCodex({ ...entry, prompt, workspace, codexHome, stdoutPath, stderrPath, skillFiles });
     const workspaceEntries = (await readdir(workspace, { withFileTypes: true }))
       .map((item) => ({ name: item.name, type: item.isFile() ? 'file' : item.isDirectory() ? 'directory' : 'other' }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -234,6 +266,7 @@ async function generateOne(entry, prompt, promptSha256, positions) {
       sessionId: telemetry.sessionId,
       model: entry.model,
       prompt,
+      forbiddenText: [os.homedir()],
     });
     const nativeSessionPath = path.join(generationDir, 'session.jsonl');
     await writeFile(nativeSessionPath, sessionContent);
@@ -272,7 +305,10 @@ async function generateOne(entry, prompt, promptSha256, positions) {
           shellSnapshotEnabled: false,
           webSearch: 'disabled',
           configuredMcpServers: 0,
-          skillDirectoryPresentAtStart: skillDirectoryPresent,
+          hostHomeInherited: false,
+          disabledSystemSkillFiles: skillFiles.length,
+          allSystemSkillsDisabled: true,
+          availableSkillCatalogPresent: nativeSession.availableSkillCatalogPresent,
           isolatedHomeEntriesAfterRun: isolatedHomeEntries,
         },
       },
@@ -280,9 +316,11 @@ async function generateOne(entry, prompt, promptSha256, positions) {
         eventCount: telemetry.eventCount,
         eventTypes: telemetry.eventTypes,
         turnCount: telemetry.turnCount,
-        toolCallCount: telemetry.toolCallCount,
-        toolCallBreakdown: telemetry.toolCallBreakdown,
-        mcpCallCount: telemetry.mcpCallCount,
+        toolCallCount: nativeSession.toolCallCount,
+        toolCallBreakdown: nativeSession.toolCallBreakdown,
+        cliToolItemCount: telemetry.cliToolItemCount,
+        cliToolItemBreakdown: telemetry.cliToolItemBreakdown,
+        mcpCallCount: nativeSession.mcpCallCount,
         inputTokens: telemetry.inputTokens,
         cachedInputTokens: telemetry.cachedInputTokens,
         outputTokens: telemetry.outputTokens,

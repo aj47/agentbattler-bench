@@ -19,7 +19,11 @@ function userMessageText(event) {
   return null;
 }
 
-export function validateNativeCodexSession(content, { sessionId, model, prompt } = {}) {
+function countBy(values) {
+  return Object.fromEntries([...new Set(values)].sort().map((value) => [value, values.filter((item) => item === value).length]));
+}
+
+export function validateNativeCodexSession(content, { sessionId, model, prompt, forbiddenText = [] } = {}) {
   const events = parseLines(content);
   invariant(events.length > 0, 'Native Codex session is empty');
   const sessionMeta = events.find((event) => event.type === 'session_meta');
@@ -35,12 +39,27 @@ export function validateNativeCodexSession(content, { sessionId, model, prompt }
   const responseItems = events.filter((event) => event.type === 'response_item');
   invariant(responseItems.length > 0, 'Native Codex session is missing response_item events');
   const toolCalls = responseItems.filter((event) => ['function_call', 'custom_tool_call'].includes(event.payload?.type));
+  const toolNames = toolCalls.map((event) => event.payload?.name ?? event.payload?.tool_name ?? event.payload?.type ?? 'unknown');
+  const mcpCalls = toolNames.filter((name) => /mcp/i.test(name));
+  const developerText = responseItems
+    .filter((event) => event.payload?.type === 'message' && event.payload?.role === 'developer')
+    .flatMap((event) => event.payload?.content ?? [])
+    .map((item) => item?.text)
+    .filter((value) => typeof value === 'string')
+    .join('\n');
+  invariant(!developerText.includes('<skills_instructions>'), 'Native Codex session contains an available skills catalog');
+  for (const value of forbiddenText) {
+    if (value) invariant(!content.includes(value), `Native Codex session contains forbidden host context: ${value}`);
+  }
   return {
     sessionId: sessionMeta.payload.id,
     eventCount: events.length,
     turnCount: turnContexts.length,
     userMessageCount: userMessages.length,
     toolCallCount: toolCalls.length,
+    toolCallBreakdown: countBy(toolNames),
+    mcpCallCount: mcpCalls.length,
+    availableSkillCatalogPresent: false,
     cliVersion: sessionMeta.payload.cli_version ?? null,
   };
 }

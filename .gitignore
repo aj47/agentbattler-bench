@@ -8,5 +8,7 @@ trials/
 results/latest/
 results/smoke-*/
 results/model-suite/
+results/pi-model-suite/
+results/harness-suite/
 *.log
 .DS_Store

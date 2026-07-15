@@ -34,6 +34,7 @@ The roster is defined in a checked-in manifest and may not change implicitly bet
 - `auggie-pinned-model`: generated through Auggie with one pinned model;
 - `claude-code-pinned-model`: generated through Claude Code with the same model;
 - `codex-cli-pinned-model`: optional, only if the same model and evidence can be captured.
+- `pi-pinned-model`: generated through Pi's subscription-backed `openai-codex` provider with the same model and evidence contract.
 
 For the harness comparison, hold model, prompt, task positions, output contract, and budget
 constant. If models differ, publish that as a separate comparison rather than mixing it into

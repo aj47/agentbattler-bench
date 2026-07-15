@@ -77,7 +77,7 @@ async function loadAndValidate({
     invariant(references === 1, 'Reference pairing requires exactly one reference agent');
     invariant(nonReferences >= 1, 'Reference pairing requires at least one non-reference agent');
   } else {
-    invariant(['all-pairs', 'cross-model'].includes(pairing), `Unsupported pairing mode: ${pairing}`);
+    invariant(['all-pairs', 'cross-model', 'cross-harness'].includes(pairing), `Unsupported pairing mode: ${pairing}`);
   }
 
   const positionIds = new Set();
@@ -317,7 +317,7 @@ function parseArguments(argv) {
     else if (!input) input = value;
     else throw new Error(`Unexpected argument: ${value}`);
   }
-  invariant(['reference', 'all-pairs', 'cross-model'].includes(options.pairing), 'Pairing must be reference, all-pairs, or cross-model');
+  invariant(['reference', 'all-pairs', 'cross-model', 'cross-harness'].includes(options.pairing), 'Pairing must be reference, all-pairs, cross-model, or cross-harness');
   return { command, input, options };
 }
 
@@ -326,7 +326,7 @@ async function main() {
   if (command === 'validate') return validateCommand(options);
   if (command === 'run') return runCommand(options);
   if (command === 'replay') return replayCommand(input);
-  throw new Error('Usage: agentbattler <validate|run|replay> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model] [--no-smoke]');
+  throw new Error('Usage: agentbattler <validate|run|replay> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model|cross-harness] [--no-smoke]');
 }
 
 main().catch((error) => {

@@ -49,6 +49,40 @@ The balanced round-robin schedules 72 games: three model pairings, six versioned
 
 These are exploratory local model-comparison results. They are not yet the public, immutable GitHub Actions evidence required by the PRD.
 
+## Pi model suite using the Codex subscription
+
+Pi is the second generation harness. It uses the same Terra, Sol, and Luna model IDs, fixed challenge prompt, high reasoning setting, five-generation sampling, legality probes, and match runner as the Codex CLI suite. Authentication is Pi's `openai-codex` OAuth provider, backed by the same ChatGPT Plus/Pro account used by Codex—not an API key.
+
+Pi 0.80.7 is installed into a digest-pinned Docker image. Every generation runs in a read-only container with all Linux capabilities dropped, no new privileges, bounded CPU/memory/processes, and only two writable mounts: an empty workspace and a disposable Pi home. The disposable home receives only the `openai-codex` credential. Host Pi/Codex settings, sessions, extensions, skills, prompts, themes, context files, and MCP configuration are neither mounted nor copied. Pi's four standard coding tools remain available inside the container; provider network access is the only required external access.
+
+Sign in to Codex with ChatGPT, then generate and battle the Pi suite. The runner converts the current Codex credential into Pi's `openai-codex` schema only inside the disposable suite directory; it does not read or update global Pi auth.
+
+```sh
+codex login
+npm run generate:pi-suite
+npm run validate:pi-suite
+npm run benchmark:pi-suite
+npm run replay:pi-suite
+```
+
+Artifacts are kept separate from the Codex baseline:
+
+- `agents/pi-model-suite/`: Pi-generated sources and roster manifest;
+- `results/pi-model-suite/generations/`: sanitized Pi JSON events, native session JSONL, stderr, and comparable run metadata;
+- `results/pi-model-suite/generation-suite.json`: aggregate duration, turns, tokens, tool calls, subscription provenance, container identity, and host-state invariants;
+- `results/pi-model-suite/matches/`: the Pi-only cross-model tournament.
+
+After both five-generation rosters exist, build the balanced direct comparison:
+
+```sh
+npm run build:harness-suite
+npm run validate:harness-suite
+npm run benchmark:harness-suite
+npm run replay:harness-suite
+```
+
+`cross-harness` pairs only equal model IDs across different harnesses. With five generations per model, that is 75 Codex-vs-Pi artifact pairs and 900 color-balanced games over the six v2 positions. It excludes within-harness and cross-model games from the direct harness score.
+
 ## Evidence
 
 Trusted benchmark runs are limited to pushes on `main` and manual `workflow_dispatch` runs. The workflow validates the checked-in roster and suite, runs tests and the benchmark, replays the result, generates SHA-256 checksums, and uploads the sources, manifest, positions, logs, and complete generated result together.

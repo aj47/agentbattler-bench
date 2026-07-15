@@ -4,7 +4,7 @@ export function comparisonPairs(agents, pairing) {
     if (!reference) throw new Error('Reference pairing requires a reference agent');
     return agents.filter((agent) => agent !== reference).map((challenger) => [reference, challenger]);
   }
-  if (!['all-pairs', 'cross-model'].includes(pairing)) throw new Error(`Unsupported pairing mode: ${pairing}`);
+  if (!['all-pairs', 'cross-model', 'cross-harness'].includes(pairing)) throw new Error(`Unsupported pairing mode: ${pairing}`);
   const pairs = [];
   for (let first = 0; first < agents.length; first += 1) {
     for (let second = first + 1; second < agents.length; second += 1) {
@@ -13,6 +13,16 @@ export function comparisonPairs(agents, pairing) {
         const secondModel = agents[second].provenance?.modelRequested;
         if (!firstModel || !secondModel) throw new Error('Cross-model pairing requires modelRequested provenance');
         if (firstModel === secondModel) continue;
+      }
+      if (pairing === 'cross-harness') {
+        const firstModel = agents[first].provenance?.modelRequested;
+        const secondModel = agents[second].provenance?.modelRequested;
+        const firstHarness = agents[first].provenance?.harness;
+        const secondHarness = agents[second].provenance?.harness;
+        if (!firstModel || !secondModel || !firstHarness || !secondHarness) {
+          throw new Error('Cross-harness pairing requires modelRequested and harness provenance');
+        }
+        if (firstModel !== secondModel || firstHarness === secondHarness) continue;
       }
       pairs.push([agents[first], agents[second]]);
     }

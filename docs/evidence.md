@@ -23,6 +23,8 @@ The workflow has read-only repository permissions, has no model-provider secrets
 
 A future harness-generated entry needs a new stable agent ID and truthful, reviewable provenance: source hash, exact harness and version, model, prompt artifact and hash, generation budget/configuration, and generation evidence. Renaming a fixture to a harness is not acceptable provenance.
 
+The Pi generation lane follows that boundary under `agents/pi-model-suite/` and `results/pi-model-suite/`. Its evidence records the pinned Pi and container identities, subscription-backed `openai-codex` provider, model and reasoning setting, prompt/source hashes, JSON event stream, native Pi session, duration/tokens/turns/tool calls, contract probes, and explicit host-state invariants. OAuth secrets and host configuration contents are never published.
+
 ## Current limitations
 
 - This checkout does not prove that a GitHub Actions run has succeeded.

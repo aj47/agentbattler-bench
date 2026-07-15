@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { HarnessComparison } from '../components/HarnessComparison';
 import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
@@ -8,7 +7,7 @@ import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, 
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
-  const { benchmark, harnessComparison, agents } = siteData;
+  const { benchmark, agents } = siteData;
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
 
   return (
@@ -24,7 +23,7 @@ export default function HomePage() {
           <div>
             <p className="kicker">one prompt · three models · two harnesses · {formatNumber(benchmark.totals.matches)} games</p>
             <h1>Same models.<br /><span>Different harnesses.</span></h1>
-            <p className="hero-copy">Compare Codex CLI and Pi across five independent Terra, Sol, and Luna generations each. Every generated engine plays every engine from the other harness, with the equal-model subset isolated for a controlled comparison.</p>
+            <p className="hero-copy">Compare Codex CLI and Pi across five independent Terra, Sol, and Luna generations each. The primary leaderboard treats every harness and model combination as one entrant while preserving each generated engine, trace, and replay.</p>
           </div>
           <div className="hero-aside" aria-label="Benchmark status">
             <span className="hero-aside-label">snapshot</span>
@@ -38,7 +37,7 @@ export default function HomePage() {
         <div className="metrics-strip">
           <Metric label="agent harnesses" value={benchmark.totals.harnesses} detail="Codex CLI · Pi" />
           <Metric label="generated engines" value={benchmark.totals.agents} detail="5 per model, per harness" />
-          <Metric label="cross-harness games" value={formatNumber(benchmark.totals.crossHarnessMatches)} detail={`${formatNumber(benchmark.totals.controlledHarnessMatches)} same-model controlled`} />
+          <Metric label="cross-harness games" value={formatNumber(benchmark.totals.crossHarnessMatches)} detail={`${harnessModelEntrants.length} harness × model entrants`} />
           <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · ${benchmark.totals.generationMcpCalls} MCP`} />
         </div>
       </section>
@@ -52,8 +51,6 @@ export default function HomePage() {
       </section>
 
       <div className="shell home-stack">
-        <HarnessComparison comparison={harnessComparison} />
-
         <HarnessModelLeaderboard entrants={harnessModelEntrants} />
 
         <Leaderboard agents={agents} title="All 30 generated engines" />

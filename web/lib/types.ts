@@ -74,6 +74,52 @@ export type Agent = {
   decisiveGames: number;
 };
 
+export type ModelFamily = {
+  id: string;
+  displayName: string;
+  model: string;
+  rank: number;
+  artifacts: Array<{
+    id: string;
+    displayName: string;
+    games: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    points: number;
+    scorePct: number;
+    elo: number;
+    totalTokens: number;
+    durationMs: number;
+    toolCalls: number;
+  }>;
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  voids: number;
+  points: number;
+  scorePct: number;
+  artifactScore: { minimum: number; median: number; maximum: number };
+  generation: {
+    totalTokens: number;
+    medianTokens: number;
+    totalDurationMs: number;
+    medianDurationMs: number;
+    toolCalls: number;
+  };
+  reliability: { failures: number; timeouts: number; illegalMoves: number };
+  pairwise: Array<{
+    opponentId: string;
+    opponentName: string;
+    games: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    points: number;
+  }>;
+};
+
 export type MatchAgent = {
   id: string;
   name: string;
@@ -126,6 +172,12 @@ export type SiteData = {
     resultSha256Short: string;
     promptSha256: string;
     globalConfigUnchanged: boolean;
+    globalConfigAdjudication: null | {
+      admissible: boolean;
+      status: string;
+      detail: string;
+      observedHostConfigMtime: string;
+    };
     totals: {
       agents: number;
       matches: number;
@@ -141,6 +193,7 @@ export type SiteData = {
     };
     warning: string;
   };
+  families: ModelFamily[];
   agents: Agent[];
   matches: Match[];
   latestDecisiveId: string | null;

@@ -16,6 +16,7 @@ import {
   readSnapshot,
   verifyFile,
 } from '../src/snapshot.mjs';
+import { summarizeModelFamilies } from '../src/model-family-summary.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'web/generated/site-data.json');
@@ -253,6 +254,7 @@ async function main() {
       resultSha256Short: shortHash(resultSha256),
       promptSha256: suite.promptSha256,
       globalConfigUnchanged: suite.globalConfigUnchanged,
+      globalConfigAdjudication: suite.globalConfigAdjudication ?? null,
       totals: {
         agents: agents.length,
         matches: matches.length,
@@ -268,6 +270,11 @@ async function main() {
       },
       warning: result.summary.warning,
     },
+    families: summarizeModelFamilies({
+      families: suite.families,
+      agents,
+      games: result.games,
+    }),
     agents,
     matches,
     latestDecisiveId: latestDecisive?.id ?? null,

@@ -68,22 +68,47 @@ const MODEL_LIST = (process.env.AGENTBATTLER_DEVIN_MODELS ?? DEFAULT_MODEL)
   .map((value) => value.trim())
   .filter(Boolean);
 if (MODEL_LIST.length === 0) throw new Error('AGENTBATTLER_DEVIN_MODELS selected no models');
+// Deny known paid / quota-burning models.
+// Free allowlist is only models the user/CLI UI has confirmed as Free/PROMO free.
+// Explicitly paid: swe-1.7-lightning ($/MTok), *fast*, frontier GPT/Claude/Gemini, etc.
 const PAID_MODEL_HINTS = [
+  /lightning/i,
   /fast/i,
   /opus/i,
   /sonnet/i,
+  /haiku/i,
   /gpt/i,
   /claude/i,
   /gemini/i,
   /codex/i,
+  /grok/i,
   /o3/i,
   /o4/i,
+  /terra/i,
+  /sol(?!-)/i,
+  /luna/i,
+  /max$/i,
 ];
-const risky = MODEL_LIST.filter((model) => PAID_MODEL_HINTS.some((re) => re.test(model)));
+// Confirmed free/PROMO free in CLI UI only — do not add models by guess.
+// Prefer glm-5.2-high (the free High promo), not bare glm-5.2 / max variants.
+// swe-1.5 is free PROMO; swe-1.5-fast / swe-1.6-fast / swe-1.7-lightning are paid.
+const FREE_MODEL_ALLOWLIST = new Set([
+  'swe-1.7',
+  'swe-1.6',
+  'swe-1.5',
+  'glm-5.2-high',
+  'kimi-k2.7',
+]);
+const risky = MODEL_LIST.filter((model) => {
+  const id = model.trim().toLowerCase();
+  if (FREE_MODEL_ALLOWLIST.has(id)) return false;
+  return PAID_MODEL_HINTS.some((re) => re.test(id));
+});
 if (risky.length > 0 && process.env.AGENTBATTLER_ALLOW_PAID_MODELS !== '1') {
   throw new Error(
     `Refusing likely paid Devin model(s): ${risky.join(', ')}. `
-    + 'Default/smoke runs must use free models (e.g. swe-1.7). '
+    + 'Confirmed free: swe-1.7, swe-1.6, swe-1.5, glm-5.2-high, kimi-k2.7 '
+    + '(not *fast*, not swe-1.7-lightning, not bare glm-5.2, not kimi-k2.6). '
     + 'Set AGENTBATTLER_ALLOW_PAID_MODELS=1 only if you intentionally accept quota burn.',
   );
 }

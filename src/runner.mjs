@@ -69,7 +69,8 @@ function permissionFlag(nodePath = process.execPath) {
 }
 
 export function permissionModelAvailable(nodePath = process.execPath) {
-  return permissionFlag(nodePath) !== null;
+  return permissionFlag(nodePath) !== null
+    && process.allowedNodeEnvironmentFlags?.has('--allow-net');
 }
 
 function executionResult(fields) {
@@ -109,7 +110,7 @@ export async function runAgentMove({
       failureClass: 'infrastructure',
       input: fen,
       runtimeMs: performance.now() - started,
-      detail: 'Node permission model is unavailable; refusing unsandboxed execution',
+      detail: 'Node permission model with network enforcement is unavailable; refusing unsandboxed execution',
     });
   }
 

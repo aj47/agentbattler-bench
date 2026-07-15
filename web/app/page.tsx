@@ -1,14 +1,14 @@
 import Link from 'next/link';
 
-import { FamilyLeaderboard } from '../components/FamilyLeaderboard';
 import { HarnessComparison } from '../components/HarnessComparison';
+import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
-import { formatDate, formatNumber, getMatch, resultLabel, siteData } from '../lib/data';
+import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
-  const { benchmark, harnesses, harnessComparison, agents } = siteData;
+  const { benchmark, harnessComparison, agents } = siteData;
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
 
   return (
@@ -54,15 +54,7 @@ export default function HomePage() {
       <div className="shell home-stack">
         <HarnessComparison comparison={harnessComparison} />
 
-        {harnesses.map((harness) => (
-          <FamilyLeaderboard
-            key={harness.id}
-            families={harness.families}
-            harnessName={`${harness.displayName} ${harness.harnessVersion}`}
-            title={`${harness.displayName} model-family results`}
-            sectionId={`family-results-${harness.id}`}
-          />
-        ))}
+        <HarnessModelLeaderboard entrants={harnessModelEntrants} />
 
         <Leaderboard agents={agents} title="All 30 generated engines" />
 

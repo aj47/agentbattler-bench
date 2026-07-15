@@ -122,6 +122,34 @@ export type ModelFamily = {
   }>;
 };
 
+export type HarnessModelEntrant = {
+  id: string;
+  rank: number;
+  harness: string;
+  harnessDisplayName: string;
+  harnessVersion: string;
+  familyId: string;
+  familyDisplayName: string;
+  model: string;
+  artifacts: Array<{
+    id: string;
+    displayName: string;
+    games: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    points: number;
+    scorePct: number;
+  }>;
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  scorePct: number;
+  artifactScore: { minimum: number; median: number; maximum: number };
+};
+
 export type MatchAgent = {
   id: string;
   name: string;

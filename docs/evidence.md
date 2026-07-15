@@ -25,6 +25,8 @@ A future harness-generated entry needs a new stable agent ID and truthful, revie
 
 The Pi generation lane follows that boundary under `agents/pi-model-suite/` and `results/pi-model-suite/`. Its evidence records the pinned Pi and container identities, subscription-backed `openai-codex` provider, model and reasoning setting, prompt/source hashes, JSON event stream, native Pi session, duration/tokens/turns/tool calls, contract probes, and explicit host-state invariants. OAuth secrets and host configuration contents are never published.
 
+The Devin CLI generation lane follows the same provenance boundary under `agents/devin-suite/` and `results/devin-suite/`. Its evidence records the pinned Devin CLI version, requested Devin model id(s), permission mode, runtime (`docker` default or `host` fallback), prompt/source hashes, Docker image identity and isolation flags when applicable (read-only rootfs, dropped capabilities, ephemeral mounts), the sanitized `--export` conversation document, duration and best-effort turns/tools/tokens, contract probes, and host credential/config hashes. Devin account secrets and host configuration contents are never published. Devin results are exploratory and are not part of the sealed Codex-plus-Pi snapshot.
+
 ## Current limitations
 
 - This checkout does not prove that a GitHub Actions run has succeeded.

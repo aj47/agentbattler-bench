@@ -1,0 +1,46 @@
+{
+  "agents": [
+    {
+      "displayName": "Devin / glm-5.2-high #1",
+      "generationIndex": 1,
+      "id": "devin-glm-5-2-high-01",
+      "modelFamilyId": "glm-5-2-high",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 1,
+        "generationMetadata": "results/devin-suite/generations/devin-glm-5-2-high-01/metadata.json",
+        "harness": "devin-cli",
+        "harnessVersion": "3000.1.27",
+        "isFixture": false,
+        "kind": "devin-cli-generated",
+        "modelFamilyId": "glm-5-2-high",
+        "modelRequested": "glm-5.2-high",
+        "permissionMode": "dangerous",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "devin",
+        "runtime": "docker"
+      },
+      "role": "model-challenger",
+      "source": "agents/devin-suite/devin-glm-5-2-high-01.js",
+      "sourceSha256": "d53166a4c94e1bd230d591d3ba24c8b7a7a8240936761a5a451a0c58eeb76ff7"
+    }
+  ],
+  "comparison": {
+    "generationsPerModel": 1,
+    "harness": "devin-cli",
+    "harnessVersion": "3000.1.27",
+    "kind": "harness-generation",
+    "models": [
+      "glm-5.2-high"
+    ],
+    "permissionMode": "dangerous",
+    "prompt": "benchmark/challenges/chess-agent-v1.md",
+    "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+    "provider": "devin",
+    "runtime": "docker"
+  },
+  "description": "1 independent Devin CLI generation(s) per selected model from one fixed prompt (docker isolation).",
+  "manifestId": "devin-suite-2026-07-15T21-24-50-732Z",
+  "schemaVersion": "agentbattler.agent-manifest.v1"
+}

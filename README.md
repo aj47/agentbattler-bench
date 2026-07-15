@@ -83,6 +83,58 @@ npm run replay:harness-suite
 
 `cross-harness-all` pairs every Pi artifact with every Codex artifact. With 15 engines per harness, that is 225 artifact pairs and 2,700 color-balanced games over the six v2 positions. The website reports all of them, while its controlled harness score filters to the 900 equal-model games so the model identity is held constant.
 
+## Devin CLI suite
+
+Devin is an additional generation harness that does **not** use ChatGPT/Codex authentication. By default it uses a **Pi-grade Docker isolation** path: digest-built `agentbattler-devin:3000.1.27` image, read-only rootfs, all capabilities dropped, no new privileges, bounded CPU/memory/PIDs, and only three writable mounts (empty workspace, ephemeral Devin home, export dir). The ephemeral home receives a stripped config (no MCP/hooks/foreign imports) and a copy of the host Devin credentials file. Each generation must leave exactly one `agent.js`, then pass the same v2 legality probes as the other suites.
+
+Optional `AGENTBATTLER_DEVIN_RUNTIME=host` falls back to host-process ephemeral XDG homes (with `HOME` remapped into the temp tree) when Docker is unavailable.
+
+**Free models only by default.** The generator refuses any model outside the confirmed free allowlist (`swe-1.7`, `swe-1.6`, `swe-1.5`, `glm-5.2-high`, `kimi-k2.7`) unless `AGENTBATTLER_ALLOW_PAID_MODELS=1`. Bare `glm-5.2` / `glm-5.2-max` are not allowlisted (only the free High promo `glm-5.2-high`).
+
+This lane is exploratory evidence for Devin CLI as a coding-agent harness. It is not part of the sealed Codex-plus-Pi Hugging Face snapshot, and Devin models are not the Codex Terra/Sol/Luna IDs. See [harnesses/devin/README.md](harnesses/devin/README.md) for the isolation contract.
+
+Prerequisites: Node.js 20+, Docker (default), host `devin` for `auth status` preflight, and `devin auth login`.
+
+```sh
+# pin/build the Devin CLI image
+npm run devin:image
+
+# cheap smoke with the generator default FREE model (swe-1.7)
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite
+
+# reproduce the checked-in exploratory sample (agents/devin-suite/devin-glm-5-2-high-01.js)
+AGENTBATTLER_DEVIN_MODELS=glm-5.2-high \
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 \
+  npm run generate:devin-suite
+
+# host fallback without Docker isolation
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite:host
+
+# multi-sample on free models only (allowlist is fail-closed)
+AGENTBATTLER_DEVIN_MODELS=swe-1.7,glm-5.2-high \
+AGENTBATTLER_GENERATIONS_PER_MODEL=2 \
+  npm run generate:devin-suite
+
+# non-allowlisted IDs (bare glm-5.2, *fast*, *lightning*, frontier, etc.) need:
+# AGENTBATTLER_ALLOW_PAID_MODELS=1
+
+# one-agent-safe: hash + v2 legality probes (works with the committed smoke sample)
+npm run validate:devin-suite
+
+# tournament (≥2 agents required; clear error if the roster is still a single smoke sample)
+npm run benchmark:devin-suite
+npm run replay:devin-suite
+```
+
+The generator default remains **`swe-1.7`**. The committed exploratory sample in this PR is **`glm-5.2-high`** (`devin-glm-5-2-high-01.js`) so free High-promo quality is visible without changing the cheap default smoke model.
+
+Artifacts:
+
+- `agents/devin-suite/`: generated sources and roster manifest
+- `results/devin-suite/generations/`: export, stderr, metadata
+- `results/devin-suite/generation-suite.json`: suite totals, runtime, and host-state hashes
+- `results/devin-suite/matches/`: replayable tournament body
+
 ## Evidence
 
 Trusted benchmark runs are limited to pushes on `main` and manual `workflow_dispatch` runs. The workflow validates the checked-in roster and suite, runs tests and the benchmark, replays the result, generates SHA-256 checksums, and uploads the sources, manifest, positions, logs, and complete generated result together.

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, realpath, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -17,6 +17,8 @@ import { canonicalJsonSha256, sha256 } from './provenance.mjs';
 
 export const MAX_AGENT_BYTES = 50 * 1024;
 const UCI_ONLY = /^[a-h][1-8][a-h][1-8][qrbn]?\n?$/;
+/** Cached probe: Linux user+net namespace isolation (real network deny). */
+let networkNamespaceCache = null;
 
 export class AgentValidationError extends Error {
   constructor(code, message) {
@@ -68,9 +70,91 @@ function permissionFlag(nodePath = process.execPath) {
   return null;
 }
 
+/**
+ * Whether Node's permission model can enforce network denial by itself.
+ *
+ * `--allow-net` is the explicit gate (Node 25+ / some builds). On Node 20–24
+ * shipped today, `--permission` restricts fs/child_process/worker but still
+ * allows outbound sockets. Do not treat `--allow-fs-read` as network control.
+ */
+export function nodeNetworkPermissionEnforced(nodePath = process.execPath) {
+  if (permissionFlag(nodePath) === null) return false;
+  return Boolean(process.allowedNodeEnvironmentFlags?.has('--allow-net'));
+}
+
+/**
+ * Linux network namespace isolation via `unshare --user --map-root-user --net`.
+ * Returns true when this host can create a private net namespace without root.
+ * Cached after the first probe.
+ */
+export function networkNamespaceAvailable() {
+  if (networkNamespaceCache !== null) return networkNamespaceCache;
+  if (process.platform !== 'linux') {
+    networkNamespaceCache = false;
+    return networkNamespaceCache;
+  }
+  try {
+    const probe = spawnSync('unshare', ['--user', '--map-root-user', '--net', 'true'], {
+      stdio: 'ignore',
+      timeout: 2_000,
+      windowsHide: true,
+    });
+    networkNamespaceCache = probe.status === 0;
+  } catch {
+    networkNamespaceCache = false;
+  }
+  return networkNamespaceCache;
+}
+
+/**
+ * Sandbox is available when the agent can be confined for FS + network.
+ *
+ * Prefer Node `--permission` for FS/spawn/worker plus either:
+ * - native `--allow-net` (network denied unless granted), or
+ * - Linux `unshare` network namespace (no route / no DNS).
+ *
+ * Without a real network deny mechanism, refuse to run agents.
+ */
 export function permissionModelAvailable(nodePath = process.execPath) {
-  return permissionFlag(nodePath) !== null
-    && process.allowedNodeEnvironmentFlags?.has('--allow-net');
+  if (permissionFlag(nodePath) === null) return false;
+  const flags = process.allowedNodeEnvironmentFlags;
+  if (!flags?.has('--allow-fs-read')) return false;
+  return nodeNetworkPermissionEnforced(nodePath) || networkNamespaceAvailable();
+}
+
+/** Resolve `unshare` absolute path when network namespace isolation is required. */
+function resolveUnshareBinary() {
+  const candidates = ['/usr/bin/unshare', '/bin/unshare'];
+  for (const candidate of candidates) {
+    try {
+      // accessSync not imported; spawnSync which/path probe is enough at build time.
+      const probe = spawnSync(candidate, ['--help'], { stdio: 'ignore', timeout: 1_000 });
+      // --help may exit non-zero on some builds; ENOENT is the failure we care about.
+      if (probe.error?.code === 'ENOENT') continue;
+      return candidate;
+    } catch {
+      // try next
+    }
+  }
+  return 'unshare';
+}
+
+/** Build spawn argv for an isolated agent process (optional unshare prefix). */
+export function buildAgentSpawn({
+  nodePath = process.execPath,
+  agentPath,
+  useNetworkNamespace = networkNamespaceAvailable() && !nodeNetworkPermissionEnforced(nodePath),
+} = {}) {
+  const flag = permissionFlag(nodePath);
+  const permissionArgs = flag ? [flag, `--allow-fs-read=${agentPath}`] : [];
+  const nodeArgs = [...permissionArgs, agentPath];
+  if (useNetworkNamespace) {
+    return {
+      command: resolveUnshareBinary(),
+      args: ['--user', '--map-root-user', '--net', nodePath, ...nodeArgs],
+    };
+  }
+  return { command: nodePath, args: nodeArgs };
 }
 
 function executionResult(fields) {
@@ -91,8 +175,9 @@ function executionResult(fields) {
 /**
  * Execute one move in a fresh, permission-confined Node process. The child has
  * no network, child-process, worker, or filesystem access except reading its
- * own source. Set unsafeWithoutPermissions only for an explicitly untrusted,
- * externally sandboxed environment.
+ * own source. Network denial comes from Node `--allow-net` when present, else
+ * a Linux `unshare` network namespace. Set unsafeWithoutPermissions only for an
+ * explicitly untrusted, externally sandboxed environment.
  */
 export async function runAgentMove({
   agentPath,
@@ -110,7 +195,7 @@ export async function runAgentMove({
       failureClass: 'infrastructure',
       input: fen,
       runtimeMs: performance.now() - started,
-      detail: 'Node permission model with network enforcement is unavailable; refusing unsandboxed execution',
+      detail: 'Agent sandbox requires Node --permission with filesystem restriction plus network denial (Node --allow-net or Linux unshare net namespace); refusing unsandboxed execution',
     });
   }
 
@@ -118,11 +203,15 @@ export async function runAgentMove({
   try {
     const resolvedAgent = await realpath(agentPath);
     isolatedCwd = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-'));
-    const flag = permissionFlag(nodePath);
-    const permissionArgs = flag
-      ? [flag, `--allow-fs-read=${resolvedAgent}`]
-      : [];
-    const args = [...permissionArgs, resolvedAgent];
+    // Prefer OS net isolation when Node cannot enforce network denial itself.
+    const useNetworkNamespace = !unsafeWithoutPermissions
+      && !nodeNetworkPermissionEnforced(nodePath)
+      && networkNamespaceAvailable();
+    const { command, args } = buildAgentSpawn({
+      nodePath,
+      agentPath: resolvedAgent,
+      useNetworkNamespace,
+    });
 
     return await new Promise((resolve) => {
       let child;
@@ -145,9 +234,14 @@ export async function runAgentMove({
       };
 
       try {
-        child = spawn(nodePath, args, {
+        child = spawn(command, args, {
           cwd: isolatedCwd,
-          env: { LANG: 'C', LC_ALL: 'C', PATH: path.dirname(nodePath) },
+          env: {
+            LANG: 'C',
+            LC_ALL: 'C',
+            // PATH must include both the Node binary and (when namespaced) `unshare`.
+            PATH: [path.dirname(nodePath), '/usr/bin', '/bin'].join(path.delimiter),
+          },
           shell: false,
           stdio: ['pipe', 'pipe', 'pipe'],
           windowsHide: true,

@@ -7,7 +7,10 @@ import test from 'node:test';
 import {
   AgentValidationError,
   MAX_AGENT_BYTES,
+  networkNamespaceAvailable,
+  nodeNetworkPermissionEnforced,
   pairedGames,
+  permissionModelAvailable,
   playGame,
   replayGame,
   runAgentMove,
@@ -61,19 +64,55 @@ test('runAgentMove enforces exact stdout and classifies crash and timeout', asyn
   assert.equal((await runAgentMove({ agentPath: f.path('timeout.js'), fen: 'fen', timeoutMs: 30 })).status, 'timeout');
 });
 
+test('sandbox requires filesystem permission plus real network denial', () => {
+  assert.equal(typeof permissionModelAvailable(), 'boolean');
+  assert.equal(typeof nodeNetworkPermissionEnforced(), 'boolean');
+  assert.equal(typeof networkNamespaceAvailable(), 'boolean');
+  // On this host the suite expects a usable sandbox so match/probe tests run.
+  assert.equal(
+    permissionModelAvailable(),
+    true,
+    'sandbox unavailable: need Node --permission + (--allow-net or Linux unshare net namespace)',
+  );
+});
+
 test('runAgentMove sandbox denies extra files and network and strips parent secrets', async (t) => {
+  // Fixtures use CommonJS so they run as plain .js under /tmp without package "type":"module"
+  // (matches typical agent spawn outside the repo package root).
   const f = await fixture(t, {
     'secret.txt': 'secret',
-    'reader.js': `import { readFileSync } from 'node:fs'; readFileSync(${JSON.stringify(path.join(os.tmpdir(), 'definitely-not-agent-source'))}); console.log('e2e4')`,
-    'network.js': `import net from 'node:net'; net.connect(80, '127.0.0.1'); console.log('e2e4')`,
+    'reader.js': `const { readFileSync } = require('node:fs'); readFileSync(${JSON.stringify(path.join(os.tmpdir(), 'definitely-not-agent-source'))}); console.log('e2e4')`,
+    // Real outbound attempt that would succeed without isolation (not localhost ECONNREFUSED).
+    'network.js': `const https = require('node:https');
+https.get('https://example.com', (res) => {
+  process.stdout.write('got-' + res.statusCode + '\\n');
+  process.exit(0);
+}).on('error', (error) => {
+  process.stderr.write(String(error.code || error.message) + '\\n');
+  process.exit(1);
+});
+setTimeout(() => { process.stderr.write('network-timeout\\n'); process.exit(2); }, 2500);`,
     'environment.js': `console.log(process.env.AGENTBATTLER_TEST_SECRET ? 'a1a8' : 'e2e4')`,
   });
   const result = await runAgentMove({ agentPath: f.path('reader.js'), fen: 'fen' });
   assert.equal(result.status, 'crash');
   assert.match(result.stderr, /permission|ERR_ACCESS_DENIED/i);
-  const network = await runAgentMove({ agentPath: f.path('network.js'), fen: 'fen' });
-  assert.equal(network.status, 'crash');
-  assert.match(network.stderr, /permission|ERR_ACCESS_DENIED/i);
+  const network = await runAgentMove({ agentPath: f.path('network.js'), fen: 'fen', timeoutMs: 4_000 });
+  // Must not successfully fetch; isolation produces crash / timeout / no success body.
+  assert.notEqual(network.status, 'ok');
+  assert.equal(/got-\d+/.test(network.stdout), false, `network isolation leaked success body: ${network.stdout}`);
+  assert.equal(
+    network.status === 'crash'
+    || network.status === 'timeout'
+    || network.status === 'malformed',
+    true,
+    `expected network isolation failure, got ${network.status}: ${network.stderr || network.stdout}`,
+  );
+  // Prefer permission / unreachable-name errors over accidental TCP refuse noise.
+  assert.match(
+    `${network.stderr}\n${network.detail ?? ''}`,
+    /permission|ERR_ACCESS_DENIED|EAI_AGAIN|ENOTFOUND|ECONNREFUSED|network-timeout|EPERM|unreachable|Network is unreachable|getaddrinfo/i,
+  );
   process.env.AGENTBATTLER_TEST_SECRET = 'must-not-leak';
   t.after(() => { delete process.env.AGENTBATTLER_TEST_SECRET; });
   assert.equal((await runAgentMove({ agentPath: f.path('environment.js'), fen: 'fen' })).move, 'e2e4');

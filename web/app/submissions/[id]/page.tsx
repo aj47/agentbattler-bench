@@ -24,6 +24,8 @@ export default async function SubmissionPage({ params }: PageProps) {
   if (!agent) notFound();
   const command = agent.generation.command.join(' ');
   const trace = publication.agents[agent.id];
+  const withinHarnessGames = agent.matches.filter((match) => match.scope === 'within-harness').length;
+  const crossHarnessGames = agent.matches.length - withinHarnessGames;
 
   return (
     <main className="shell detail-page">
@@ -42,7 +44,7 @@ export default async function SubmissionPage({ params }: PageProps) {
 
       <section className="metrics-strip detail-metrics">
         <Metric label="provisional Elo" value={agent.standing.elo} detail={`rank ${agent.standing.rank} of ${siteData.agents.length}`} />
-        <Metric label="record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points`} />
+        <Metric label="cross-harness record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points · ${agent.standing.games} games`} />
         <Metric label="generation time" value={formatDuration(agent.generation.durationMs)} detail={`${agent.generation.turns} agent turns`} />
         <Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
       </section>
@@ -75,7 +77,7 @@ export default async function SubmissionPage({ params }: PageProps) {
           </section>
 
           <section className="evidence-section" aria-labelledby="matches-title">
-            <div className="section-heading compact"><div><span className="eyebrow">competition record</span><h2 id="matches-title">Match history</h2></div><span className="provisional-label">{agent.matches.length} games</span></div>
+            <div className="section-heading compact"><div><span className="eyebrow">competition record</span><h2 id="matches-title">Match history</h2></div><span className="provisional-label">{agent.matches.length} games · {crossHarnessGames} cross · {withinHarnessGames} within</span></div>
             <div className="data-table match-history">
               <div className="data-head"><span>result</span><span>opponent</span><span>side</span><span>position</span><span>replay</span></div>
               {agent.matches.map((match) => <Link className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : match.score === null ? 'error-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : match.score === null ? 'void' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></Link>)}

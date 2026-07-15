@@ -161,6 +161,7 @@ function matchSummary(game, id) {
     positionId: game.position.id,
     seed: game.position.seed,
     plies: game.plies.length,
+    scope: game.agents.w.provenance.harness === game.agents.b.provenance.harness ? 'within-harness' : 'cross-harness',
   };
 }
 

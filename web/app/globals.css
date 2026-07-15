@@ -18,7 +18,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 body {
   margin: 0;
   background: var(--bg);
@@ -41,6 +41,8 @@ button, input { font: inherit; }
   background: rgba(9, 10, 8, .94);
   backdrop-filter: blur(12px);
 }
+
+:where(h1, h2, h3, h4)[id] { scroll-margin-top: 84px; }
 .header-inner { height: 60px; width: min(1180px, calc(100% - 48px)); margin-inline: auto; display: flex; align-items: center; justify-content: space-between; }
 .brand { display: flex; align-items: center; gap: 10px; font: 600 13px/1 var(--mono); letter-spacing: .04em; }
 .brand-prompt { display: grid; place-items: center; width: 29px; height: 29px; background: var(--accent); color: var(--bg); font-weight: 900; letter-spacing: -.15em; padding-right: 3px; }

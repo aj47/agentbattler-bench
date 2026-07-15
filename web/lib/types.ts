@@ -20,6 +20,7 @@ export type MatchSummary = {
   positionId: string;
   seed: number;
   plies: number;
+  scope: 'within-harness' | 'cross-harness';
 };
 
 export type Agent = {

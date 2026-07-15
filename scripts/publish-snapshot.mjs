@@ -120,7 +120,7 @@ async function publishRelease(snapshot, releaseRoot) {
       '',
       `Source benchmark commit: \`${snapshot.source.gitCommit}\``,
       '',
-      'The archive contains normalized run/match/move tables, raw Codex CLI event traces, generated agents, replay inputs, checksums, and the exact website dataset.',
+      'The archive contains native Codex session traces, original Codex CLI event streams, normalized run/match/move tables, generated agents, replay inputs, checksums, and the exact website dataset.',
       '',
     ].join('\n'));
     await run('gh', [

@@ -2,11 +2,11 @@
 
 ## Published benchmark data
 
-Raw generation traces and tournament result bodies are no longer stored in Git history. The current sealed pointer is [`snapshots/latest.json`](snapshots/latest.json): it pins the public [Hugging Face Dataset](https://huggingface.co/datasets/techfren/agentbattler-bench) by commit and mirrors the same evidence tree in an immutable [GitHub Release](https://github.com/aj47/agentbattler-bench/releases/tag/snapshot-model-suite-2026-07-13-v2). `npm run replay:model-suite` downloads the Release archive, verifies its size and SHA-256, and replays all 72 games locally. See [docs/storage.md](docs/storage.md) for the publication and retention contract.
+Raw generation traces and tournament result bodies are not stored in Git history. The current sealed pointer is [`snapshots/latest.json`](snapshots/latest.json): it pins the public [Hugging Face Dataset](https://huggingface.co/datasets/techfren/agentbattler-bench) by immutable commit and mirrors the same evidence tree in a tag-scoped GitHub Release. `npm run replay:snapshot` downloads the Release archive, verifies its size and SHA-256, and replays every published tournament. See [docs/storage.md](docs/storage.md) for the publication and retention contract.
 
 AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
 
-The current roster is intentionally a fixture roster. It contains one human reference and two clearly labeled, hand-authored non-reference fixtures. The fixtures validate the runner; they are **not** Auggie, Claude Code, Codex, model-quality, or harness-comparison results. See [PRD.md](PRD.md) for the product boundary and [agents/manifest.json](agents/manifest.json) for exact provenance.
+The default runner roster remains an intentionally small fixture set: one human reference and two clearly labeled, hand-authored non-reference fixtures. The public generated suites use separate manifests under `agents/model-suite/`, `agents/pi-model-suite/`, and `agents/harness-suite/`. See [PRD.md](PRD.md) for the product boundary and each manifest for exact provenance.
 
 ## Run locally
 
@@ -72,7 +72,7 @@ Artifacts are kept separate from the Codex baseline:
 - `results/pi-model-suite/generation-suite.json`: aggregate duration, turns, tokens, tool calls, subscription provenance, container identity, and host-state invariants;
 - `results/pi-model-suite/matches/`: the Pi-only cross-model tournament.
 
-After both five-generation rosters exist, build the balanced direct comparison:
+After both five-generation rosters exist, build the every-to-every harness comparison:
 
 ```sh
 npm run build:harness-suite
@@ -81,7 +81,7 @@ npm run benchmark:harness-suite
 npm run replay:harness-suite
 ```
 
-`cross-harness` pairs only equal model IDs across different harnesses. With five generations per model, that is 75 Codex-vs-Pi artifact pairs and 900 color-balanced games over the six v2 positions. It excludes within-harness and cross-model games from the direct harness score.
+`cross-harness-all` pairs every Pi artifact with every Codex artifact. With 15 engines per harness, that is 225 artifact pairs and 2,700 color-balanced games over the six v2 positions. The website reports all of them, while its controlled harness score filters to the 900 equal-model games so the model identity is held constant.
 
 ## Evidence
 

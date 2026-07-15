@@ -14,7 +14,7 @@ export type MatchSummary = {
   opponentId: string;
   opponentName: string;
   color: 'white' | 'black';
-  score: number;
+  score: number | null;
   outcome: string;
   reason: string;
   positionId: string;
@@ -46,7 +46,7 @@ export type Agent = {
   };
   generation: {
     modelRequested: string;
-    codexVersion: string;
+    harnessVersion: string;
     durationMs: number;
     turns: number;
     toolCalls: number;
@@ -55,7 +55,7 @@ export type Agent = {
     inputTokens: number;
     cachedInputTokens: number;
     outputTokens: number;
-    reasoningTokens: number;
+    reasoningTokens: number | null;
     totalTokens: number;
     promptPath: string;
     promptSha256: string;
@@ -180,8 +180,12 @@ export type SiteData = {
       observedHostConfigMtime: string;
     };
     totals: {
+      harnesses: number;
       agents: number;
       matches: number;
+      withinHarnessMatches: number;
+      crossHarnessMatches: number;
+      controlledHarnessMatches: number;
       uniqueScenarios: number;
       decisive: number;
       draws: number;
@@ -194,8 +198,39 @@ export type SiteData = {
     };
     warning: string;
   };
+  harnessComparison: {
+    scope: string;
+    overall: { codex: HarnessRecord; pi: HarnessRecord; games: number };
+    allCrossHarnessGames: number;
+    models: Array<{
+      id: string;
+      displayName: string;
+      model: string;
+      games: number;
+      codex: HarnessRecord;
+      pi: HarnessRecord;
+    }>;
+  };
+  harnesses: Array<{
+    id: string;
+    displayName: string;
+    harnessVersion: string;
+    families: ModelFamily[];
+    totals: { agents: number; matches: number; tokens: number; toolCalls: number; mcpCalls: number; durationMs: number };
+  }>;
   families: ModelFamily[];
   agents: Agent[];
   matches: Match[];
   latestDecisiveId: string | null;
+};
+
+export type HarnessRecord = {
+  games: number;
+  graded: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  voids: number;
+  points: number;
+  scorePct: number;
 };

@@ -1,7 +1,7 @@
 import rawData from '../generated/site-data.json';
 import type { Agent, Match, SiteData } from './types';
 
-export const siteData = rawData as SiteData;
+export const siteData = rawData as unknown as SiteData;
 
 export function getAgent(id: string): Agent | undefined {
   return siteData.agents.find((agent) => agent.id === id);

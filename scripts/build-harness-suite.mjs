@@ -44,7 +44,7 @@ const manifest = {
   description: 'Balanced direct harness comparison: Codex CLI versus Pi using the same models, prompt, reasoning effort, and generation count.',
   comparison: {
     kind: 'harness-comparison',
-    pairing: 'cross-harness',
+    pairing: 'cross-harness-all',
     harnesses,
     models: [...new Set(agents.map((agent) => agent.provenance.modelRequested))].sort(),
     generationsPerHarnessModel: counts[0],
@@ -58,5 +58,5 @@ const manifest = {
 await mkdir(OUTPUT_DIR, { recursive: true });
 await writeFile(OUTPUT, `${canonicalJson(manifest, { space: 2 })}\n`);
 console.log(`Harness roster: ${agents.length} agents across ${harnesses.join(' vs ')}`);
-console.log(`Direct cross-harness pairs: ${3 * counts[0] * counts[0]}`);
+console.log(`All cross-harness pairs: ${(agents.length / 2) ** 2}`);
 console.log(`Manifest: ${OUTPUT}`);

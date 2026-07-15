@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 
 /** Return the lowercase SHA-256 digest for a string, Buffer, or Uint8Array. */
@@ -10,7 +11,9 @@ export function sha256(value) {
 
 /** Return the SHA-256 digest of a file without interpreting its contents. */
 export async function sha256File(filePath) {
-  return sha256(await readFile(filePath));
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(filePath)) hash.update(chunk);
+  return hash.digest('hex');
 }
 
 function canonicalValue(value, seen) {

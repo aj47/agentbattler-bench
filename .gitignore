@@ -4,6 +4,8 @@ web/.next/
 web/node_modules/
 web/out/
 web/generated/site-data.json
+web/tsconfig.tsbuildinfo
+.wrangler/
 trials/
 results/latest/
 results/smoke-*/

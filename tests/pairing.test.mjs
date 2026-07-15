@@ -39,6 +39,23 @@ test('cross-harness requires harness and model provenance', () => {
   ], 'cross-harness'), /requires modelRequested and harness provenance/);
 });
 
+test('cross-harness-all pairs every agent across harnesses regardless of model', () => {
+  const agents = [
+    { id: 'codex-terra', provenance: { harness: 'codex', modelRequested: 'terra' } },
+    { id: 'codex-sol', provenance: { harness: 'codex', modelRequested: 'sol' } },
+    { id: 'pi-terra', provenance: { harness: 'pi', modelRequested: 'terra' } },
+    { id: 'pi-luna', provenance: { harness: 'pi', modelRequested: 'luna' } },
+  ];
+  const pairs = comparisonPairs(agents, 'cross-harness-all');
+  assert.equal(pairs.length, 4);
+  assert.deepEqual(pairs.map((pair) => pair.map((agent) => agent.id)), [
+    ['codex-terra', 'pi-terra'],
+    ['codex-terra', 'pi-luna'],
+    ['codex-sol', 'pi-terra'],
+    ['codex-sol', 'pi-luna'],
+  ]);
+});
+
 test('all-pairs still includes the 30 within-model generation pairs', () => {
   assert.equal(comparisonPairs(fivePerModelRoster(), 'all-pairs').length, 105);
 });

@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
-import { canonicalJson, canonicalJsonSha256, sha256 } from './provenance.mjs';
+import { canonicalJson, canonicalJsonSha256, sha256File } from './provenance.mjs';
 
 export const SNAPSHOT_SCHEMA = 'agentbattler.snapshot.v1';
 const HEX_64 = /^[0-9a-f]{64}$/;
@@ -66,9 +69,10 @@ export function githubReleaseAssetUrl(snapshot, artifact = snapshot.release.arch
 
 export async function verifyFile(file, artifact) {
   validateArtifact(artifact, 'artifact');
-  const bytes = await readFile(file);
-  invariant(bytes.length === artifact.sizeBytes, `Size mismatch for ${artifact.path}`);
-  invariant(sha256(bytes) === artifact.sha256, `SHA-256 mismatch for ${artifact.path}`);
+  const info = await stat(file);
+  invariant(info.isFile(), `Artifact is not a file: ${file}`);
+  invariant(info.size === artifact.sizeBytes, `Size mismatch for ${artifact.path}`);
+  invariant(await sha256File(file) === artifact.sha256, `SHA-256 mismatch for ${artifact.path}`);
   return file;
 }
 
@@ -80,10 +84,10 @@ export async function fetchVerified(urls, destination, artifact, { fetchImpl = f
   const failures = [];
   for (const url of urls) {
     try {
-      const response = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(30_000) });
+      const response = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(600_000) });
       invariant(response.ok, `${response.status} ${response.statusText}`);
-      const bytes = Buffer.from(await response.arrayBuffer());
-      await writeFile(temporary, bytes, { flag: 'wx' });
+      invariant(response.body, 'Response body is empty');
+      await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary, { flags: 'wx' }));
       await verifyFile(temporary, artifact);
       await rename(temporary, destination);
       return { destination, url };
@@ -109,8 +113,7 @@ export async function writeSnapshot(file, snapshot) {
 }
 
 export async function fileArtifact(file, artifactPath = path.basename(file)) {
-  const bytes = await readFile(file);
   const info = await stat(file);
   invariant(info.isFile(), `Artifact is not a file: ${file}`);
-  return { path: artifactPath.split(path.sep).join('/'), sha256: sha256(bytes), sizeBytes: bytes.length };
+  return { path: artifactPath.split(path.sep).join('/'), sha256: await sha256File(file), sizeBytes: info.size };
 }

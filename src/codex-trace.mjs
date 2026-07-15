@@ -36,6 +36,7 @@ export function normalizeCodexEvent(event, context) {
     sequence: context.sequence,
     agentId: context.agentId,
     displayName: context.displayName,
+    harness: 'codex-cli',
     model: context.model,
     reasoningEffort: context.reasoningEffort,
     eventType: string(event.type),

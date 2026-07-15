@@ -29,6 +29,7 @@ test('normalizes a command event into stable viewer columns', () => {
   assert.equal(event.summary, '$ node --check agent.js\n\nok\n');
   assert.equal(event.exitCode, 0);
   assert.equal(event.agentId, 'luna');
+  assert.equal(event.harness, 'codex-cli');
   assert.deepEqual(JSON.parse(event.rawEvent), source);
 });
 

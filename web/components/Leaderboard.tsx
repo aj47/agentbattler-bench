@@ -2,14 +2,14 @@ import Link from 'next/link';
 import type { Agent } from '../lib/types';
 import { VerificationBadge } from './VerificationBadge';
 
-export function Leaderboard({ agents }: { agents: Agent[] }) {
+export function Leaderboard({ agents, title = `All ${agents.length} generated engines` }: { agents: Agent[]; title?: string }) {
   const rankedAgents = [...agents].sort((left, right) => left.standing.rank - right.standing.rank);
   return (
     <section className="leaderboard" aria-labelledby="leaderboard-title">
       <div className="section-heading">
         <div>
           <span className="eyebrow">artifact drill-down</span>
-          <h2 id="leaderboard-title">All 15 generated engines</h2>
+          <h2 id="leaderboard-title">{title}</h2>
         </div>
         <span className="provisional-label">individual engine Elo · provisional</span>
       </div>

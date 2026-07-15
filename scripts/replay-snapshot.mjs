@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { mkdir, rm } from 'node:fs/promises';
+import { access, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,9 @@ async function run(command, args) {
 }
 
 async function main() {
+  const tournamentFlag = process.argv.indexOf('--tournament');
+  const requestedTournament = tournamentFlag === -1 ? null : process.argv[tournamentFlag + 1];
+  if (tournamentFlag !== -1 && !requestedTournament) throw new Error('--tournament requires an ID');
   const snapshot = await readSnapshot(SNAPSHOT_PATH);
   const cacheRoot = path.join(ROOT, '.artifacts/cache', snapshot.snapshotId, snapshot.release.archive.sha256);
   const archive = path.join(cacheRoot, path.basename(snapshot.release.archive.path));
@@ -31,8 +34,29 @@ async function main() {
   await rm(extracted, { recursive: true, force: true });
   await mkdir(extracted, { recursive: true });
   await run('tar', ['-xzf', archive, '-C', extracted]);
-  const result = path.join(extracted, snapshot.dataset.root, 'raw/matches/result.json');
-  await run(process.execPath, [path.join(ROOT, 'bin/agentbattler.mjs'), 'replay', result]);
+  const rawRoot = path.join(extracted, snapshot.dataset.root, 'raw');
+  const tournaments = requestedTournament
+    ? [requestedTournament]
+    : ['codex-within-harness', 'pi-within-harness', 'cross-harness-all'];
+  let replayed = 0;
+  for (const tournament of tournaments) {
+    const result = path.join(rawRoot, 'tournaments', tournament, 'result.json');
+    try {
+      await access(result);
+    } catch {
+      if (requestedTournament) throw new Error(`Published snapshot does not contain tournament ${tournament}`);
+      continue;
+    }
+    console.log(`Replaying published tournament: ${tournament}`);
+    await run(process.execPath, [path.join(ROOT, 'bin/agentbattler.mjs'), 'replay', result]);
+    replayed += 1;
+  }
+  if (replayed === 0) {
+    const legacy = path.join(rawRoot, 'matches', 'result.json');
+    await run(process.execPath, [path.join(ROOT, 'bin/agentbattler.mjs'), 'replay', legacy]);
+    replayed = 1;
+  }
+  console.log(`Verified ${replayed} published tournament bundle${replayed === 1 ? '' : 's'}.`);
 }
 
 main().catch((error) => {

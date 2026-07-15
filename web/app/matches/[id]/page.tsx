@@ -20,7 +20,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function MatchPage({ params }: PageProps) {
   const match = getMatch((await params).id);
   if (!match) notFound();
-  const replayCommand = 'npm run replay:model-suite';
+  const replayCommand = match.white.harness !== match.black.harness
+    ? 'npm run replay:harness-suite'
+    : match.white.harness === 'pi-coding-agent'
+      ? 'npm run replay:pi-suite'
+      : 'npm run replay:model-suite';
 
   return (
     <main className="shell detail-page match-page">

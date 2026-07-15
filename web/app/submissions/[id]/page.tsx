@@ -44,7 +44,7 @@ export default async function SubmissionPage({ params }: PageProps) {
         <Metric label="provisional Elo" value={agent.standing.elo} detail={`rank ${agent.standing.rank} of ${siteData.agents.length}`} />
         <Metric label="record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points`} />
         <Metric label="generation time" value={formatDuration(agent.generation.durationMs)} detail={`${agent.generation.turns} agent turns`} />
-        <Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={`${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
+        <Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
       </section>
 
       <section className="dossier-grid">
@@ -52,7 +52,7 @@ export default async function SubmissionPage({ params }: PageProps) {
           <section className="evidence-section" aria-labelledby="telemetry-title">
             <div className="section-heading compact"><div><span className="eyebrow">generation trace</span><h2 id="telemetry-title">Harness telemetry</h2></div></div>
             <div className="telemetry-grid">
-              <div><span>Codex version</span><strong>{agent.generation.codexVersion}</strong></div>
+              <div><span>Harness version</span><strong>{agent.generation.harnessVersion}</strong></div>
               <div><span>reasoning effort</span><strong>{agent.reasoningEffort}</strong></div>
               <div><span>tool calls</span><strong>{agent.generation.toolCalls}</strong></div>
               <div><span>MCP calls</span><strong>{agent.generation.mcpCalls}</strong></div>
@@ -78,7 +78,7 @@ export default async function SubmissionPage({ params }: PageProps) {
             <div className="section-heading compact"><div><span className="eyebrow">competition record</span><h2 id="matches-title">Match history</h2></div><span className="provisional-label">{agent.matches.length} games</span></div>
             <div className="data-table match-history">
               <div className="data-head"><span>result</span><span>opponent</span><span>side</span><span>position</span><span>replay</span></div>
-              {agent.matches.map((match) => <Link className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></Link>)}
+              {agent.matches.map((match) => <Link className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : match.score === null ? 'error-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : match.score === null ? 'void' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></Link>)}
             </div>
           </section>
         </div>

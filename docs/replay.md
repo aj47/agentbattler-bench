@@ -1,14 +1,14 @@
 # Replaying a result
 
-## Published model-suite snapshot
+## Published harness-suite snapshot
 
-From a clean checkout, replay the externally stored Terra/Sol/Luna snapshot with:
+The public snapshot contains three independently replayable tournaments. Download, verify, extract, and replay all of them with:
 
 ```sh
-npm run replay:model-suite
+npm run replay:snapshot
 ```
 
-The command reads [`snapshots/latest.json`](../snapshots/latest.json), downloads the tag-scoped immutable GitHub Release archive, checks its declared byte size and SHA-256, extracts it into the ignored local cache, and verifies all 72 games, grades, summary values, and replay-bundle checksums. Raw result bodies do not need to be checked into the source repository.
+The published snapshot pointer binds the Hugging Face data and tag-scoped immutable GitHub Release by exact byte size and SHA-256. After extraction, the command verifies the Codex-only, Pi-only, and every-to-every Codex-versus-Pi games, grades, summary values, and replay-bundle checksums. Individual published tournaments are available through the `replay:published:*` scripts. Raw result bodies do not need to be checked into the source repository.
 
 ## Locally generated result
 

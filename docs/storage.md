@@ -13,13 +13,13 @@ Neither hosted service is treated as a sole archival guarantee. The snapshot poi
 
 ## Snapshot lifecycle
 
-Package the current model suite without changing remote state:
+Package the current Codex-plus-Pi harness suite without changing remote state:
 
 ```sh
 node scripts/package-snapshot.mjs
 ```
 
-The command validates existing result and bundle hashes, runs a credential-pattern scan over raw traces, generates normalized `runs`, `matches`, and `moves` JSONL tables, builds the website data, and stages one shared publication tree under `.artifacts/publication/`.
+The command validates all three result bundles and their hashes, streams a credential-pattern scan over raw Codex and Pi traces, generates normalized `runs`, `events`, `matches`, and `moves` JSONL tables, builds the website data, and stages one shared publication tree under `.artifacts/publication/`.
 
 Before publication, manually inspect every raw trace. Automated scanning is defense in depth and cannot prove that a trace is safe to disclose.
 
@@ -73,4 +73,4 @@ Generation traces may contain prompts, command output, filesystem paths, private
 - confirmation that no provider authentication or browser/session data is present;
 - checksum sealing after redaction.
 
-The existing exploratory JSONL files are Codex CLI event streams. They expose emitted messages, tool activity, and file changes; they do not contain private model chain-of-thought.
+The exploratory JSONL files contain Codex CLI and Pi event streams. They expose visible messages, tool activity, and file changes; they do not contain private model chain-of-thought. High-volume Pi streaming deltas remain in the raw trace but are intentionally omitted from the compact analytical `events` table.

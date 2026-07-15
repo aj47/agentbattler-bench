@@ -68,9 +68,9 @@ async function publishDataset(snapshot, datasetRoot) {
   const create = await run('hf', ['repo', 'create', snapshot.dataset.repoId, '--repo-type', 'dataset', '--exist-ok'], { capture: true, allowFailure: true });
   invariant(create.code === 0, 'The active Hugging Face credential cannot create or update the target Dataset. Run `hf auth login` with a fine-grained write token.');
   await run('hf', [
-    'upload', snapshot.dataset.repoId, datasetRoot, '.',
+    'upload-large-folder', snapshot.dataset.repoId, datasetRoot,
     '--repo-type', 'dataset',
-    '--commit-message', `Publish AgentBattler ${snapshot.snapshotId}`,
+    '--num-workers', '8',
   ]);
   return await huggingFaceRevision(snapshot.dataset.repoId);
 }
@@ -116,11 +116,11 @@ async function publishRelease(snapshot, releaseRoot) {
     await writeFile(notesPath, [
       `# AgentBattler ${snapshot.snapshotId}`,
       '',
-      'Immutable, replayable archive of the exploratory Terra, Sol, and Luna chess benchmark snapshot.',
+      'Immutable, replayable archive of the exploratory Codex CLI versus Pi Terra, Sol, and Luna chess benchmark snapshot.',
       '',
       `Source benchmark commit: \`${snapshot.source.gitCommit}\``,
       '',
-      'The archive contains native Codex session traces, original Codex CLI event streams, normalized run/match/move tables, generated agents, replay inputs, checksums, and the exact website dataset.',
+      'The archive contains native Codex and Pi sessions, original CLI event streams, normalized run/event/match/move tables, all 30 generated agents, three replayable tournament bundles, checksums, and the exact website dataset.',
       '',
     ].join('\n'));
     await run('gh', [

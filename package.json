@@ -16,14 +16,19 @@
     "validate:model-suite": "node bin/agentbattler.mjs validate --manifest agents/model-suite/manifest.json --pairing all-pairs",
     "benchmark:model-suite": "node bin/agentbattler.mjs run --manifest agents/model-suite/manifest.json --pairing all-pairs --output results/model-suite/matches --no-smoke",
     "replay:model-suite": "node scripts/replay-snapshot.mjs",
+    "replay:snapshot": "node scripts/replay-snapshot.mjs",
+    "replay:published:model-suite": "node scripts/replay-snapshot.mjs --tournament codex-within-harness",
+    "replay:published:pi-suite": "node scripts/replay-snapshot.mjs --tournament pi-within-harness",
+    "replay:published:harness-suite": "node scripts/replay-snapshot.mjs --tournament cross-harness-all",
     "pi:image": "docker build --tag agentbattler-pi:0.80.7 --build-arg PI_VERSION=0.80.7 harnesses/pi",
     "generate:pi-suite": "node scripts/generate-pi-suite.mjs",
+    "generate:pi-suite:resume": "AGENTBATTLER_RESUME=1 node scripts/generate-pi-suite.mjs",
     "validate:pi-suite": "node bin/agentbattler.mjs validate --manifest agents/pi-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model",
-    "benchmark:pi-suite": "AGENTBATTLER_CONCURRENCY=1 node bin/agentbattler.mjs run --manifest agents/pi-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model --output results/pi-model-suite/matches --no-smoke",
+    "benchmark:pi-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/pi-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model --output results/pi-model-suite/matches --no-smoke",
     "replay:pi-suite": "node bin/agentbattler.mjs replay results/pi-model-suite/matches/result.json",
     "build:harness-suite": "node scripts/build-harness-suite.mjs",
-    "validate:harness-suite": "node bin/agentbattler.mjs validate --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness",
-    "benchmark:harness-suite": "AGENTBATTLER_CONCURRENCY=1 node bin/agentbattler.mjs run --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness --output results/harness-suite/matches --no-smoke",
+    "validate:harness-suite": "node bin/agentbattler.mjs validate --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness-all",
+    "benchmark:harness-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness-all --output results/harness-suite/matches --no-smoke",
     "replay:harness-suite": "node bin/agentbattler.mjs replay results/harness-suite/matches/result.json"
   }
 }

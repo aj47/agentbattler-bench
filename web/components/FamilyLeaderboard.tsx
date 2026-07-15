@@ -16,17 +16,27 @@ function Reliability({ family }: { family: ModelFamily }) {
   return <span className={styles.warning}>{parts.length ? parts.join(' · ') : `${family.reliability.failures} failures`}</span>;
 }
 
-export function FamilyLeaderboard({ families }: { families: ModelFamily[] }) {
+export function FamilyLeaderboard({
+  families,
+  harnessName,
+  title = 'Model-family results',
+  sectionId,
+}: {
+  families: ModelFamily[];
+  harnessName: string;
+  title?: string;
+  sectionId: string;
+}) {
   return (
-    <section className={styles.section} aria-labelledby="family-results-title">
+    <section className={styles.section} aria-labelledby={sectionId}>
       <div className="section-heading">
         <div>
-          <span className="eyebrow">five generated engines per model</span>
-          <h2 id="family-results-title">Model-family results</h2>
+          <span className="eyebrow">{harnessName} · five generated engines per model</span>
+          <h2 id={sectionId}>{title}</h2>
         </div>
         <span className="provisional-label">aggregate score · 600 games per family</span>
       </div>
-      <p className={styles.intro}>The headline score pools all five independently generated engines. The rail shows their individual scores, so generation variance stays visible.</p>
+      <p className={styles.intro}>Within-harness scores pool all five independently generated engines. The rail keeps generation variance visible before the harness-to-harness comparison.</p>
       <div className={styles.header} aria-hidden="true">
         <span>rank / family</span><span>aggregate</span><span>five-engine spread</span><span>head-to-head</span><span>failures</span>
       </div>

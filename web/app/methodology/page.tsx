@@ -26,7 +26,7 @@ export default function MethodologyPage() {
         <div className="methodology-copy">
           <section id="pipeline">
             <span className="chapter-number">01</span><h2>Evidence pipeline</h2>
-            <p>A generation run begins in a disposable workspace with the target prompt and an explicit model. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Full evidence is stored in a revision-pinned Hugging Face Dataset and mirrored in an immutable GitHub Release; the website refuses to build unless the downloaded bytes match the committed snapshot manifest.</p>
+            <p>A generation run begins in a disposable workspace with the target prompt, explicit model, and declared harness. Codex CLI and Pi use the same prompt and high reasoning effort without MCP or skills. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Full evidence is stored in a revision-pinned Hugging Face Dataset and mirrored in an immutable GitHub Release; the website refuses to build unless the downloaded bytes match the committed snapshot manifest.</p>
             <div className="protocol-steps"><div><strong>generate</strong><span>source + harness telemetry</span></div><div><strong>verify</strong><span>hashes + contract probes</span></div><div><strong>battle</strong><span>positions + seeds + traces</span></div><div><strong>publish</strong><span>standings + dossiers + replay</span></div></div>
           </section>
           <section id="contract">
@@ -46,7 +46,7 @@ export default function MethodologyPage() {
           </section>
           <section id="snapshot">
             <span className="chapter-number">04</span><h2>Current snapshot</h2>
-            <p>The website currently exposes one exploratory model-suite run: three model families, five independently generated engines per family, {benchmark.totals.matches} recorded matches, and {benchmark.totals.uniqueScenarios} unique agent-pair/position scenarios. Family scores pool all five engines while the individual spread remains visible.</p>
+            <p>The website exposes two exploratory generation suites: Codex CLI and Pi, each with five independently generated Terra, Sol, and Luna engines. It records {formatNumber(benchmark.totals.matches)} matches across {benchmark.totals.uniqueScenarios} unique agent-pair/position scenarios, including {formatNumber(benchmark.totals.crossHarnessMatches)} games where every Pi engine plays every Codex engine.</p>
             <dl className="snapshot-list">
               <div><dt>generation tokens</dt><dd>{formatNumber(benchmark.totals.generationTokens)}</dd></div>
               <div><dt>generation tool calls</dt><dd>{benchmark.totals.generationToolCalls}</dd></div>
@@ -56,8 +56,8 @@ export default function MethodologyPage() {
               <div><dt>result bundle</dt><dd>{benchmark.resultSha256Short}</dd></div>
             </dl>
             {benchmark.globalConfigAdjudication ? <p className="method-note">Config adjudication: {benchmark.globalConfigAdjudication.detail}</p> : null}
-            <p className="method-note">Interpretation: the five independently generated artifacts per model are the unit for generation variance. The 600 matches per family measure chess performance for those artifacts; they are not 600 independent model generations.</p>
-            <p className="method-note">Limitation: these 15 artifacts predate the current Harbor submission contract and have not been independently reproduced. They remain useful benchmark and pipeline evidence, so they are labeled exploratory everywhere they appear.</p>
+            <p className="method-note">Interpretation: the five independently generated artifacts per model and harness are the unit for generation variance. The controlled harness comparison includes only same-model Codex-versus-Pi games; cross-model games remain available as broader competition evidence.</p>
+            <p className="method-note">Limitation: these 30 artifacts have not been independently reproduced through the canonical Harbor submission contract. They remain useful benchmark and pipeline evidence, so they are labeled exploratory everywhere they appear.</p>
           </section>
         </div>
       </div>

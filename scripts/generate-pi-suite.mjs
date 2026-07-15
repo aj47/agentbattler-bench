@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import {
+  access,
   chmod,
   copyFile,
   mkdir,
@@ -56,6 +57,7 @@ const MODEL_FAMILIES = [
   { id: 'luna', model: 'gpt-5.6-luna', displayName: 'GPT-5.6 Luna' },
 ];
 const GENERATIONS_PER_MODEL = Number.parseInt(process.env.AGENTBATTLER_GENERATIONS_PER_MODEL ?? '5', 10);
+const RESUME = process.env.AGENTBATTLER_RESUME === '1';
 if (!Number.isSafeInteger(GENERATIONS_PER_MODEL) || GENERATIONS_PER_MODEL < 1) {
   throw new Error('AGENTBATTLER_GENERATIONS_PER_MODEL must be a positive integer');
 }
@@ -334,6 +336,32 @@ async function generateOne(entry, prompt, promptSha256, positions, suiteAuthPath
   }
 }
 
+async function existingGeneration(entry) {
+  if (!RESUME) return null;
+  const generationDir = path.join(GENERATIONS_DIR, entry.id);
+  const metadataPath = path.join(generationDir, 'metadata.json');
+  const sourcePath = path.join(AGENTS_DIR, `${entry.id}.js`);
+  try {
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
+    await Promise.all([
+      access(path.join(generationDir, 'pi-events.jsonl')),
+      access(path.join(generationDir, 'pi-stderr.txt')),
+      access(path.join(generationDir, 'session.jsonl')),
+    ]);
+    const identity = await validateAgent(sourcePath);
+    if (metadata.run?.modelRequested !== entry.model || metadata.run?.generationIndex !== entry.generationIndex) {
+      throw new Error(`Resume metadata identity mismatch for ${entry.id}`);
+    }
+    if (identity.sourceSha256 !== metadata.agent?.sha256 || metadata.probeSummary?.allPassed !== true) {
+      throw new Error(`Resume evidence failed integrity checks for ${entry.id}`);
+    }
+    return { entry, metadata };
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 async function main() {
   const hostStateBefore = await snapshotHostState();
   const suiteTempRoot = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-pi-suite-'));
@@ -347,11 +375,17 @@ async function main() {
     ]);
     const promptSha256 = sha256(prompt);
     await mkdir(AGENTS_DIR, { recursive: true });
-    await rm(GENERATIONS_DIR, { recursive: true, force: true });
+    if (!RESUME) await rm(GENERATIONS_DIR, { recursive: true, force: true });
     await mkdir(GENERATIONS_DIR, { recursive: true });
 
     const generated = [];
     for (const entry of MODELS) {
+      const existing = await existingGeneration(entry);
+      if (existing) {
+        console.log(`Reusing verified ${entry.id} (${entry.model}) from the interrupted suite.`);
+        generated.push(existing);
+        continue;
+      }
       console.log(`Generating ${entry.id} (${entry.model}) with Pi...`);
       generated.push(await generateOne(entry, prompt, promptSha256, positionsDocument.positions, suiteAuthPath, codexAuth, image));
     }

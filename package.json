@@ -29,6 +29,11 @@
     "build:harness-suite": "node scripts/build-harness-suite.mjs",
     "validate:harness-suite": "node bin/agentbattler.mjs validate --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness-all",
     "benchmark:harness-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness-all --output results/harness-suite/matches --no-smoke",
-    "replay:harness-suite": "node bin/agentbattler.mjs replay results/harness-suite/matches/result.json"
+    "replay:harness-suite": "node bin/agentbattler.mjs replay results/harness-suite/matches/result.json",
+    "generate:devin-suite": "node scripts/generate-devin-suite.mjs",
+    "generate:devin-suite:resume": "AGENTBATTLER_RESUME=1 node scripts/generate-devin-suite.mjs",
+    "validate:devin-suite": "node bin/agentbattler.mjs validate --manifest agents/devin-suite/manifest.json --positions benchmark/positions/v2.json --pairing all-pairs",
+    "benchmark:devin-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/devin-suite/manifest.json --positions benchmark/positions/v2.json --pairing all-pairs --output results/devin-suite/matches --no-smoke",
+    "replay:devin-suite": "node bin/agentbattler.mjs replay results/devin-suite/matches/result.json"
   }
 }

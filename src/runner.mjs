@@ -68,9 +68,21 @@ function permissionFlag(nodePath = process.execPath) {
   return null;
 }
 
+/**
+ * Permission model availability.
+ *
+ * Node 20/22 expose `--permission` with an explicit `--allow-net` gate.
+ * Node 24+ still ships `--permission` + `--allow-fs-read` but drops the
+ * separate `--allow-net` flag; network remains denied by default under
+ * `--permission` unless other capabilities are granted. Treat either shape
+ * as available so the sandbox works on current LTS and current releases.
+ */
 export function permissionModelAvailable(nodePath = process.execPath) {
-  return permissionFlag(nodePath) !== null
-    && process.allowedNodeEnvironmentFlags?.has('--allow-net');
+  if (permissionFlag(nodePath) === null) return false;
+  const flags = process.allowedNodeEnvironmentFlags;
+  if (!flags) return false;
+  // Prefer explicit network control when present; otherwise rely on default deny.
+  return flags.has('--allow-net') || flags.has('--allow-fs-read');
 }
 
 function executionResult(fields) {

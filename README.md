@@ -83,6 +83,35 @@ npm run replay:harness-suite
 
 `cross-harness-all` pairs every Pi artifact with every Codex artifact. With 15 engines per harness, that is 225 artifact pairs and 2,700 color-balanced games over the six v2 positions. The website reports all of them, while its controlled harness score filters to the 900 equal-model games so the model identity is held constant.
 
+## Devin CLI suite
+
+Devin is an additional generation harness that does **not** use ChatGPT/Codex authentication. It runs the host `devin` binary with an ephemeral `XDG_CONFIG_HOME` / `XDG_DATA_HOME`, a stripped config (no MCP, no hooks, foreign tool-config imports disabled), and only the host Devin credentials file copied into the disposable data home. Each generation must leave exactly one `agent.js`, then pass the same v2 legality probes as the other suites.
+
+This lane is exploratory evidence for Devin CLI as a coding-agent harness. It is not part of the sealed Codex-plus-Pi Hugging Face snapshot, and Devin models are not the Codex Terra/Sol/Luna IDs. See [harnesses/devin/README.md](harnesses/devin/README.md) for the isolation contract.
+
+Prerequisites: Node.js 20+, `devin` on `PATH`, and `devin auth login`.
+
+```sh
+# cheap smoke: one sample of the default model
+AGENTBATTLER_GENERATIONS_PER_MODEL=1 npm run generate:devin-suite
+
+# multi-model / multi-sample
+AGENTBATTLER_DEVIN_MODELS=swe-1-6-fast,opus \
+AGENTBATTLER_GENERATIONS_PER_MODEL=3 \
+  npm run generate:devin-suite
+
+npm run validate:devin-suite
+npm run benchmark:devin-suite
+npm run replay:devin-suite
+```
+
+Artifacts:
+
+- `agents/devin-suite/`: generated sources and roster manifest
+- `results/devin-suite/generations/`: export, stderr, metadata
+- `results/devin-suite/generation-suite.json`: suite totals and host-state hashes
+- `results/devin-suite/matches/`: replayable tournament body
+
 ## Evidence
 
 Trusted benchmark runs are limited to pushes on `main` and manual `workflow_dispatch` runs. The workflow validates the checked-in roster and suite, runs tests and the benchmark, replays the result, generates SHA-256 checksums, and uploads the sources, manifest, positions, logs, and complete generated result together.

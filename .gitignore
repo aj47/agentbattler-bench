@@ -12,5 +12,6 @@ results/smoke-*/
 results/model-suite/
 results/pi-model-suite/
 results/harness-suite/
+results/devin-suite/
 *.log
 .DS_Store

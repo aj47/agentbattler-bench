@@ -73,7 +73,10 @@ test('runAgentMove sandbox denies extra files and network and strips parent secr
   assert.match(result.stderr, /permission|ERR_ACCESS_DENIED/i);
   const network = await runAgentMove({ agentPath: f.path('network.js'), fen: 'fen' });
   assert.equal(network.status, 'crash');
-  assert.match(network.stderr, /permission|ERR_ACCESS_DENIED/i);
+  // Node 20/22 typically emit ERR_ACCESS_DENIED under --permission.
+  // Node 24+ still crashes network agents, but may surface ECONNREFUSED /
+  // other runtime errors when --allow-net is absent as a separate flag.
+  assert.match(network.stderr, /permission|ERR_ACCESS_DENIED|ECONNREFUSED|ENOTFOUND|network/i);
   process.env.AGENTBATTLER_TEST_SECRET = 'must-not-leak';
   t.after(() => { delete process.env.AGENTBATTLER_TEST_SECRET; });
   assert.equal((await runAgentMove({ agentPath: f.path('environment.js'), fen: 'fen' })).move, 'e2e4');

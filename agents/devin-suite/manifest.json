@@ -1,0 +1,44 @@
+{
+  "agents": [
+    {
+      "displayName": "Devin / swe-1-6-fast #1",
+      "generationIndex": 1,
+      "id": "devin-swe-1-6-fast-01",
+      "modelFamilyId": "swe-1-6-fast",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 1,
+        "generationMetadata": "results/devin-suite/generations/devin-swe-1-6-fast-01/metadata.json",
+        "harness": "devin-cli",
+        "harnessVersion": "3000.1.27",
+        "isFixture": false,
+        "kind": "devin-cli-generated",
+        "modelFamilyId": "swe-1-6-fast",
+        "modelRequested": "swe-1-6-fast",
+        "permissionMode": "dangerous",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "devin"
+      },
+      "role": "model-challenger",
+      "source": "agents/devin-suite/devin-swe-1-6-fast-01.js",
+      "sourceSha256": "5c8bab4e60c88d10875af22d410c8ed361c5d1bd0ce81afeb01f098e423f2431"
+    }
+  ],
+  "comparison": {
+    "generationsPerModel": 1,
+    "harness": "devin-cli",
+    "harnessVersion": "3000.1.27",
+    "kind": "harness-generation",
+    "models": [
+      "swe-1-6-fast"
+    ],
+    "permissionMode": "dangerous",
+    "prompt": "benchmark/challenges/chess-agent-v1.md",
+    "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+    "provider": "devin"
+  },
+  "description": "1 independent Devin CLI generation(s) per selected model from one fixed prompt in ephemeral XDG homes.",
+  "manifestId": "devin-suite-2026-07-15T20-32-05-037Z",
+  "schemaVersion": "agentbattler.agent-manifest.v1"
+}

@@ -1,0 +1,154 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  buildDevinCliArgs,
+  buildIsolatedDevinConfig,
+  DEVIN_HARNESS_NAME,
+  DEVIN_PERMISSION_MODE,
+  modelSlug,
+  parseDevinExport,
+  parseDevinVersion,
+  publicDevinCommand,
+  requireDevinAuthentication,
+} from '../src/devin-harness.mjs';
+
+test('slugifies Devin model ids for agent paths', () => {
+  assert.equal(modelSlug('swe-1-6-fast'), 'swe-1-6-fast');
+  assert.equal(modelSlug('Claude Opus 4.6'), 'claude-opus-4-6');
+  assert.throws(() => modelSlug('???'), /usable slug/);
+});
+
+test('builds a stripped isolated Devin config with no MCP or foreign imports', () => {
+  const config = buildIsolatedDevinConfig({ model: 'swe-1-6-fast' });
+  assert.equal(config.agent.model, 'swe-1-6-fast');
+  assert.deepEqual(config.mcpServers, {});
+  assert.deepEqual(config.hooks, {});
+  assert.equal(config.read_config_from.cursor, false);
+  assert.equal(config.read_config_from.windsurf, false);
+  assert.equal(config.read_config_from.claude, false);
+  assert.equal(config.auto_update, false);
+});
+
+test('builds unattended Devin CLI args with export and stripped config', () => {
+  const args = buildDevinCliArgs({
+    model: 'swe-1-6-fast',
+    promptFile: '/repo/benchmark/challenges/chess-agent-v1.md',
+    configPath: '/tmp/xdg-config/devin/config.json',
+    exportPath: '/tmp/out/devin-export.json',
+  });
+  assert.ok(args.includes('-p'));
+  assert.deepEqual(args.slice(args.indexOf('--permission-mode'), args.indexOf('--permission-mode') + 2), [
+    '--permission-mode', DEVIN_PERMISSION_MODE,
+  ]);
+  assert.deepEqual(args.slice(args.indexOf('--model'), args.indexOf('--model') + 2), ['--model', 'swe-1-6-fast']);
+  assert.ok(args.includes('--prompt-file'));
+  assert.ok(args.includes('--export'));
+  assert.equal(DEVIN_HARNESS_NAME, 'devin-cli');
+});
+
+test('redacts ephemeral paths in the public command', () => {
+  const args = buildDevinCliArgs({
+    model: 'opus',
+    promptFile: '/repo/prompt.md',
+    configPath: '/tmp/cfg/devin/config.json',
+    exportPath: '/tmp/export.json',
+  });
+  const command = publicDevinCommand(args, {
+    workspace: '/tmp/ws',
+    configHome: '/tmp/cfg',
+    dataHome: '/tmp/data',
+    promptFile: '/repo/prompt.md',
+  });
+  assert.equal(command[0], 'devin');
+  assert.ok(command.includes('<prompt-file>'));
+  assert.ok(!command.some((value) => value.includes('/tmp/cfg')));
+});
+
+test('parses devin --version output', () => {
+  assert.equal(parseDevinVersion('devin 3000.1.27 (0d4bf12e)'), '3000.1.27');
+  assert.throws(() => parseDevinVersion('not a version'), /Could not parse/);
+});
+
+test('requires a logged-in Devin auth status', () => {
+  assert.deepEqual(
+    requireDevinAuthentication({
+      exitCode: 0,
+      stdoutText: 'Logged in (via Devin).\nTier:              Devin Pro\nPlan:              Pro\n',
+    }),
+    { method: 'devin-account', subscriptionAccess: true, provider: 'devin' },
+  );
+  assert.throws(
+    () => requireDevinAuthentication({ exitCode: 1, stdoutText: 'Not logged in' }),
+    /authentication failed/,
+  );
+});
+
+test('extracts best-effort telemetry from ATIF-like export documents', () => {
+  const exportDoc = {
+    format: 'atif-test',
+    sessionId: 'sess-1',
+    model: 'swe-1-6-fast',
+    messages: [
+      { role: 'user', content: 'prompt' },
+      {
+        role: 'assistant',
+        model: 'swe-1-6-fast',
+        content: [{ type: 'toolCall', name: 'write', arguments: { path: 'agent.js' } }],
+        usage: { input: 11, output: 22 },
+      },
+      { role: 'tool', tool_name: 'bash' },
+    ],
+  };
+  const summary = parseDevinExport(JSON.stringify(exportDoc));
+  assert.equal(summary.sessionId, 'sess-1');
+  assert.equal(summary.model, 'swe-1-6-fast');
+  assert.equal(summary.toolCallCount, 2);
+  assert.equal(summary.toolCallBreakdown.write, 1);
+  assert.equal(summary.toolCallBreakdown.bash, 1);
+  assert.equal(summary.totalTokens, 33);
+  assert.equal(summary.mcpCallCount, 0);
+});
+
+test('handles empty export gracefully', () => {
+  const summary = parseDevinExport('');
+  assert.equal(summary.format, 'empty');
+  assert.equal(summary.totalTokens, null);
+  assert.equal(summary.toolCallCount, 0);
+});
+
+test('parses ATIF-v1.x Devin CLI export documents', () => {
+  const atif = {
+    schema_version: 'ATIF-v1.7',
+    session_id: 'married-lock',
+    agent: { name: 'devin', version: '3000.1.27', model_name: 'SWE-1.6 Fast' },
+    steps: [
+      {
+        type: 'assistant',
+        tool_calls: [
+          { function_name: 'write' },
+          { function_name: 'exec' },
+        ],
+      },
+      { type: 'tool_result' },
+    ],
+    final_metrics: {
+      total_prompt_tokens: 100,
+      total_completion_tokens: 20,
+      total_cached_tokens: 50,
+      total_steps: 2,
+    },
+  };
+  const summary = parseDevinExport(JSON.stringify(atif));
+  assert.equal(summary.format, 'ATIF-v1.7');
+  assert.equal(summary.sessionId, 'married-lock');
+  assert.equal(summary.model, 'SWE-1.6 Fast');
+  assert.equal(summary.turnCount, 2);
+  assert.equal(summary.toolCallCount, 2);
+  assert.equal(summary.toolCallBreakdown.write, 1);
+  assert.equal(summary.toolCallBreakdown.exec, 1);
+  assert.equal(summary.inputTokens, 100);
+  assert.equal(summary.outputTokens, 20);
+  assert.equal(summary.cachedInputTokens, 50);
+  assert.equal(summary.totalTokens, 120);
+});

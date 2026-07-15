@@ -206,7 +206,7 @@ async function main() {
       sessionId: metadata.run.sessionId,
       model: entry.provenance.modelRequested,
       prompt,
-      forbiddenText: [os.homedir()],
+      forbiddenText: [os.homedir(), os.userInfo().username],
     });
     invariant(validatedSession.toolCallCount === metadata.telemetry.toolCallCount, `Native tool-call count mismatch for ${entry.id}`);
     const relativeTrace = `snapshots/${snapshotId}/traces/${entry.id}/${metadata.run.sessionId}.jsonl`;

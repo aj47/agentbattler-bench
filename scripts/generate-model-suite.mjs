@@ -19,6 +19,7 @@ import { isLegalUciMove, parseFen } from '../src/chess.mjs';
 import { validateNativeCodexSession } from '../src/codex-session.mjs';
 import { runAgentMove, validateAgent } from '../src/runner.mjs';
 import { canonicalJson, sha256, sha256File } from '../src/provenance.mjs';
+import { sanitizePublicTrace } from '../src/trace-sanitizer.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROMPT_PATH = path.join(ROOT, 'benchmark/challenges/chess-agent-v1.md');
@@ -181,8 +182,6 @@ async function runCodex({ model, prompt, workspace, codexHome, stdoutPath, stder
   const ended = Date.now();
   const stdoutText = Buffer.concat(stdout).toString('utf8');
   const stderrText = Buffer.concat(stderr).toString('utf8');
-  await writeFile(stdoutPath, stdoutText);
-  await writeFile(stderrPath, stderrText);
   return { args, durationMs: ended - started, exitCode, stdoutText, stderrText };
 }
 
@@ -244,6 +243,11 @@ async function generateOne(entry, prompt, promptSha256, positions) {
   const stderrPath = path.join(generationDir, 'codex-stderr.txt');
   try {
     const run = await runCodex({ ...entry, prompt, workspace, codexHome, stdoutPath, stderrPath, skillFiles });
+    const scrubContext = { homeDirectory: os.homedir(), username: os.userInfo().username };
+    const sanitizedStdout = sanitizePublicTrace(run.stdoutText, scrubContext);
+    const sanitizedStderr = sanitizePublicTrace(run.stderrText, scrubContext);
+    await writeFile(stdoutPath, sanitizedStdout.content);
+    await writeFile(stderrPath, sanitizedStderr.content);
     const workspaceEntries = (await readdir(workspace, { withFileTypes: true }))
       .map((item) => ({ name: item.name, type: item.isFile() ? 'file' : item.isDirectory() ? 'directory' : 'other' }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -258,15 +262,16 @@ async function generateOne(entry, prompt, promptSha256, positions) {
     await copyFile(sourcePath, targetPath);
     const probes = await probeAgent(targetPath, positions);
     const isolatedHomeEntries = (await readdir(codexHome)).filter((name) => name !== 'auth.json').sort();
-    const telemetry = telemetryFromJsonl(run.stdoutText);
+    const telemetry = telemetryFromJsonl(sanitizedStdout.content);
     const sessionFiles = (await walk(path.join(codexHome, 'sessions'))).filter((file) => file.endsWith('.jsonl'));
     if (sessionFiles.length !== 1) throw new Error(`${entry.model} produced ${sessionFiles.length} native session files instead of one`);
-    const sessionContent = await readFile(sessionFiles[0], 'utf8');
+    const sanitizedSession = sanitizePublicTrace(await readFile(sessionFiles[0], 'utf8'), scrubContext);
+    const sessionContent = sanitizedSession.content;
     const nativeSession = validateNativeCodexSession(sessionContent, {
       sessionId: telemetry.sessionId,
       model: entry.model,
       prompt,
-      forbiddenText: [os.homedir()],
+      forbiddenText: [os.homedir(), os.userInfo().username],
     });
     const nativeSessionPath = path.join(generationDir, 'session.jsonl');
     await writeFile(nativeSessionPath, sessionContent);
@@ -331,6 +336,14 @@ async function generateOne(entry, prompt, promptSha256, positions) {
         method: 'chatgpt',
         subscriptionAccess: true,
         apiKeyEnvironmentRemoved: true,
+      },
+      sanitization: {
+        strategy: 'literal-host-identity-redaction',
+        placeholders: ['<redacted-home>', '<redacted-user>'],
+        cliStdout: sanitizedStdout.replacements,
+        cliStderr: sanitizedStderr.replacements,
+        nativeSession: sanitizedSession.replacements,
+        totalReplacements: sanitizedStdout.totalReplacements + sanitizedStderr.totalReplacements + sanitizedSession.totalReplacements,
       },
       nativeSession: nativeSessionIdentity,
       prompt: { path: 'benchmark/challenges/chess-agent-v1.md', sha256: promptSha256 },

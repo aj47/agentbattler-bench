@@ -12,15 +12,15 @@ export const metadata: Metadata = {
   },
   description: 'Inspect generated chess agents, harness evidence, and deterministic match replays.',
   openGraph: {
-    title: 'AgentBattler Bench · DotAgents placement',
-    description: 'DotAgents scores 50.9% across 540 targeted same-model placement games.',
+    title: 'AgentBattler Bench · Harness × model leaderboard',
+    description: 'Compare 12 harness and model combinations across 11,340 recorded games.',
     type: 'website',
-    images: [{ url: '/og.png', width: 1729, height: 910, alt: 'AgentBattler DotAgents placement: 50.9% across 540 same-model games' }],
+    images: [{ url: '/og.png', width: 1731, height: 909, alt: 'AgentBattler harness and model leaderboard with 12 combinations' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AgentBattler Bench · DotAgents placement',
-    description: 'DotAgents scores 50.9% across 540 targeted same-model placement games.',
+    title: 'AgentBattler Bench · Harness × model leaderboard',
+    description: 'Compare 12 harness and model combinations across 11,340 recorded games.',
     images: ['/og.png'],
   },
 };

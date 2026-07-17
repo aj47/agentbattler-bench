@@ -18,13 +18,36 @@ function median(values: number[]): number {
 export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntrant[] {
   const harnesses = new Map(data.harnesses.map((harness) => [harness.id, harness]));
   const buckets = new Map<string, Omit<HarnessModelEntrant, 'rank' | 'artifactScore' | 'scorePct'>>();
+  const controlledStats = new Map<string, { games: number; wins: number; draws: number; losses: number; points: number }>();
+
+  for (const match of data.matches) {
+    if (match.white.harness === match.black.harness || match.white.model !== match.black.model || match.final.outcome === 'void') continue;
+    const draw = match.final.outcome === '1/2-1/2';
+    for (const [agent, won] of [
+      [match.white, match.final.outcome === '1-0'],
+      [match.black, match.final.outcome === '0-1'],
+    ] as const) {
+      const stats = controlledStats.get(agent.id) ?? { games: 0, wins: 0, draws: 0, losses: 0, points: 0 };
+      stats.games += 1;
+      stats.wins += won ? 1 : 0;
+      stats.draws += draw ? 1 : 0;
+      stats.losses += !draw && !won ? 1 : 0;
+      stats.points += won ? 1 : draw ? 0.5 : 0;
+      controlledStats.set(agent.id, stats);
+    }
+  }
 
   for (const agent of data.agents) {
+    const stats = controlledStats.get(agent.id);
+    if (!stats) continue;
     const key = `${agent.harness}:${agent.familyId}`;
     const harness = harnesses.get(agent.harness);
     const family = harness?.families.find((candidate) => candidate.id === agent.familyId);
-    const artifactScore = agent.standing.games > 0
-      ? roundScore((agent.standing.points / agent.standing.games) * 100)
+    const fallbackFamilyName = agent.model.startsWith('gpt-5.6-')
+      ? `GPT-5.6 ${agent.familyId[0].toUpperCase()}${agent.familyId.slice(1)}`
+      : agent.familyId;
+    const artifactScore = stats.games > 0
+      ? roundScore((stats.points / stats.games) * 100)
       : 0;
     const bucket = buckets.get(key) ?? {
       id: key,
@@ -32,7 +55,7 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
       harnessDisplayName: harness?.displayName ?? agent.harness,
       harnessVersion: agent.harnessVersion,
       familyId: agent.familyId,
-      familyDisplayName: family?.displayName ?? agent.familyId,
+      familyDisplayName: family?.displayName ?? fallbackFamilyName,
       model: agent.model,
       artifacts: [],
       games: 0,
@@ -45,18 +68,18 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
     bucket.artifacts.push({
       id: agent.id,
       displayName: agent.displayName,
-      games: agent.standing.games,
-      wins: agent.standing.wins,
-      draws: agent.standing.draws,
-      losses: agent.standing.losses,
-      points: agent.standing.points,
+      games: stats.games,
+      wins: stats.wins,
+      draws: stats.draws,
+      losses: stats.losses,
+      points: stats.points,
       scorePct: artifactScore,
     });
-    bucket.games += agent.standing.games;
-    bucket.wins += agent.standing.wins;
-    bucket.draws += agent.standing.draws;
-    bucket.losses += agent.standing.losses;
-    bucket.points += agent.standing.points;
+    bucket.games += stats.games;
+    bucket.wins += stats.wins;
+    bucket.draws += stats.draws;
+    bucket.losses += stats.losses;
+    bucket.points += stats.points;
     buckets.set(key, bucket);
   }
 
@@ -79,7 +102,6 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
 }
 
 export const harnessModelEntrants = aggregateHarnessModelEntrants(siteData);
-export const fullLeagueHarnessModelEntrants = harnessModelEntrants.filter((entrant) => entrant.harness !== 'dotagents-mono');
 
 export function getAgent(id: string): Agent | undefined {
   return siteData.agents.find((agent) => agent.id === id);

@@ -25,6 +25,7 @@ export default async function SubmissionPage({ params }: PageProps) {
   const command = agent.generation.command.join(' ');
   const trace = publication.agents[agent.id];
   const telemetryPublished = agent.generation.telemetryPublished !== false;
+  const isPlacementAgent = agent.harness === 'dotagents-mono';
   const withinHarnessGames = agent.matches.filter((match) => match.scope === 'within-harness').length;
   const crossHarnessGames = agent.matches.length - withinHarnessGames;
 
@@ -44,8 +45,8 @@ export default async function SubmissionPage({ params }: PageProps) {
       </header>
 
       <section className="metrics-strip detail-metrics">
-        <Metric label="provisional Elo" value={agent.standing.elo} detail={`rank ${agent.standing.rank} of ${siteData.agents.length}`} />
-        <Metric label="cross-harness record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points · ${agent.standing.games} games`} />
+        <Metric label="provisional Elo" value={agent.standing.elo} detail={isPlacementAgent ? `rank ${agent.standing.rank} of 5 in model placement` : `rank ${agent.standing.rank} of ${siteData.agents.length - (siteData.dotAgentsPlacement ? 15 : 0)}`} />
+        <Metric label={isPlacementAgent ? 'placement record' : 'cross-harness record'} value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points · ${agent.standing.games} games`} />
         <Metric label="generation time" value={agent.generation.durationMs === null ? 'not published' : formatDuration(agent.generation.durationMs)} detail={agent.generation.turns === null ? 'aggregate suite timing available' : `${agent.generation.turns} agent turns`} />
         <Metric label="tokens used" value={agent.generation.totalTokens === null ? 'not published' : formatNumber(agent.generation.totalTokens)} detail={agent.generation.totalTokens === null ? 'aggregate suite tokens available' : agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
       </section>
@@ -62,7 +63,7 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><span>input tokens</span><strong>{agent.generation.inputTokens === null ? 'not published' : formatNumber(agent.generation.inputTokens)}</strong></div>
               <div><span>output tokens</span><strong>{agent.generation.outputTokens === null ? 'not published' : formatNumber(agent.generation.outputTokens)}</strong></div>
             </div>
-            {!telemetryPublished ? <p className="telemetry-note">Per-run Claude Code telemetry and raw traces were intentionally excluded from the public results package. Sanitized provenance, generated source, checksums, aggregate suite totals, and every replay remain published.</p> : null}
+            {!telemetryPublished ? <p className="telemetry-note">Per-run {isPlacementAgent ? 'DotAgents' : 'Claude Code'} telemetry and raw traces were intentionally excluded from the public results package. Sanitized provenance, generated source, checksums, aggregate suite totals, and every replay remain published.</p> : null}
             {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">open HF trace viewer ↗</a><a href={trace.sessionUrl} target="_blank" rel="noreferrer">native session</a><a href={trace.cliEventsUrl} target="_blank" rel="noreferrer">CLI events</a></p> : null}
             {command ? <details className="evidence-disclosure">
               <summary>exact generation command <span>show</span></summary>

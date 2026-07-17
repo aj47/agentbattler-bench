@@ -20,8 +20,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function MatchPage({ params }: PageProps) {
   const match = getMatch((await params).id);
   if (!match) notFound();
-  const replayCommand = match.white.harness !== match.black.harness || match.white.harness === 'claude-code'
-    ? 'npm run verify:hf-results -- --output <downloaded-release-root>'
+  const isDotAgentsPlacement = match.white.harness === 'dotagents-mono' || match.black.harness === 'dotagents-mono';
+  const replayCommand = isDotAgentsPlacement
+    ? 'npm run verify:hf-dotagents -- --output <downloaded-release-root>'
+    : match.white.harness !== match.black.harness || match.white.harness === 'claude-code'
+      ? 'npm run verify:hf-results -- --output <downloaded-release-root>'
     : match.white.harness === 'pi-coding-agent'
       ? 'npm run replay:pi-suite'
       : 'npm run replay:model-suite';

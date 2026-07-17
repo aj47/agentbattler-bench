@@ -254,6 +254,7 @@ export type SiteData = {
   agents: Agent[];
   matches: Match[];
   latestDecisiveId: string | null;
+  dotAgentsPlacement?: DotAgentsPlacement;
 };
 
 export type HarnessRecord = {
@@ -265,4 +266,45 @@ export type HarnessRecord = {
   voids: number;
   points: number;
   scorePct: number;
+};
+
+export type PlacementRecord = {
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  scorePct: number;
+};
+
+export type DotAgentsPlacement = PlacementRecord & {
+  harness: 'dotagents-mono';
+  displayName: string;
+  resultSha256: string;
+  resultSha256Short: string;
+  updatedAt: string;
+  warning: string;
+  featuredMatchId: string | null;
+  timeoutDecisions: {
+    total: number;
+    benefited: number;
+    incurred: number;
+    scoreWithoutTimeouts: number;
+  };
+  opponents: Array<PlacementRecord & {
+    id: string;
+    displayName: string;
+  }>;
+  models: Array<PlacementRecord & {
+    id: string;
+    displayName: string;
+    model: string;
+    matchupWins: number;
+    matchupLosses: number;
+    opponents: Array<PlacementRecord & {
+      id: string;
+      displayName: string;
+    }>;
+    featuredMatchId: string | null;
+  }>;
 };

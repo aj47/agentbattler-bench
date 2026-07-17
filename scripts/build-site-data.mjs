@@ -129,6 +129,215 @@ function runtimeForMatches(matches) {
   return matches.reduce((total, match) => total + match.plies.reduce((sum, ply) => sum + (ply.runtimeMs ?? 0), 0), 0);
 }
 
+const HARNESS_NAMES = {
+  'claude-code': 'Claude Code',
+  'codex-cli': 'Codex CLI',
+  'dotagents-mono': 'DotAgents',
+  'pi-coding-agent': 'Pi',
+};
+
+function placementScore(game) {
+  const dotAgentsColor = game.agents.w.provenance.harness === 'dotagents-mono' ? 'w' : 'b';
+  if (game.final.outcome === 'void') return null;
+  if (game.final.outcome === '1/2-1/2') return 0.5;
+  return (game.final.outcome === '1-0' && dotAgentsColor === 'w')
+    || (game.final.outcome === '0-1' && dotAgentsColor === 'b') ? 1 : 0;
+}
+
+function summarizePlacementGames(games) {
+  const scores = games.map(placementScore).filter((score) => score !== null);
+  const wins = scores.filter((score) => score === 1).length;
+  const draws = scores.filter((score) => score === 0.5).length;
+  const losses = scores.filter((score) => score === 0).length;
+  const points = wins + (draws * 0.5);
+  return {
+    games: scores.length,
+    wins,
+    draws,
+    losses,
+    points,
+    scorePct: scores.length ? Math.round((points / scores.length) * 10_000) / 100 : 0,
+  };
+}
+
+function placementOpponent(game) {
+  return game.agents.w.provenance.harness === 'dotagents-mono' ? game.agents.b.provenance.harness : game.agents.w.provenance.harness;
+}
+
+function summarizeDotAgentsPlacement(results) {
+  const games = results.flatMap((item) => item.result.games);
+  const opponents = [...new Set(games.map(placementOpponent))].map((id) => ({
+    id,
+    displayName: HARNESS_NAMES[id] ?? id,
+    ...summarizePlacementGames(games.filter((game) => placementOpponent(game) === id)),
+  })).sort((left, right) => right.scorePct - left.scorePct || left.id.localeCompare(right.id));
+  const models = results.map(({ id, result }) => {
+    const modelGames = result.games;
+    const opponentRecords = [...new Set(modelGames.map(placementOpponent))].map((opponentId) => ({
+      id: opponentId,
+      displayName: HARNESS_NAMES[opponentId] ?? opponentId,
+      ...summarizePlacementGames(modelGames.filter((game) => placementOpponent(game) === opponentId)),
+    })).sort((left, right) => right.scorePct - left.scorePct || left.id.localeCompare(right.id));
+    const provenance = modelGames.find((game) => game.agents.w.provenance.harness === 'dotagents-mono')?.agents.w.provenance
+      ?? modelGames.find((game) => game.agents.b.provenance.harness === 'dotagents-mono')?.agents.b.provenance;
+    return {
+      id,
+      displayName: id[0].toUpperCase() + id.slice(1),
+      model: provenance?.modelRequested ?? `gpt-5.6-${id}`,
+      ...summarizePlacementGames(modelGames),
+      matchupWins: opponentRecords.filter((record) => record.scorePct > 50).length,
+      matchupLosses: opponentRecords.filter((record) => record.scorePct < 50).length,
+      opponents: opponentRecords,
+      featuredMatchId: modelGames.find((game) => !['1/2-1/2', 'void'].includes(game.final.outcome))?.gameId ?? null,
+    };
+  }).sort((left, right) => right.scorePct - left.scorePct);
+  const timeoutGames = games.filter((game) => game.final.failure?.status === 'timeout');
+  const withoutTimeouts = games.filter((game) => game.final.failure?.status !== 'timeout');
+  const benefited = timeoutGames.filter((game) => {
+    const failed = game.final.failure.color === 'w' ? game.agents.w : game.agents.b;
+    return failed.provenance.harness !== 'dotagents-mono';
+  }).length;
+  const resultSha256 = canonicalJsonSha256(Object.fromEntries(results.map(({ id, result }) => [id, result.resultSha256])));
+  return {
+    harness: 'dotagents-mono',
+    displayName: 'DotAgents',
+    ...summarizePlacementGames(games),
+    resultSha256,
+    resultSha256Short: shortHash(resultSha256),
+    updatedAt: results.map(({ result }) => result.execution.completedAt).sort().at(-1),
+    warning: 'Targeted same-model placement games only. The three anchor harnesses did not replay their existing head-to-head schedule in this placement batch, so this is not a four-way ordinal leaderboard.',
+    featuredMatchId: models.find((model) => model.featuredMatchId)?.featuredMatchId ?? null,
+    timeoutDecisions: {
+      total: timeoutGames.length,
+      benefited,
+      incurred: timeoutGames.length - benefited,
+      scoreWithoutTimeouts: summarizePlacementGames(withoutTimeouts).scorePct,
+    },
+    opponents,
+    models,
+  };
+}
+
+function dotAgentsStanding(result, id, familyId) {
+  const rows = result.summary.standings.filter((row) => row.agentId.startsWith(`dotagents-${familyId}-`) && row.gamesPlayed > 0);
+  const index = rows.findIndex((row) => row.agentId === id);
+  const row = rows[index];
+  invariant(row, `Missing DotAgents placement standing for ${id}`);
+  return {
+    rank: index + 1,
+    elo: row.provisionalElo,
+    games: row.gamesPlayed,
+    wins: row.wins,
+    draws: row.draws,
+    losses: row.losses,
+    points: row.points,
+  };
+}
+
+async function composeDotAgentsPlacementSiteData({ data, results, resultsSnapshot }) {
+  const manifest = await readJson('agents/dotagents-model-suite/manifest.json');
+  const resultByFamily = new Map(results.map((item) => [item.id, item.result]));
+  const placementGames = results.flatMap((item) => item.result.games);
+  const placement = summarizeDotAgentsPlacement(results);
+  const dotAgents = [];
+  for (const entry of manifest.agents) {
+    const familyId = entry.provenance.modelFamilyId;
+    const result = resultByFamily.get(familyId);
+    invariant(result, `Missing DotAgents placement result for ${familyId}`);
+    const source = await readFile(path.resolve(ROOT, entry.source), 'utf8');
+    invariant(sha256Buffer(source) === entry.sourceSha256, `DotAgents source hash mismatch for ${entry.id}`);
+    const games = placementGames.filter((game) => game.agents.w.id === entry.id || game.agents.b.id === entry.id);
+    dotAgents.push({
+      id: entry.id,
+      familyId,
+      displayName: entry.displayName,
+      harness: entry.provenance.harness,
+      harnessVersion: entry.provenance.harnessVersion,
+      model: entry.provenance.modelRequested,
+      reasoningEffort: entry.provenance.reasoningEffort,
+      verification: {
+        level: 'exploratory',
+        label: 'Published placement bundle',
+        detail: 'Generated source, sanitized provenance, checksums, and all targeted placement replays are published. Raw generation telemetry is intentionally excluded.',
+      },
+      standing: dotAgentsStanding(result, entry.id, familyId),
+      generation: {
+        telemetryPublished: false,
+        modelRequested: entry.provenance.modelRequested,
+        harnessVersion: entry.provenance.harnessVersion,
+        durationMs: null,
+        turns: null,
+        toolCalls: null,
+        toolBreakdown: {},
+        mcpCalls: null,
+        inputTokens: null,
+        cachedInputTokens: null,
+        outputTokens: null,
+        reasoningTokens: null,
+        totalTokens: null,
+        promptPath: entry.provenance.prompt,
+        promptSha256: entry.provenance.promptSha256,
+        sessionId: '',
+        command: [],
+        isolation: entry.provenance.generationSettings ?? {},
+        probes: [],
+        probeSummary: { allPassed: true, passed: 0, total: 0 },
+      },
+      artifact: {
+        sourcePath: entry.source,
+        sourceSha256: entry.sourceSha256,
+        sizeBytes: Buffer.byteLength(source),
+        source,
+      },
+      matches: games.map((game) => matchSummary(game, entry.id)),
+      decisiveGames: games.filter((game) => !['1/2-1/2', 'void'].includes(game.final.outcome)).length,
+    });
+  }
+  const matches = [...data.matches, ...placementGames.map(publicMatch)];
+  invariant(new Set(matches.map((match) => match.id)).size === matches.length, 'DotAgents placement contains duplicate game IDs');
+  const harnesses = [...data.harnesses, {
+    id: 'dotagents-mono',
+    displayName: 'DotAgents',
+    harnessVersion: manifest.agents[0]?.provenance.harnessVersion ?? 'unknown',
+    families: [],
+    totals: { agents: dotAgents.length, matches: placementGames.length, tokens: 0, toolCalls: 0, mcpCalls: 0, durationMs: 0 },
+  }];
+  const combinedResultSha256 = canonicalJsonSha256({ publishedLeague: data.benchmark.resultSha256, dotAgentsPlacement: placement.resultSha256 });
+  const composed = {
+    ...data,
+    schemaVersion: 'agentbattler.site-data.v4',
+    benchmark: {
+      ...data.benchmark,
+      description: 'Same models and prompt across four agent harnesses, with DotAgents entering through targeted same-model placement games.',
+      updatedAt: placement.updatedAt,
+      resultSha256: combinedResultSha256,
+      resultSha256Short: shortHash(combinedResultSha256),
+      totals: {
+        ...data.benchmark.totals,
+        harnesses: harnesses.length,
+        agents: data.agents.length + dotAgents.length,
+        matches: matches.length,
+        crossHarnessMatches: data.benchmark.totals.crossHarnessMatches + placementGames.length,
+        controlledHarnessMatches: data.benchmark.totals.controlledHarnessMatches + placementGames.length,
+        uniqueScenarios: new Set(matches.map((match) => [match.position.id, match.white.id, match.black.id].join('|'))).size,
+        decisive: data.benchmark.totals.decisive + placementGames.filter((game) => !['1/2-1/2', 'void'].includes(game.final.outcome)).length,
+        draws: data.benchmark.totals.draws + placementGames.filter((game) => game.final.outcome === '1/2-1/2').length,
+        voids: data.benchmark.totals.voids + placementGames.filter((game) => game.final.outcome === 'void').length,
+        agentInvocations: data.benchmark.totals.agentInvocations + placementGames.reduce((sum, game) => sum + game.plies.length, 0),
+        matchDurationMs: data.benchmark.totals.matchDurationMs + runtimeForMatches(placementGames),
+      },
+    },
+    harnesses,
+    agents: [...data.agents, ...dotAgents],
+    matches,
+    latestDecisiveId: placement.featuredMatchId ?? data.latestDecisiveId,
+    dotAgentsPlacement: placement,
+  };
+  invariant(composed.agents.length === resultsSnapshot.totals.agents, 'DotAgents site agent count disagrees with results snapshot');
+  invariant(composed.matches.length === resultsSnapshot.totals.matches, 'DotAgents site match count disagrees with results snapshot');
+  return composed;
+}
+
 async function composeThreeHarnessSiteData({ baseData, baseSnapshot, resultsSnapshot, claudeResult, crossResult, claudeSuite }) {
   const claudeManifest = await readJson('agents/claude-code-model-suite/manifest.json');
   const crossStandings = standingMap(crossResult);
@@ -297,8 +506,10 @@ async function composeThreeHarnessSiteData({ baseData, baseSnapshot, resultsSnap
     matches,
     latestDecisiveId: latestDecisive?.id ?? null,
   };
-  invariant(data.agents.length === resultsSnapshot.totals.agents, 'Composed site agent count disagrees with results snapshot');
-  invariant(data.matches.length === resultsSnapshot.totals.matches, 'Composed site match count disagrees with results snapshot');
+  if (!resultsSnapshot.artifacts.dotagentsPlacementResults && process.env.AGENTBATTLER_LOCAL_DOTAGENTS !== '1') {
+    invariant(data.agents.length === resultsSnapshot.totals.agents, 'Composed site agent count disagrees with results snapshot');
+    invariant(data.matches.length === resultsSnapshot.totals.matches, 'Composed site match count disagrees with results snapshot');
+  }
   invariant(data.benchmark.totals.voids === 0, 'Composed site data contains void games');
   return data;
 }
@@ -344,6 +555,22 @@ async function preparePublishedSnapshot() {
       crossResult,
       claudeSuite,
     });
+    if (resultsSnapshot.artifacts.dotagentsPlacementResults || process.env.AGENTBATTLER_LOCAL_DOTAGENTS === '1') {
+      const dotAgentsResults = resultsSnapshot.artifacts.dotagentsPlacementResults
+        ? await Promise.all(resultsSnapshot.artifacts.dotagentsPlacementResults.map(async (artifact) => ({
+          id: artifact.model,
+          result: await readPublishedResult(resultsSnapshot, artifact, `DotAgents ${artifact.model}`),
+        })))
+        : await Promise.all(['luna', 'sol', 'terra'].map(async (id) => ({
+          id,
+          result: await readJson(`results/league/dotagents-placement/matches/${id}/result.json`),
+        })));
+      const expectedSnapshot = resultsSnapshot.artifacts.dotagentsPlacementResults ? resultsSnapshot : {
+        ...resultsSnapshot,
+        totals: { ...resultsSnapshot.totals, agents: data.agents.length + 15, matches: data.matches.length + 540 },
+      };
+      data = await composeDotAgentsPlacementSiteData({ data, results: dotAgentsResults, resultsSnapshot: expectedSnapshot });
+    }
     publicationDataset = resultsSnapshot.dataset;
     publicationSnapshotId = resultsSnapshot.snapshotId;
     publicationSnapshotSha256 = resultsSnapshot.snapshotSha256;

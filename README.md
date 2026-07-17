@@ -102,6 +102,22 @@ npm run build:harness-suite
 
 Generated output remains outside Git under `results/claude-code-model-suite/`; the roster and manifest are separate under `agents/claude-code-model-suite/`. When this manifest exists, `build:harness-suite` automatically makes the three-harness roster (675 artifact pairs / 8,100 color-balanced games); without it, legacy two-harness artifacts remain unchanged.
 
+## DotAgents suite
+
+The optional DotAgents harness uses the same GPT-5.6 Terra, Sol, and Luna models at high reasoning, with five independent generations per model. It builds a pinned DotAgents commit in Docker, copies ChatGPT OAuth into an ephemeral container home, and keeps the DotAgents configuration separate from the empty chess workspace. Skills and external MCP servers are disabled.
+
+```sh
+npm run dotagents:image
+npm run generate:dotagents-suite:smoke
+npm run generate:dotagents-suite
+npm run validate:dotagents-suite
+npm run build:harness-suite
+npm run league:place:dotagents
+npm run league:run:dotagents
+```
+
+The placement plan gives each DotAgents model combo targeted same-model matches against Codex CLI, Pi, and Claude Code. One cyclic artifact rotation across five generations, six positions, and both colors produces 180 games per model and 540 games total. The run command executes missing schedules in parallel, replays existing result bundles, and refreshes the plan. The league ledger reuses any game whose immutable game ID already exists instead of rerunning it.
+
 ## Resumable and publishable results
 
 Every benchmark run writes per-game atomic checkpoints beside its output. An interrupted run resumes automatically only when its manifest, position suite, pairing, and deterministic game IDs match exactly. Inspect its machine-readable progress with `node bin/agentbattler.mjs status --output results/example`; use `--fresh` only for a new run after moving any completed output.
@@ -115,11 +131,19 @@ npm run replay -- results/harness-suite/matches/result.json.gz
 
 `pack` writes `result.json.gz` and a small adjacent manifest with the compressed and canonical byte sizes and SHA-256 values. Replaying the gzip verifies the compressed hash, byte-for-byte decompressed canonical result hash, semantic result hash, grades, summary, and the existing bundle checksums. The canonical uncompressed result remains the authoritative local output and is intentionally not added to Git.
 
+DotAgents placement uses its own three-config publication set so the 540 targeted games can be sealed without republishing the older full-league bundles:
+
+```sh
+npm run export:hf-dotagents
+npm run verify:hf-dotagents
+npm run publish:hf-results
+```
+
 ## Incremental league scheduling
 
 The league runner avoids rebuilding a Cartesian tournament whenever a harness/model/configuration combo is added. Independent generated artifacts from the same configuration share a content-derived combo ID. Placement schedules use fixed anchors plus targeted nearby opponents, deterministic cyclic artifact rotations, both colors, and the selected position suite.
 
-Import all 9,000 games from the current immutable results snapshot into the ignored append-only ledger without modifying any published game or hash:
+Import all 9,540 games from the current immutable results snapshot into the ignored append-only ledger without modifying any published game or hash:
 
 ```sh
 npm run league:import:published

@@ -12,8 +12,6 @@ import pyarrow.parquet as pq
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.errors import RepositoryNotFoundError
 
-EXPECTED = {'claude_code_only': 900, 'three_harness': 8100}
-
 def sha256(path):
     digest = hashlib.sha256()
     with open(path, 'rb') as stream:
@@ -50,7 +48,9 @@ def verify_downloads(repo, release, staging, remote_commit):
         remote_manifest = read_json(remote_root / release_path / 'release-manifest.json')
         if remote_manifest != release:
             raise RuntimeError('remote release manifest differs from verified local manifest')
-        for config, expected in EXPECTED.items():
+        for record in release['configs']:
+            config = record['config']
+            expected = record['expectedGames']
             base = f'{release_path}/{config}'
             for relative in [f'{base}/bundle/result.json.gz', f'{base}/bundle/result.json.gz.manifest.json']:
                 hf_hub_download(repo_id=repo, repo_type='dataset', revision=remote_commit, filename=relative, local_dir=remote_root, force_download=True)
@@ -101,7 +101,10 @@ def main():
         uploaded = False
     else:
         allowed = ['README.md', 'SHA256SUMS', f"{release['publicationPath']}/**"]
-        unexpected = files - {'.gitattributes'}
+        unexpected = {
+            name for name in files
+            if name not in {'.gitattributes', 'README.md', 'SHA256SUMS'} and not name.startswith('releases/')
+        }
         if unexpected:
             raise RuntimeError(f'repository exists without this release and is not empty: {sorted(unexpected)}')
         api.upload_folder(repo_id=repo, repo_type='dataset', folder_path=staging, path_in_repo='', allow_patterns=allowed, commit_message=f"Publish AgentBattler {release['releaseId']}")

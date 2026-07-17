@@ -6,11 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJson } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REQUIRED_INPUTS = [
-  path.join(ROOT, 'agents/model-suite/manifest.json'),
-  path.join(ROOT, 'agents/pi-model-suite/manifest.json'),
+const INPUT_SPECS = [
+  { path: path.join(ROOT, 'agents/model-suite/manifest.json'), harness: 'codex-cli', required: true },
+  { path: path.join(ROOT, 'agents/pi-model-suite/manifest.json'), harness: 'pi-coding-agent', required: true },
+  { path: path.join(ROOT, 'agents/claude-code-model-suite/manifest.json'), harness: 'claude-code', required: false },
+  { path: path.join(ROOT, 'agents/dotagents-model-suite/manifest.json'), harness: 'dotagents-mono', required: false },
 ];
-const CLAUDE_INPUT = path.join(ROOT, 'agents/claude-code-model-suite/manifest.json');
 const OUTPUT_DIR = path.join(ROOT, 'agents/harness-suite');
 const OUTPUT = path.join(OUTPUT_DIR, 'manifest.json');
 
@@ -18,22 +19,23 @@ function invariant(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-const inputs = [...REQUIRED_INPUTS];
-try {
-  await access(CLAUDE_INPUT);
-  inputs.push(CLAUDE_INPUT);
-} catch (error) {
-  if (error?.code !== 'ENOENT') throw error;
+const included = [];
+for (const spec of INPUT_SPECS) {
+  try {
+    await access(spec.path);
+    included.push(spec);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    invariant(!spec.required, `Required harness manifest is missing: ${spec.path}`);
+  }
 }
-const manifests = await Promise.all(inputs.map((file) => readFile(file, 'utf8').then(JSON.parse)));
+const manifests = await Promise.all(included.map((spec) => readFile(spec.path, 'utf8').then(JSON.parse)));
 const agents = manifests.flatMap((manifest) => manifest.agents);
 const ids = agents.map((agent) => agent.id);
 invariant(new Set(ids).size === ids.length, 'Harness suite contains duplicate agent IDs');
 invariant(agents.every((agent) => agent.provenance?.generatedByHarness === true), 'Harness suite may only contain generated agents');
 const harnesses = [...new Set(agents.map((agent) => agent.provenance.harness))].sort();
-const expectedHarnesses = inputs.length === 3
-  ? ['claude-code', 'codex-cli', 'pi-coding-agent']
-  : ['codex-cli', 'pi-coding-agent'];
+const expectedHarnesses = included.map((spec) => spec.harness).sort();
 invariant(JSON.stringify(harnesses) === JSON.stringify(expectedHarnesses), `Harness suite requires ${expectedHarnesses.join(', ')} manifests`);
 
 const modelCounts = new Map();

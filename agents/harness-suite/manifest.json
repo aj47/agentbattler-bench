@@ -1064,6 +1064,621 @@
       "role": "model-challenger",
       "source": "agents/claude-code-model-suite/claude-code-luna-05.js",
       "sourceSha256": "5d6d12a756c321f100e5001e4d6e0c2b44d6ef3c86030bacff061eb9529d6e7a"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Terra #1",
+      "generationIndex": 1,
+      "id": "dotagents-terra-01",
+      "modelFamilyId": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 1,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-terra-01/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "terra",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-terra-01.js",
+      "sourceSha256": "ea0e45ed6acae87421f61a782416e6aeabeee62dc5678464fa261d0cf5fc696c"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Sol #1",
+      "generationIndex": 1,
+      "id": "dotagents-sol-01",
+      "modelFamilyId": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 1,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-sol-01/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "sol",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-sol-01.js",
+      "sourceSha256": "70cd2b563b5d6dbb77f8d8ea59a46930f3e4b485bc43e5ef26e65010e409f34a"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Luna #1",
+      "generationIndex": 1,
+      "id": "dotagents-luna-01",
+      "modelFamilyId": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 1,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-luna-01/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "luna",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-luna-01.js",
+      "sourceSha256": "8360549e46c9c34105bc8c0306f3ff8ca4507db6f35a2ff80290a63768589026"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Terra #2",
+      "generationIndex": 2,
+      "id": "dotagents-terra-02",
+      "modelFamilyId": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 2,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-terra-02/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "terra",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-terra-02.js",
+      "sourceSha256": "13167bc4d20768f76123195b1a2c4d3f07cbe3300868e0014720338556a8ae7a"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Sol #2",
+      "generationIndex": 2,
+      "id": "dotagents-sol-02",
+      "modelFamilyId": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 2,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-sol-02/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "sol",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-sol-02.js",
+      "sourceSha256": "4ceb7b6470f7ef490dac5fb7326918f017f029d6d25f3c5e7e07bdd02429d038"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Luna #2",
+      "generationIndex": 2,
+      "id": "dotagents-luna-02",
+      "modelFamilyId": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 2,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-luna-02/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "luna",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-luna-02.js",
+      "sourceSha256": "167de307d4b4e4a4f27817e1f44efe3c164c16beb17ae5c2ef24989ac4940361"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Terra #3",
+      "generationIndex": 3,
+      "id": "dotagents-terra-03",
+      "modelFamilyId": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 3,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-terra-03/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "terra",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-terra-03.js",
+      "sourceSha256": "9a5cbfe4013fcd2c5999e31ed36b08d866f694127267fcfab4226cabd75f9045"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Sol #3",
+      "generationIndex": 3,
+      "id": "dotagents-sol-03",
+      "modelFamilyId": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 3,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-sol-03/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "sol",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-sol-03.js",
+      "sourceSha256": "f3341bb7f9944e22b06351fbd981b2c137a003478ef3184e4cc97e4a56b88399"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Luna #3",
+      "generationIndex": 3,
+      "id": "dotagents-luna-03",
+      "modelFamilyId": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 3,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-luna-03/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "luna",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-luna-03.js",
+      "sourceSha256": "6a185774c3042ebbd38acb6277cb32437bc5dd53dfe3727f46d42e738738f720"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Terra #4",
+      "generationIndex": 4,
+      "id": "dotagents-terra-04",
+      "modelFamilyId": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 4,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-terra-04/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "terra",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-terra-04.js",
+      "sourceSha256": "050a1536a47e4165ce9deb5a1cd03753cbce8860e93f233d9278aad63765d221"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Sol #4",
+      "generationIndex": 4,
+      "id": "dotagents-sol-04",
+      "modelFamilyId": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 4,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-sol-04/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "sol",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-sol-04.js",
+      "sourceSha256": "45e6ef7a4caee31d2ed755262c321d7ac0269565aff7b8153de89e3f772d7c63"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Luna #4",
+      "generationIndex": 4,
+      "id": "dotagents-luna-04",
+      "modelFamilyId": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 4,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-luna-04/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "luna",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-luna-04.js",
+      "sourceSha256": "8511a8ffff021aceccfacb275a2e58aebea6e921849ac89819cb2662bc893f6d"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Terra #5",
+      "generationIndex": 5,
+      "id": "dotagents-terra-05",
+      "modelFamilyId": "terra",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 5,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-terra-05/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "terra",
+        "modelRequested": "gpt-5.6-terra",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-terra-05.js",
+      "sourceSha256": "996895bdb9ff7311f6280fbfe4faf9ab17822b7d3296225e003bb5f3658e8f20"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Sol #5",
+      "generationIndex": 5,
+      "id": "dotagents-sol-05",
+      "modelFamilyId": "sol",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 5,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-sol-05/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "sol",
+        "modelRequested": "gpt-5.6-sol",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-sol-05.js",
+      "sourceSha256": "64540322a1956360e3b4a6e1ec2ee38f2f4b01db2e79b473b81cc6c9ba0d9bc0"
+    },
+    {
+      "displayName": "DotAgents / GPT-5.6 Luna #5",
+      "generationIndex": 5,
+      "id": "dotagents-luna-05",
+      "modelFamilyId": "luna",
+      "provenance": {
+        "generatedByHarness": true,
+        "generationIndex": 5,
+        "generationMetadata": "results/dotagents-model-suite/generations/dotagents-luna-05/metadata.json",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": "dotagents-mono",
+        "harnessCommit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+        "harnessVersion": "1.1.6",
+        "isFixture": false,
+        "kind": "dotagents-generated",
+        "modelFamilyId": "luna",
+        "modelRequested": "gpt-5.6-luna",
+        "prompt": "benchmark/challenges/chess-agent-v1.md",
+        "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
+        "provider": "chatgpt-codex-direct",
+        "reasoningEffort": "high"
+      },
+      "role": "model-challenger",
+      "source": "agents/dotagents-model-suite/dotagents-luna-05.js",
+      "sourceSha256": "48d52d0f7ef5c7255f2126ab828036f03173abb12e968a5faaf6b02ae11821b1"
     }
   ],
   "comparison": {
@@ -1071,6 +1686,7 @@
     "harnesses": [
       "claude-code",
       "codex-cli",
+      "dotagents-mono",
       "pi-coding-agent"
     ],
     "kind": "harness-comparison",
@@ -1084,7 +1700,7 @@
     "promptSha256": "b3a92de8445f7d04482541c767380729a31e56dc042958dfd74083c42981dc81",
     "reasoningEffort": "high"
   },
-  "description": "Balanced direct harness comparison: claude-code, codex-cli, pi-coding-agent using the same models, prompt, reasoning effort, and generation count.",
-  "manifestId": "claude-code-vs-codex-cli-vs-pi-coding-agent-2026-07-16T19-55-13-136Z",
+  "description": "Balanced direct harness comparison: claude-code, codex-cli, dotagents-mono, pi-coding-agent using the same models, prompt, reasoning effort, and generation count.",
+  "manifestId": "claude-code-vs-codex-cli-vs-dotagents-mono-vs-pi-coding-agent-2026-07-17T04-59-55-175Z",
   "schemaVersion": "agentbattler.agent-manifest.v1"
 }

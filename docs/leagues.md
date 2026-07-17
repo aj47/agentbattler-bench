@@ -41,7 +41,7 @@ Before executing a schedule, the runner partitions its jobs into reusable and mi
 
 ## Existing-results migration
 
-`npm run league:import:published` reads `snapshots/latest-results.json`, downloads both result bundles from its immutable Hugging Face revision, and verifies each compressed and canonical artifact hash before importing all 9,000 games. The two legacy runs are admitted only by their exact internal result hashes and declared Node 26.3.0 runtime. Import remains fail-closed for any other run that does not name a battle protocol or registered compatibility profile.
+`npm run league:import:published` reads `snapshots/latest-results.json`, downloads the two legacy tournament bundles plus the three DotAgents placement bundles from its immutable Hugging Face revision, and verifies each compressed and canonical artifact hash before importing all 9,540 games. The two legacy runs are admitted only by their exact internal result hashes and declared Node 26.3.0 runtime; the placement bundles carry their battle protocol directly. Import remains fail-closed for any other run that does not name a battle protocol or registered compatibility profile.
 
 The earlier model-suite snapshot can be migrated independently as described below.
 

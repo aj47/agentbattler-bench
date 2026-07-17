@@ -50,7 +50,11 @@ async function main() {
   const snapshot = JSON.parse(await readFile(options.snapshotPath, 'utf8'));
   invariant(snapshot.schemaVersion === 'agentbattler.results-snapshot.v1', 'Unsupported results snapshot schema');
   invariant(/^[0-9a-f]{64}$/.test(snapshot.snapshotSha256 ?? ''), 'Results snapshot SHA-256 is invalid');
-  const artifacts = [snapshot.artifacts.claudeResult, snapshot.artifacts.threeHarnessResult];
+  const artifacts = [
+    snapshot.artifacts.claudeResult,
+    snapshot.artifacts.threeHarnessResult,
+    ...(snapshot.artifacts.dotagentsPlacementResults ?? []),
+  ];
   let imported = 0;
   let existing = 0;
   let skippedVoid = 0;

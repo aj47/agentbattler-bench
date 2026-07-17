@@ -7,8 +7,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MATCHES_OUTPUT = path.join(ROOT, 'web/out/matches');
 
 async function main() {
-  const snapshot = JSON.parse(await readFile(path.join(ROOT, 'snapshots/latest-results.json'), 'utf8'));
-  const expectedReplayPages = snapshot.totals.matches;
+  const siteData = JSON.parse(await readFile(path.join(ROOT, 'web/generated/site-data.json'), 'utf8'));
+  const expectedReplayPages = siteData.matches.length;
   const entries = await readdir(MATCHES_OUTPUT, { withFileTypes: true });
   let replayPages = 0;
   let removedPayloads = 0;

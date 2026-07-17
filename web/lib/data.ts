@@ -79,6 +79,7 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
 }
 
 export const harnessModelEntrants = aggregateHarnessModelEntrants(siteData);
+export const fullLeagueHarnessModelEntrants = harnessModelEntrants.filter((entrant) => entrant.harness !== 'dotagents-mono');
 
 export function getAgent(id: string): Agent | undefined {
   return siteData.agents.find((agent) => agent.id === id);

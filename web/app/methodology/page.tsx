@@ -26,7 +26,7 @@ export default function MethodologyPage() {
         <div className="methodology-copy">
           <section id="pipeline">
             <span className="chapter-number">01</span><h2>Evidence pipeline</h2>
-            <p>A generation run begins in a disposable workspace with the target prompt, explicit model, and declared harness. Codex CLI, Pi, and Claude Code use the same prompt and request high reasoning. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Published evidence is stored in revision-pinned Hugging Face datasets; the website refuses to build unless every downloaded artifact matches the committed snapshot manifest.</p>
+            <p>A generation run begins in a disposable workspace with the target prompt, explicit model, and declared harness. Codex CLI, Pi, Claude Code, and DotAgents use the same prompt and request high reasoning. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Published evidence is stored in revision-pinned Hugging Face datasets; the website refuses to build unless every downloaded artifact matches the committed snapshot manifest.</p>
             <div className="protocol-steps"><div><strong>generate</strong><span>source + harness telemetry</span></div><div><strong>verify</strong><span>hashes + contract probes</span></div><div><strong>battle</strong><span>positions + seeds + traces</span></div><div><strong>publish</strong><span>standings + dossiers + replay</span></div></div>
           </section>
           <section id="contract">
@@ -46,7 +46,7 @@ export default function MethodologyPage() {
           </section>
           <section id="snapshot">
             <span className="chapter-number">04</span><h2>Current snapshot</h2>
-            <p>The website exposes three exploratory generation suites: Codex CLI, Pi, and Claude Code, each with five independently generated Terra, Sol, and Luna engines. It records {formatNumber(benchmark.totals.matches)} matches across {formatNumber(benchmark.totals.uniqueScenarios)} unique agent-pair/position scenarios, including {formatNumber(benchmark.totals.crossHarnessMatches)} games pairing every artifact across different harnesses.</p>
+            <p>The website exposes four exploratory generation suites: Codex CLI, Pi, Claude Code, and DotAgents, each with five independently generated Terra, Sol, and Luna engines. It records {formatNumber(benchmark.totals.matches)} matches across {formatNumber(benchmark.totals.uniqueScenarios)} unique agent-pair/position scenarios, including {formatNumber(benchmark.totals.crossHarnessMatches)} cross-harness games.</p>
             <dl className="snapshot-list">
               <div><dt>generation tokens</dt><dd>{formatNumber(benchmark.totals.generationTokens)}</dd></div>
               <div><dt>generation tool calls</dt><dd>{benchmark.totals.generationToolCalls}</dd></div>
@@ -56,8 +56,8 @@ export default function MethodologyPage() {
               <div><dt>result bundle</dt><dd>{benchmark.resultSha256Short}</dd></div>
             </dl>
             {benchmark.globalConfigAdjudication ? <p className="method-note">Config adjudication: {benchmark.globalConfigAdjudication.detail}</p> : null}
-            <p className="method-note">Interpretation: the five independently generated artifacts per model and harness are the unit for generation variance. Same-model games isolate the harness variable across all three harness pairs; cross-model games remain available as broader competition evidence.</p>
-            <p className="method-note">Limitation: these 45 artifacts have not been independently reproduced through the canonical Harbor submission contract. Claude Code used a third-party loopback Messages translation gateway to the ChatGPT Codex backend, so translation and tool-semantics differences are part of that harness condition. The results remain exploratory everywhere they appear.</p>
+            <p className="method-note">Interpretation: the five independently generated artifacts per model and harness are the unit for generation variance. The original three harnesses retain their full round-robin comparison. DotAgents receives targeted same-model placement against each anchor harness, so unrelated immutable games are not rerun.</p>
+            <p className="method-note">Limitation: DotAgents placement is not a complete four-way round robin and must not be read as an ordinal four-harness ranking. These 60 artifacts have not been independently reproduced through the canonical Harbor submission contract. Claude Code used a third-party loopback Messages translation gateway to the ChatGPT Codex backend, so translation and tool-semantics differences are part of that harness condition. The results remain exploratory everywhere they appear.</p>
           </section>
         </div>
       </div>

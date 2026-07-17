@@ -1,13 +1,16 @@
 import Link from 'next/link';
 
+import { DotAgentsPlacement } from '../components/DotAgentsPlacement';
 import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
-import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
+import { formatDate, formatNumber, fullLeagueHarnessModelEntrants, getMatch, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
   const { benchmark, agents } = siteData;
+  const fullLeagueAgents = agents.filter((agent) => agent.harness !== 'dotagents-mono');
+  const hasPlacement = Boolean(siteData.dotAgentsPlacement);
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
 
   return (
@@ -21,9 +24,9 @@ export default function HomePage() {
         </div>
         <div className="hero-grid">
           <div>
-            <p className="kicker">one prompt · three models · three harnesses · {formatNumber(benchmark.totals.matches)} games</p>
+            <p className="kicker">one prompt · three models · {hasPlacement ? 'four' : 'three'} harnesses · {formatNumber(benchmark.totals.matches)} games</p>
             <h1>Same models.<br /><span>Different harnesses.</span></h1>
-            <p className="hero-copy">Compare Codex CLI, Pi, and Claude Code across five independent Terra, Sol, and Luna generations each. The primary leaderboard treats every harness and model combination as one entrant while preserving each generated engine, checksum, and replay.</p>
+            <p className="hero-copy">Compare Codex CLI, Pi, and Claude Code across the full round-robin league. DotAgents joins through 540 targeted same-model placement games, preserving every generated engine, checksum, and replay without rerunning unrelated matchups.</p>
           </div>
           <div className="hero-aside" aria-label="Benchmark status">
             <span className="hero-aside-label">snapshot</span>
@@ -35,9 +38,9 @@ export default function HomePage() {
           </div>
         </div>
         <div className="metrics-strip">
-          <Metric label="agent harnesses" value={benchmark.totals.harnesses} detail="Codex CLI · Pi · Claude Code" />
+          <Metric label="agent harnesses" value={benchmark.totals.harnesses} detail={hasPlacement ? 'Codex CLI · Pi · Claude Code · DotAgents' : 'Codex CLI · Pi · Claude Code'} />
           <Metric label="generated engines" value={benchmark.totals.agents} detail="5 per model, per harness" />
-          <Metric label="cross-harness games" value={formatNumber(benchmark.totals.crossHarnessMatches)} detail={`${harnessModelEntrants.length} harness × model entrants`} />
+          <Metric label="cross-harness games" value={formatNumber(benchmark.totals.crossHarnessMatches)} detail={`${fullLeagueHarnessModelEntrants.length} full-league · ${siteData.dotAgentsPlacement?.models.length ?? 0} placement entrants`} />
           <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · ${benchmark.totals.generationMcpCalls} MCP`} />
         </div>
       </section>
@@ -45,15 +48,17 @@ export default function HomePage() {
       <section className="notice-band">
         <div className="shell notice-inner">
           <strong>Exploratory harness suite</strong>
-          <p>All 45 engines used the same prompt and requested high reasoning in isolated harness environments. The replay bundles have zero voids and verified checksums; independent Harbor reproduction is not yet claimed.</p>
+          <p>All {benchmark.totals.agents} engines used the same prompt and requested high reasoning. DotAgents is reported as targeted placement—not folded into the older full round-robin ranking—and independent Harbor reproduction is not claimed.</p>
           <Link href="/methodology/#verification">verification levels →</Link>
         </div>
       </section>
 
       <div className="shell home-stack">
-        <HarnessModelLeaderboard entrants={harnessModelEntrants} />
+        {siteData.dotAgentsPlacement ? <DotAgentsPlacement placement={siteData.dotAgentsPlacement} /> : null}
 
-        <Leaderboard agents={agents} title={`All ${agents.length} generated engines`} />
+        <HarnessModelLeaderboard entrants={fullLeagueHarnessModelEntrants} />
+
+        <Leaderboard agents={fullLeagueAgents} title={`All ${fullLeagueAgents.length} full-league generated engines`} />
 
         {featured ? (
           <section className="feature-battle" aria-labelledby="feature-title">

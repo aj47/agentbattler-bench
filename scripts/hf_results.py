@@ -17,10 +17,17 @@ SCHEMA = 'agentbattler.hf-game-row.v1'
 PACKAGE_SCHEMA = 'agentbattler.hf-results-release.v1'
 SECRET = re.compile(r'(?:\bsk-[A-Za-z0-9_-]{20,}|\bbearer\s+[A-Za-z0-9._~+/-]{20,}|(?:access|refresh)[_-]?token|api[_-]?key)\s*["\'=:\s]+[A-Za-z0-9._~+/-]{20,}', re.I)
 LOCAL_PATH = re.compile(r'/(?:Users|private|tmp)/')
-SUITES = (
+SUITE_SETS = {
+  'current': (
     ('claude_code_only', 'results/claude-code-model-suite/matches', 'agents/claude-code-model-suite/manifest.json', 900, 'results/claude-code-model-suite/generation-suite.json'),
     ('three_harness', 'results/harness-suite/matches', 'agents/harness-suite/manifest.json', 8100, None),
-)
+  ),
+  'dotagents': (
+    ('dotagents_luna', 'results/league/dotagents-placement/matches/luna', 'agents/harness-suite/manifest.json', 180, None),
+    ('dotagents_sol', 'results/league/dotagents-placement/matches/sol', 'agents/harness-suite/manifest.json', 180, None),
+    ('dotagents_terra', 'results/league/dotagents-placement/matches/terra', 'agents/harness-suite/manifest.json', 180, None),
+  ),
+}
 
 GAME_SCHEMA = pa.schema([
     pa.field('schema_version', pa.string()), pa.field('suite', pa.string()), pa.field('game_id', pa.string()),
@@ -92,8 +99,10 @@ def summary_for(result):
         'plyCount': sum(len(game.get('plies', [])) for game in games),
     }
 
-def card(release_id, dataset_repo, manifests):
+def card(release_id, dataset_repo, suites):
     release_path = f'releases/{release_id}'
+    configs = ''.join(f'''- config_name: {config}\n  data_files:\n  - split: train\n    path: {release_path}/{config}/data/*.parquet\n''' for config, *_ in suites)
+    contents = '\n'.join(f'- `{release_path}/{config}`: {expected:,} games.' for config, _, _, expected, _ in suites)
     return f'''---
 pretty_name: AgentBattler Bench results
 license: other
@@ -102,24 +111,16 @@ tags:
 - chess
 - coding-agents
 configs:
-- config_name: claude_code_only
-  data_files:
-  - split: train
-    path: {release_path}/claude_code_only/data/*.parquet
-- config_name: three_harness
-  data_files:
-  - split: train
-    path: {release_path}/three_harness/data/*.parquet
+{configs.rstrip()}
 ---
 
 # AgentBattler Bench results
 
-Release `{release_id}` contains two replayable local benchmark bundles and queryable Parquet game tables. Source code and reproduction instructions: https://github.com/aj47/agentbattler-bench.
+Release `{release_id}` contains replayable local benchmark bundles and queryable Parquet game tables. Source code and reproduction instructions: https://github.com/aj47/agentbattler-bench.
 
 ## Contents
 
-- `{release_path}/claude_code_only`: 900 games among 15 accepted Claude Code gateway artifacts (five each for GPT-5.6 Terra, Sol, and Luna).
-- `{release_path}/three_harness`: 8,100 games across 45 accepted artifacts from Codex CLI, Pi, and Claude Code, pairing every artifact across different harnesses.
+{contents}
 - Each `bundle/` stores `result.json.gz`, its deterministic gzip manifest, original bundle checksums, positions, copied agents, and manifest. The uncompressed canonical result is intentionally not duplicated in the dataset tree.
 
 ## Data schema
@@ -128,7 +129,7 @@ Each Parquet row is one game using `agentbattler.hf-game-row.v1`. Stable queryab
 
 ## Reproduction and verification
 
-Use the matching repository revision, then run `npm run verify:hf-results -- --output <downloaded-release-root>`. This verifies every package hash, Parquet counts/unique game IDs/aggregate counts, deterministic gzip and canonical-result hashes, then replays both compressed bundles against their existing checksums.
+Use the matching repository revision, then run `npm run verify:hf-results -- --output <downloaded-release-root> --suite-set {release_id.startswith('agentbattler-dotagents-') and 'dotagents' or 'current'}`. This verifies every package hash, Parquet counts/unique game IDs/aggregate counts, deterministic gzip and canonical-result hashes, then replays the compressed bundles against their existing checksums.
 
 ## Method, fairness, and security limitations
 
@@ -164,7 +165,8 @@ def export(args):
     output.mkdir(parents=True)
     release_inputs = []
     config_records = []
-    for config, result_relative, manifest_relative, expected, extra in SUITES:
+    suites = SUITE_SETS[args.suite_set]
+    for config, result_relative, manifest_relative, expected, extra in suites:
         result_root = root / result_relative
         result_path = result_root / 'result.json'
         result = json.loads(result_path.read_text(encoding='utf8'))
@@ -192,17 +194,19 @@ def export(args):
             pq.write_table(table, data_dir / f'part-{index // 2000:05d}.parquet', compression='zstd', row_group_size=256, version='2.6')
         release_inputs.append({'config': config, 'canonicalResultSha256': packed['canonical']['sha256'], 'canonicalResultSizeBytes': packed['canonical']['sizeBytes'], 'resultSha256': result['resultSha256']})
         config_records.append({'config': config, 'expectedGames': expected, 'bundle': {name: artifact(config_root, Path('bundle') / name) for name in ('result.json.gz', 'result.json.gz.manifest.json', 'checksums.json', 'SHA256SUMS')}, 'summary': artifact(config_root, Path('summary.json'))})
-    release_id = 'agentbattler-hf-v1-' + hashlib.sha256(canonical(sorted(release_inputs, key=lambda item: item['config'])).encode()).hexdigest()[:20]
+    prefix = 'agentbattler-dotagents-v1-' if args.suite_set == 'dotagents' else 'agentbattler-hf-v1-'
+    release_id = prefix + hashlib.sha256(canonical(sorted(release_inputs, key=lambda item: item['config'])).encode()).hexdigest()[:20]
     git_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+    git_branch = subprocess.check_output(['git', 'branch', '--show-current'], cwd=root, text=True).strip()
     release = {'schemaVersion': PACKAGE_SCHEMA, 'releaseId': release_id, 'datasetRepo': args.dataset_repo, 'source': {'repository': 'https://github.com/aj47/agentbattler-bench', 'gitCommit': git_commit}, 'tools': {'python': sys.version.split()[0], 'pyarrow': pa.__version__}, 'configs': config_records, 'releaseInputs': release_inputs, 'publicationPath': f'releases/{release_id}'}
     release_root = output / 'releases' / release_id
     release_root.mkdir(parents=True, exist_ok=True)
-    for config, *_ in SUITES:
+    for config, *_ in suites:
         shutil.move(str(output / config), str(release_root / config))
     write_json(release_root / 'release-manifest.json', release)
     state_path = root / '.artifacts' / 'hf-publication-state.json'
-    write_json(state_path, {'schemaVersion': 'agentbattler.hf-publication-state.v1', 'datasetRepo': args.dataset_repo, 'releaseId': release_id, 'publicationPath': release['publicationPath'], 'releaseManifestSha256': sha256_file(release_root / 'release-manifest.json'), 'hfCommitSha': None, 'githubBranch': 'codex/claude-code-harness', 'githubPullRequestUrl': None})
-    (output / 'README.md').write_text(card(release_id, args.dataset_repo, config_records), encoding='utf8')
+    write_json(state_path, {'schemaVersion': 'agentbattler.hf-publication-state.v1', 'datasetRepo': args.dataset_repo, 'releaseId': release_id, 'publicationPath': release['publicationPath'], 'releaseManifestSha256': sha256_file(release_root / 'release-manifest.json'), 'hfCommitSha': None, 'githubBranch': git_branch, 'githubPullRequestUrl': None})
+    (output / 'README.md').write_text(card(release_id, args.dataset_repo, suites), encoding='utf8')
     scan_public_tree(output)
     release_paths = [path for path in sorted(release_root.rglob('*')) if path.is_file() and path.name != 'SHA256SUMS']
     (release_root / 'SHA256SUMS').write_text(''.join(f'{sha256_file(path)}  {path.relative_to(release_root).as_posix()}\n' for path in release_paths), encoding='utf8')
@@ -221,7 +225,7 @@ def verify(args):
         raise ValueError('unsupported release manifest schema')
     verify_sums(output, output / 'SHA256SUMS')
     verify_sums(release_root, release_root / 'SHA256SUMS')
-    for config, _, _, expected, _ in SUITES:
+    for config, _, _, expected, _ in SUITE_SETS[args.suite_set]:
         config_root = release_root / config
         packed = json.loads((config_root / 'bundle' / 'result.json.gz.manifest.json').read_text(encoding='utf8'))
         gzip_path = config_root / 'bundle' / 'result.json.gz'
@@ -250,6 +254,7 @@ def main():
     parser.add_argument('--root', default='.')
     parser.add_argument('--output', default='.artifacts/hf-dataset/agentbattler-bench-results')
     parser.add_argument('--dataset-repo', default='techfren/agentbattler-bench-results')
+    parser.add_argument('--suite-set', choices=tuple(SUITE_SETS), default='current')
     args = parser.parse_args()
     (export if args.command == 'export' else verify)(args)
 

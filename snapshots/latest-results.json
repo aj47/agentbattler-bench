@@ -12,6 +12,32 @@
       "sha256": "a5f702416430828082e0e26262228e3da925aeec046b6876cb38dfecf7eb4ee0",
       "sizeBytes": 793893
     },
+    "dotagentsPlacementResults": [
+      {
+        "canonicalSha256": "05fed85feb7edd066abce558f5ecc1a7af16a47244382f30ce2b90685e86cd8a",
+        "games": 180,
+        "model": "luna",
+        "path": "releases/agentbattler-dotagents-v1-8211dd28a6ef7cd19705/dotagents_luna/bundle/result.json.gz",
+        "sha256": "77051145ac2a440b6acc509d9bfe67e6be708ab38d644209b3973fc7bfeb2a9a",
+        "sizeBytes": 212968
+      },
+      {
+        "canonicalSha256": "aeb537b4ef08ce4dd7867659e71f9b876616eea9b506cf38c1329bb435a8b1db",
+        "games": 180,
+        "model": "sol",
+        "path": "releases/agentbattler-dotagents-v1-8211dd28a6ef7cd19705/dotagents_sol/bundle/result.json.gz",
+        "sha256": "c549853463302f0db2f3629fb2deb36c5f5022ce9a9c200f1f8154f706845536",
+        "sizeBytes": 167123
+      },
+      {
+        "canonicalSha256": "3fa068055490abd77ca9bcac64522f3ffa92cbd6c1c712db7421b9d69c375c9f",
+        "games": 180,
+        "model": "terra",
+        "path": "releases/agentbattler-dotagents-v1-8211dd28a6ef7cd19705/dotagents_terra/bundle/result.json.gz",
+        "sha256": "55c5c0e004f723c7cdade0172bd2163db3c5ff17a8e84a24b10d28ab61ea8b83",
+        "sizeBytes": 201767
+      }
+    ],
     "threeHarnessResult": {
       "canonicalSha256": "e3857191e4e174d9e612d7f3113f1113206a175cefbd3581b877abfe698470fb",
       "games": 8100,
@@ -23,16 +49,16 @@
   "dataset": {
     "repoId": "techfren/agentbattler-bench-results",
     "repoType": "dataset",
-    "revision": "b4adcc5258d8e9612a1aae440d6307e9e3248451",
-    "root": "releases/agentbattler-hf-v1-74dfd024196c904c367c"
+    "revision": "f828c8efb2b4e9d5e4751c5472d200e2a85bfa1e",
+    "root": "releases/agentbattler-dotagents-v1-8211dd28a6ef7cd19705"
   },
   "schemaVersion": "agentbattler.results-snapshot.v1",
-  "snapshotId": "agentbattler-hf-v1-74dfd024196c904c367c",
-  "snapshotSha256": "33410e1df7a081d0bda0223f1aace90675a230801ec4ce6769949d955a7de3ec",
+  "snapshotId": "agentbattler-results-dotagents-v1-8211dd28a6ef7cd19705",
+  "snapshotSha256": "2431675e46e25d0b40cad9b2fe1a2b2552f4a3dad921d62bce8ff14c07baaa7d",
   "totals": {
-    "agents": 45,
-    "crossHarnessMatches": 8100,
-    "matches": 10800,
+    "agents": 60,
+    "crossHarnessMatches": 8640,
+    "matches": 11340,
     "withinHarnessMatches": 2700
   }
 }

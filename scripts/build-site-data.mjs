@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { gunzip } from 'node:zlib';
 
 import {
   canonicalJson,
@@ -11,7 +14,6 @@ import {
 } from '../src/provenance.mjs';
 import {
   fetchVerified,
-  githubReleaseAssetUrl,
   huggingFaceResolveUrl,
   readSnapshot,
   verifyFile,
@@ -23,6 +25,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'web/generated/site-data.json');
 const PUBLICATION_OUTPUT = path.join(ROOT, 'web/generated/publication.json');
 const SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest.json');
+const RESULTS_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-results.json');
+const gunzipAsync = promisify(gunzip);
 const SUITES = [
   {
     id: 'codex-cli',
@@ -69,6 +73,236 @@ function huggingFaceBlobUrl(snapshot, artifactPath) {
   return `https://huggingface.co/datasets/${repo}/blob/${snapshot.dataset.revision}/${objectPath}`;
 }
 
+function sha256Buffer(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function publishedArtifactUrl(snapshot, artifact) {
+  const repo = snapshot.dataset.repoId.split('/').map(encodeURIComponent).join('/');
+  const objectPath = artifact.path.split('/').map(encodeURIComponent).join('/');
+  return `https://huggingface.co/datasets/${repo}/resolve/${snapshot.dataset.revision}/${objectPath}`;
+}
+
+async function fetchPublishedArtifact(snapshot, artifact) {
+  const cache = path.join(ROOT, '.artifacts/cache', snapshot.snapshotId, artifact.sha256, path.basename(artifact.path));
+  try {
+    await verifyFile(cache, artifact);
+  } catch {
+    const url = publishedArtifactUrl(snapshot, artifact);
+    await fetchVerified([url, url, url], cache, artifact);
+  }
+  return readFile(cache);
+}
+
+async function readPublishedJson(snapshot, artifact) {
+  return JSON.parse((await fetchPublishedArtifact(snapshot, artifact)).toString('utf8'));
+}
+
+async function readPublishedResult(snapshot, artifact, label) {
+  const compressed = await fetchPublishedArtifact(snapshot, artifact);
+  const canonical = await gunzipAsync(compressed);
+  invariant(sha256Buffer(canonical) === artifact.canonicalSha256, `${label} canonical result hash mismatch`);
+  const result = JSON.parse(canonical.toString('utf8'));
+  const { resultSha256, ...unsignedResult } = result;
+  invariant(resultSha256 === canonicalJsonSha256(unsignedResult), `${label} result integrity hash mismatch`);
+  invariant(result.games.length === artifact.games, `${label} game count mismatch`);
+  return result;
+}
+
+function standingMap(result) {
+  return new Map(result.summary.standings.map((row, index) => [row.agentId, {
+    rank: index + 1,
+    elo: row.provisionalElo,
+    games: row.gamesPlayed,
+    wins: row.wins,
+    draws: row.draws,
+    losses: row.losses,
+    points: row.points,
+  }]));
+}
+
+function isWithinHarnessMatch(match) {
+  return match.white.harness === match.black.harness;
+}
+
+function runtimeForMatches(matches) {
+  return matches.reduce((total, match) => total + match.plies.reduce((sum, ply) => sum + (ply.runtimeMs ?? 0), 0), 0);
+}
+
+async function composeThreeHarnessSiteData({ baseData, baseSnapshot, resultsSnapshot, claudeResult, crossResult, claudeSuite }) {
+  const claudeManifest = await readJson('agents/claude-code-model-suite/manifest.json');
+  const crossStandings = standingMap(crossResult);
+  const claudeStandings = standingMap(claudeResult);
+  const baseAgents = new Map(baseData.agents.map((agent) => [agent.id, agent]));
+  const rawPublishedGames = [...claudeResult.games, ...crossResult.games];
+  const baseWithinMatches = baseData.matches.filter(isWithinHarnessMatch);
+  const publishedMatches = rawPublishedGames.map(publicMatch);
+  const matches = [...baseWithinMatches, ...publishedMatches];
+  invariant(new Set(matches.map((match) => match.id)).size === matches.length, 'Composed website data contains duplicate game IDs');
+
+  const agents = [];
+  for (const entry of crossResult.roster) {
+    const standing = crossStandings.get(entry.id);
+    invariant(standing, `Missing three-harness standing for ${entry.id}`);
+    const baseAgent = baseAgents.get(entry.id);
+    const publishedAgentMatches = rawPublishedGames
+      .filter((game) => game.agents.w.id === entry.id || game.agents.b.id === entry.id)
+      .map((game) => matchSummary(game, entry.id));
+    if (baseAgent) {
+      const agentMatches = [
+        ...baseAgent.matches.filter((match) => match.scope === 'within-harness'),
+        ...publishedAgentMatches,
+      ];
+      agents.push({
+        ...baseAgent,
+        standing,
+        matches: agentMatches,
+        decisiveGames: agentMatches.filter((match) => !['1/2-1/2', 'void'].includes(match.outcome)).length,
+      });
+      continue;
+    }
+
+    const manifestEntry = claudeManifest.agents.find((candidate) => candidate.id === entry.id);
+    invariant(manifestEntry, `Missing Claude Code manifest entry for ${entry.id}`);
+    const source = await readFile(path.resolve(ROOT, manifestEntry.source), 'utf8');
+    invariant(sha256Buffer(source) === manifestEntry.sourceSha256, `Claude Code source hash mismatch for ${entry.id}`);
+    agents.push({
+      id: entry.id,
+      familyId: entry.provenance.modelFamilyId,
+      displayName: entry.displayName,
+      harness: entry.provenance.harness,
+      harnessVersion: entry.provenance.harnessVersion,
+      model: entry.provenance.modelRequested,
+      reasoningEffort: entry.provenance.reasoningEffort,
+      verification: {
+        level: 'exploratory',
+        label: 'Published replay bundle',
+        detail: 'Agent source, sanitized provenance, checksums, and every replay are published. Per-run raw generation telemetry was intentionally excluded from the public package.',
+      },
+      standing,
+      generation: {
+        telemetryPublished: false,
+        modelRequested: entry.provenance.modelRequested,
+        harnessVersion: entry.provenance.harnessVersion,
+        durationMs: null,
+        turns: null,
+        toolCalls: null,
+        toolBreakdown: {},
+        mcpCalls: null,
+        inputTokens: null,
+        cachedInputTokens: null,
+        outputTokens: null,
+        reasoningTokens: null,
+        totalTokens: null,
+        promptPath: entry.provenance.prompt,
+        promptSha256: entry.provenance.promptSha256,
+        sessionId: '',
+        command: [],
+        isolation: claudeSuite.isolation,
+        probes: [],
+        probeSummary: { allPassed: true, passed: 0, total: 0 },
+      },
+      artifact: {
+        sourcePath: manifestEntry.source,
+        sourceSha256: manifestEntry.sourceSha256,
+        sizeBytes: Buffer.byteLength(source),
+        source,
+      },
+      matches: publishedAgentMatches,
+      decisiveGames: publishedAgentMatches.filter((match) => !['1/2-1/2', 'void'].includes(match.outcome)).length,
+    });
+  }
+
+  const claudeAgentsForSummary = agents
+    .filter((agent) => agent.harness === 'claude-code')
+    .map((agent) => ({
+      ...agent,
+      standing: claudeStandings.get(agent.id),
+      generation: { ...agent.generation, totalTokens: 0, durationMs: 0, toolCalls: 0 },
+    }));
+  const claudeHarness = {
+    id: 'claude-code',
+    displayName: 'Claude Code',
+    harnessVersion: claudeSuite.harness.version,
+    families: summarizeModelFamilies({
+      families: claudeSuite.families,
+      agents: claudeAgentsForSummary,
+      games: claudeResult.games,
+    }).map((family) => ({
+      ...family,
+      generation: {
+        telemetryPublished: false,
+        totalTokens: null,
+        medianTokens: null,
+        totalDurationMs: null,
+        medianDurationMs: null,
+        toolCalls: null,
+      },
+    })),
+    totals: {
+      agents: claudeManifest.agents.length,
+      matches: claudeResult.games.length,
+      tokens: claudeSuite.totals.tokens,
+      toolCalls: claudeSuite.totals.toolCalls,
+      mcpCalls: 0,
+      durationMs: claudeSuite.totals.durationMs,
+    },
+  };
+  const harnesses = [...baseData.harnesses, claudeHarness];
+  const decisive = matches.filter((match) => !['1/2-1/2', 'void'].includes(match.final.outcome));
+  const controlledHarnessMatches = crossResult.games.filter((game) => (
+    game.agents.w.provenance.modelRequested === game.agents.b.provenance.modelRequested
+  )).length;
+  const combinedResultSha256 = canonicalJsonSha256({
+    baseSnapshot: baseSnapshot.snapshotSha256,
+    claudeWithinHarness: claudeResult.resultSha256,
+    threeHarness: crossResult.resultSha256,
+  });
+  const latestDecisive = publishedMatches.find((match) => match.final.reason === 'checkmate') ?? decisive[0] ?? null;
+  const data = {
+    ...baseData,
+    schemaVersion: 'agentbattler.site-data.v3',
+    benchmark: {
+      ...baseData.benchmark,
+      version: crossResult.inputs.manifestId,
+      description: 'Same models, same prompt, three agent harnesses. Every engine, checksum, and chess match is inspectable.',
+      updatedAt: crossResult.execution.completedAt,
+      manifestId: crossResult.inputs.manifestId,
+      manifestSha256: crossResult.inputs.manifestSha256,
+      resultSha256: combinedResultSha256,
+      resultSha256Short: shortHash(combinedResultSha256),
+      totals: {
+        harnesses: harnesses.length,
+        agents: agents.length,
+        matches: matches.length,
+        withinHarnessMatches: baseWithinMatches.length + claudeResult.games.length,
+        crossHarnessMatches: crossResult.games.length,
+        controlledHarnessMatches,
+        uniqueScenarios: new Set(matches.map((match) => [match.position.id, match.white.id, match.black.id].join('|'))).size,
+        decisive: decisive.length,
+        draws: matches.filter((match) => match.final.outcome === '1/2-1/2').length,
+        voids: matches.filter((match) => match.final.outcome === 'void').length,
+        agentInvocations: matches.reduce((sum, match) => sum + match.plies.length, 0),
+        generationTokens: baseData.benchmark.totals.generationTokens + claudeSuite.totals.tokens,
+        generationToolCalls: baseData.benchmark.totals.generationToolCalls + claudeSuite.totals.toolCalls,
+        generationMcpCalls: baseData.benchmark.totals.generationMcpCalls,
+        matchDurationMs: runtimeForMatches(matches),
+      },
+      warning: crossResult.summary.warning,
+    },
+    harnessComparison: summarizeHarnessComparison(crossResult.games),
+    harnesses,
+    families: harnesses.flatMap((harness) => harness.families.map((family) => ({ ...family, id: `${harness.id}/${family.id}` }))),
+    agents,
+    matches,
+    latestDecisiveId: latestDecisive?.id ?? null,
+  };
+  invariant(data.agents.length === resultsSnapshot.totals.agents, 'Composed site agent count disagrees with results snapshot');
+  invariant(data.matches.length === resultsSnapshot.totals.matches, 'Composed site match count disagrees with results snapshot');
+  invariant(data.benchmark.totals.voids === 0, 'Composed site data contains void games');
+  return data;
+}
+
 async function preparePublishedSnapshot() {
   if (process.argv.includes('--local')) return false;
   let snapshot;
@@ -86,13 +320,37 @@ async function preparePublishedSnapshot() {
     const url = huggingFaceResolveUrl(snapshot, artifact);
     await fetchVerified([url, url, url], cache, artifact);
   }
-  const data = await readJson(cache);
+  let data = await readJson(cache);
   invariant(data.schemaVersion === 'agentbattler.site-data.v2', 'Published site data has an unsupported schema');
   invariant(data.matches.length === snapshot.totals.matches, 'Published site data match count disagrees with snapshot');
   invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
   invariant(data.harnesses.length === 2, 'Published site data lacks both harnesses');
   invariant(data.harnessComparison?.models?.length === 3, 'Published site data lacks the controlled harness comparison');
-  const traceEvidence = Object.fromEntries(data.agents.map((agent) => {
+  let publicationDataset = snapshot.dataset;
+  let publicationSnapshotId = snapshot.snapshotId;
+  let publicationSnapshotSha256 = snapshot.snapshotSha256;
+  try {
+    const resultsSnapshot = await readJson(path.relative(ROOT, RESULTS_SNAPSHOT_PATH));
+    const [claudeResult, crossResult, claudeSuite] = await Promise.all([
+      readPublishedResult(resultsSnapshot, resultsSnapshot.artifacts.claudeResult, 'Claude Code'),
+      readPublishedResult(resultsSnapshot, resultsSnapshot.artifacts.threeHarnessResult, 'Three-harness'),
+      readPublishedJson(resultsSnapshot, resultsSnapshot.artifacts.claudeGenerationSuite),
+    ]);
+    data = await composeThreeHarnessSiteData({
+      baseData: data,
+      baseSnapshot: snapshot,
+      resultsSnapshot,
+      claudeResult,
+      crossResult,
+      claudeSuite,
+    });
+    publicationDataset = resultsSnapshot.dataset;
+    publicationSnapshotId = resultsSnapshot.snapshotId;
+    publicationSnapshotSha256 = resultsSnapshot.snapshotSha256;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  const traceEvidence = Object.fromEntries(data.agents.filter((agent) => agent.generation.sessionId).map((agent) => {
     const tracePath = `${snapshot.dataset.root}/traces/${agent.harness}/${agent.id}/${agent.generation.sessionId}.jsonl`;
     const sessionPath = `${snapshot.dataset.root}/sessions/${agent.harness}/${agent.id}/${agent.generation.sessionId}.jsonl`;
     const traceArtifact = { path: tracePath, sha256: '0'.repeat(64), sizeBytes: 0 };
@@ -108,17 +366,17 @@ async function preparePublishedSnapshot() {
     }];
   }));
   await mkdir(path.dirname(OUTPUT), { recursive: true });
-  await copyFile(cache, OUTPUT);
+  await writeFile(OUTPUT, `${canonicalJson(data, { space: 2 })}\n`);
   await writeFile(PUBLICATION_OUTPUT, `${canonicalJson({
-    snapshotId: snapshot.snapshotId,
-    snapshotSha256: snapshot.snapshotSha256,
-    datasetUrl: `https://huggingface.co/datasets/${snapshot.dataset.repoId}/tree/${snapshot.dataset.revision}`,
-    datasetRevision: snapshot.dataset.revision,
-    releaseUrl: `https://github.com/${snapshot.release.repository}/releases/tag/${snapshot.release.tag}`,
-    archiveUrl: githubReleaseAssetUrl(snapshot),
+    snapshotId: publicationSnapshotId,
+    snapshotSha256: publicationSnapshotSha256,
+    datasetUrl: `https://huggingface.co/datasets/${publicationDataset.repoId}/tree/${publicationDataset.revision}/${publicationDataset.root}`,
+    datasetRevision: publicationDataset.revision,
+    releaseUrl: null,
+    archiveUrl: null,
     agents: traceEvidence,
   }, { space: 2 })}\n`);
-  console.log(`Prepared pinned website data from ${snapshot.dataset.repoId}@${shortHash(snapshot.dataset.revision)}.`);
+  console.log(`Prepared pinned website data from ${publicationDataset.repoId}@${shortHash(publicationDataset.revision)}.`);
   return true;
 }
 

@@ -20,6 +20,7 @@ export function summarizeHarnessComparison(games) {
     overall: {
       codex: harnessRecord(controlled, 'codex-cli'),
       pi: harnessRecord(controlled, 'pi-coding-agent'),
+      claude: harnessRecord(controlled, 'claude-code'),
       games: controlled.length,
     },
     allCrossHarnessGames: games.length,
@@ -33,6 +34,7 @@ export function summarizeHarnessComparison(games) {
         games: subset.length,
         codex: harnessRecord(subset, 'codex-cli'),
         pi: harnessRecord(subset, 'pi-coding-agent'),
+        claude: harnessRecord(subset, 'claude-code'),
       };
     }),
   };

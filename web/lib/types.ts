@@ -46,18 +46,19 @@ export type Agent = {
     points: number;
   };
   generation: {
+    telemetryPublished?: boolean;
     modelRequested: string;
     harnessVersion: string;
-    durationMs: number;
-    turns: number;
-    toolCalls: number;
+    durationMs: number | null;
+    turns: number | null;
+    toolCalls: number | null;
     toolBreakdown: Record<string, number>;
-    mcpCalls: number;
-    inputTokens: number;
-    cachedInputTokens: number;
-    outputTokens: number;
+    mcpCalls: number | null;
+    inputTokens: number | null;
+    cachedInputTokens: number | null;
+    outputTokens: number | null;
     reasoningTokens: number | null;
-    totalTokens: number;
+    totalTokens: number | null;
     promptPath: string;
     promptSha256: string;
     sessionId: string;
@@ -104,11 +105,12 @@ export type ModelFamily = {
   scorePct: number;
   artifactScore: { minimum: number; median: number; maximum: number };
   generation: {
-    totalTokens: number;
-    medianTokens: number;
-    totalDurationMs: number;
-    medianDurationMs: number;
-    toolCalls: number;
+    telemetryPublished?: boolean;
+    totalTokens: number | null;
+    medianTokens: number | null;
+    totalDurationMs: number | null;
+    medianDurationMs: number | null;
+    toolCalls: number | null;
   };
   reliability: { failures: number; timeouts: number; illegalMoves: number };
   pairwise: Array<{
@@ -229,7 +231,7 @@ export type SiteData = {
   };
   harnessComparison: {
     scope: string;
-    overall: { codex: HarnessRecord; pi: HarnessRecord; games: number };
+    overall: { codex: HarnessRecord; pi: HarnessRecord; claude: HarnessRecord; games: number };
     allCrossHarnessGames: number;
     models: Array<{
       id: string;
@@ -238,6 +240,7 @@ export type SiteData = {
       games: number;
       codex: HarnessRecord;
       pi: HarnessRecord;
+      claude: HarnessRecord;
     }>;
   };
   harnesses: Array<{

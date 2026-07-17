@@ -10,6 +10,7 @@
   --accent: #b9f45d;
   --accent-dark: #18220d;
   --amber: #e6b95e;
+  --cyan: #63d2e2;
   --red: #ff716a;
   --board-light: #d6d1bd;
   --board-dark: #687053;
@@ -142,6 +143,7 @@ button, input { font: inherit; }
 .telemetry-grid strong { font: 600 14px/1.2 var(--mono); }
 .trace-links { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin: 1rem 0 0; }
 .trace-links a { color: var(--accent); font: 600 10px/1.2 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.telemetry-note { margin: 18px 0 0; padding: 14px 16px; border-left: 2px solid var(--cyan); background: rgba(99, 210, 226, .055); color: var(--muted); font-size: 12px; line-height: 1.55; }
 .evidence-disclosure, .source-panel { border: 1px solid var(--line); border-top: 0; background: var(--surface); }
 .evidence-disclosure summary, .source-panel summary { min-height: 48px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; color: var(--muted); font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .05em; }
 .evidence-disclosure summary::-webkit-details-marker, .source-panel summary::-webkit-details-marker { display: none; }

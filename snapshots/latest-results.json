@@ -1,0 +1,38 @@
+{
+  "artifacts": {
+    "claudeGenerationSuite": {
+      "path": "releases/agentbattler-hf-v1-74dfd024196c904c367c/claude_code_only/provenance/generation-suite.json",
+      "sha256": "eb56627e40a4abac0f2bada5d5982e427e17c248267683ce697cc24856e4cf50",
+      "sizeBytes": 1389
+    },
+    "claudeResult": {
+      "canonicalSha256": "d812b72f7d19488afcd1b2c3577e3f847afa55e35d2eb65299cdc64fd15c0368",
+      "games": 900,
+      "path": "releases/agentbattler-hf-v1-74dfd024196c904c367c/claude_code_only/bundle/result.json.gz",
+      "sha256": "a5f702416430828082e0e26262228e3da925aeec046b6876cb38dfecf7eb4ee0",
+      "sizeBytes": 793893
+    },
+    "threeHarnessResult": {
+      "canonicalSha256": "e3857191e4e174d9e612d7f3113f1113206a175cefbd3581b877abfe698470fb",
+      "games": 8100,
+      "path": "releases/agentbattler-hf-v1-74dfd024196c904c367c/three_harness/bundle/result.json.gz",
+      "sha256": "afb45330af275219505025918d56d1d73c927203b51612d674ee2e657711410f",
+      "sizeBytes": 7791146
+    }
+  },
+  "dataset": {
+    "repoId": "techfren/agentbattler-bench-results",
+    "repoType": "dataset",
+    "revision": "b4adcc5258d8e9612a1aae440d6307e9e3248451",
+    "root": "releases/agentbattler-hf-v1-74dfd024196c904c367c"
+  },
+  "schemaVersion": "agentbattler.results-snapshot.v1",
+  "snapshotId": "agentbattler-hf-v1-74dfd024196c904c367c",
+  "snapshotSha256": "33410e1df7a081d0bda0223f1aace90675a230801ec4ce6769949d955a7de3ec",
+  "totals": {
+    "agents": 45,
+    "crossHarnessMatches": 8100,
+    "matches": 10800,
+    "withinHarnessMatches": 2700
+  }
+}

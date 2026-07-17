@@ -20,11 +20,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function MatchPage({ params }: PageProps) {
   const match = getMatch((await params).id);
   if (!match) notFound();
-  const replayCommand = match.white.harness !== match.black.harness
-    ? 'npm run replay:harness-suite'
+  const replayCommand = match.white.harness !== match.black.harness || match.white.harness === 'claude-code'
+    ? 'npm run verify:hf-results -- --output <downloaded-release-root>'
     : match.white.harness === 'pi-coding-agent'
       ? 'npm run replay:pi-suite'
       : 'npm run replay:model-suite';
+  const usesPublishedResultsPackage = replayCommand.startsWith('npm run verify:hf-results');
 
   return (
     <main className="shell detail-page match-page">
@@ -61,7 +62,7 @@ export default async function MatchPage({ params }: PageProps) {
         </div>
         <div>
           <span className="eyebrow">local reproduction</span>
-          <p className="reproduction-copy">Rebuild and compare the committed result bundle using the repository replay command.</p>
+          <p className="reproduction-copy">{usesPublishedResultsPackage ? 'Download the pinned Hugging Face release, then verify its hashes, row counts, compressed bundles, and replays.' : 'Rebuild and compare the committed result bundle using the repository replay command.'}</p>
           <div className="inline-code"><code>{replayCommand}</code><CopyButton value={replayCommand} /></div>
         </div>
       </section>

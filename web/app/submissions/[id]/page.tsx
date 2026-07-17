@@ -24,6 +24,7 @@ export default async function SubmissionPage({ params }: PageProps) {
   if (!agent) notFound();
   const command = agent.generation.command.join(' ');
   const trace = publication.agents[agent.id];
+  const telemetryPublished = agent.generation.telemetryPublished !== false;
   const withinHarnessGames = agent.matches.filter((match) => match.scope === 'within-harness').length;
   const crossHarnessGames = agent.matches.length - withinHarnessGames;
 
@@ -45,8 +46,8 @@ export default async function SubmissionPage({ params }: PageProps) {
       <section className="metrics-strip detail-metrics">
         <Metric label="provisional Elo" value={agent.standing.elo} detail={`rank ${agent.standing.rank} of ${siteData.agents.length}`} />
         <Metric label="cross-harness record" value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points · ${agent.standing.games} games`} />
-        <Metric label="generation time" value={formatDuration(agent.generation.durationMs)} detail={`${agent.generation.turns} agent turns`} />
-        <Metric label="tokens used" value={formatNumber(agent.generation.totalTokens)} detail={agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
+        <Metric label="generation time" value={agent.generation.durationMs === null ? 'not published' : formatDuration(agent.generation.durationMs)} detail={agent.generation.turns === null ? 'aggregate suite timing available' : `${agent.generation.turns} agent turns`} />
+        <Metric label="tokens used" value={agent.generation.totalTokens === null ? 'not published' : formatNumber(agent.generation.totalTokens)} detail={agent.generation.totalTokens === null ? 'aggregate suite tokens available' : agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />
       </section>
 
       <section className="dossier-grid">
@@ -56,31 +57,32 @@ export default async function SubmissionPage({ params }: PageProps) {
             <div className="telemetry-grid">
               <div><span>Harness version</span><strong>{agent.generation.harnessVersion}</strong></div>
               <div><span>reasoning effort</span><strong>{agent.reasoningEffort}</strong></div>
-              <div><span>tool calls</span><strong>{agent.generation.toolCalls}</strong></div>
-              <div><span>MCP calls</span><strong>{agent.generation.mcpCalls}</strong></div>
-              <div><span>input tokens</span><strong>{formatNumber(agent.generation.inputTokens)}</strong></div>
-              <div><span>output tokens</span><strong>{formatNumber(agent.generation.outputTokens)}</strong></div>
+              <div><span>tool calls</span><strong>{agent.generation.toolCalls ?? 'not published'}</strong></div>
+              <div><span>MCP calls</span><strong>{agent.generation.mcpCalls ?? 'not published'}</strong></div>
+              <div><span>input tokens</span><strong>{agent.generation.inputTokens === null ? 'not published' : formatNumber(agent.generation.inputTokens)}</strong></div>
+              <div><span>output tokens</span><strong>{agent.generation.outputTokens === null ? 'not published' : formatNumber(agent.generation.outputTokens)}</strong></div>
             </div>
+            {!telemetryPublished ? <p className="telemetry-note">Per-run Claude Code telemetry and raw traces were intentionally excluded from the public results package. Sanitized provenance, generated source, checksums, aggregate suite totals, and every replay remain published.</p> : null}
             {trace ? <p className="trace-links"><a href={trace.viewerUrl} target="_blank" rel="noreferrer">open HF trace viewer ↗</a><a href={trace.sessionUrl} target="_blank" rel="noreferrer">native session</a><a href={trace.cliEventsUrl} target="_blank" rel="noreferrer">CLI events</a></p> : null}
-            <details className="evidence-disclosure">
+            {command ? <details className="evidence-disclosure">
               <summary>exact generation command <span>show</span></summary>
               <div className="code-wrap"><CopyButton value={command} /><pre><code>{command}</code></pre></div>
-            </details>
+            </details> : null}
           </section>
 
-          <section className="evidence-section" aria-labelledby="probes-title">
+          {agent.generation.probes.length ? <section className="evidence-section" aria-labelledby="probes-title">
             <div className="section-heading compact"><div><span className="eyebrow">preflight</span><h2 id="probes-title">Contract probes</h2></div><span className="pass-count">{agent.generation.probeSummary.passed}/{agent.generation.probeSummary.total} passed</span></div>
             <div className="data-table probe-table">
               <div className="data-head"><span>position</span><span>move</span><span>legal</span><span>runtime</span></div>
               {agent.generation.probes.map((probe) => <div className="data-row" key={probe.positionId}><span>{probe.positionId}</span><strong>{probe.move}</strong><span className={probe.legal ? 'success-text' : 'error-text'}>{probe.legal ? 'yes' : 'no'}</span><span>{formatDuration(probe.runtimeMs)}</span></div>)}
             </div>
-          </section>
+          </section> : null}
 
           <section className="evidence-section" aria-labelledby="matches-title">
             <div className="section-heading compact"><div><span className="eyebrow">competition record</span><h2 id="matches-title">Match history</h2></div><span className="provisional-label">{agent.matches.length} games · {crossHarnessGames} cross · {withinHarnessGames} within</span></div>
             <div className="data-table match-history">
               <div className="data-head"><span>result</span><span>opponent</span><span>side</span><span>position</span><span>replay</span></div>
-              {agent.matches.map((match) => <Link className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : match.score === null ? 'error-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : match.score === null ? 'void' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></Link>)}
+              {agent.matches.map((match) => <a className="data-row" href={`/matches/${match.id}/`} key={match.id}><strong className={match.score === 1 ? 'success-text' : match.score === 0.5 ? 'draw-text' : match.score === null ? 'error-text' : ''}>{match.score === 1 ? 'win' : match.score === 0.5 ? 'draw' : match.score === null ? 'void' : 'loss'}</strong><span>{match.opponentName}</span><span>{match.color}</span><span>{match.positionId}</span><span>open →</span></a>)}
             </div>
           </section>
         </div>
@@ -93,7 +95,7 @@ export default async function SubmissionPage({ params }: PageProps) {
               <div><dt>SHA-256</dt><dd title={agent.artifact.sourceSha256}>{shortHash(agent.artifact.sourceSha256, 20)}</dd></div>
               <div><dt>size</dt><dd>{formatNumber(agent.artifact.sizeBytes)} bytes</dd></div>
               <div><dt>prompt SHA</dt><dd title={agent.generation.promptSha256}>{shortHash(agent.generation.promptSha256, 20)}</dd></div>
-              <div><dt>session</dt><dd>{shortHash(agent.generation.sessionId, 20)}</dd></div>
+              {agent.generation.sessionId ? <div><dt>session</dt><dd>{shortHash(agent.generation.sessionId, 20)}</dd></div> : null}
               {publication.datasetRevision ? <div><dt>dataset commit</dt><dd title={publication.datasetRevision}>{shortHash(publication.datasetRevision, 20)}</dd></div> : null}
             </dl>
           </section>

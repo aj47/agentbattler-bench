@@ -31,9 +31,13 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
       </div>
       <div className={styles.body}>
         {entrants.map((entrant) => {
-          const isPi = entrant.harness === 'pi-coding-agent';
+          const harnessClass = entrant.harness === 'pi-coding-agent'
+            ? styles.pi
+            : entrant.harness === 'claude-code'
+              ? styles.claude
+              : styles.codex;
           return (
-            <article className={`${styles.row} ${isPi ? styles.pi : styles.codex}`} key={entrant.id}>
+            <article className={`${styles.row} ${harnessClass}`} key={entrant.id}>
               <div className={styles.identity}>
                 <span className={styles.rank}>{String(entrant.rank).padStart(2, '0')}</span>
                 <div>

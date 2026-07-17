@@ -17,4 +17,5 @@ results/harness-suite/
 .artifacts/hf-dataset/
 .artifacts/hf-publication-state.json
 *.log
+__pycache__/
 .DS_Store

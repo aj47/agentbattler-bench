@@ -8,9 +8,13 @@ web/tsconfig.tsbuildinfo
 .wrangler/
 trials/
 results/latest/
+results/*/
 results/smoke-*/
 results/model-suite/
 results/pi-model-suite/
+results/claude-code-model-suite/
 results/harness-suite/
+.artifacts/hf-dataset/
+.artifacts/hf-publication-state.json
 *.log
 .DS_Store

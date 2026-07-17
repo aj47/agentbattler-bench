@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { gzipSync, gunzipSync } from 'node:zlib';
 
 import { isLegalUciMove, parseFen } from '../src/chess.mjs';
 import {
@@ -19,6 +20,7 @@ import {
   createChecksumManifest,
   formatChecksumManifest,
   sha256File,
+  sha256,
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
 import { comparisonPairs } from '../src/pairing.mjs';
@@ -30,6 +32,20 @@ const DEFAULT_OUTPUT = path.join(ROOT, 'results/latest');
 
 async function readJson(file) {
   return JSON.parse(await readFile(file, 'utf8'));
+}
+
+async function exists(file) { try { await access(file); return true; } catch (error) { if (error?.code === 'ENOENT') return false; throw error; } }
+async function atomicJson(file, value) {
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
+  await writeFile(temporary, `${canonicalJson(value, { space: 2 })}\n`, { flag: 'wx' });
+  await rename(temporary, file);
+}
+async function atomicBytes(file, bytes) {
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
+  await writeFile(temporary, bytes, { flag: 'wx' });
+  await rename(temporary, file);
 }
 
 function invariant(condition, message) {
@@ -207,6 +223,7 @@ async function runCommand(options) {
   const { manifest, suite, agents } = await loadAndValidate(options);
   const pairs = comparisonPairs(agents, pairing);
   const concurrency = Math.max(1, Number.parseInt(process.env.AGENTBATTLER_CONCURRENCY ?? '6', 10) || 1);
+  const checkpointTestDelayMs = Number.parseInt(process.env.AGENTBATTLER_CHECKPOINT_TEST_DELAY_MS ?? '0', 10) || 0;
   const jobs = [];
   const runner = {
     nodeVersion: process.version,
@@ -219,19 +236,58 @@ async function runCommand(options) {
     for (const position of suite.positions) {
       for (const seed of position.seeds) {
         for (const allocation of pairedGames(agentA, agentB, position)) {
-          jobs.push({ allocation, position, seed });
+          const gameId = `${position.id}-seed-${seed}-${allocation.white.id}-vs-${allocation.black.id}`;
+          jobs.push({ allocation, position, seed, gameId });
         }
       }
     }
   }
-  const games = await mapConcurrent(jobs, concurrency, async ({ allocation, position, seed }) => {
+  const checkpointRoot = `${output}.checkpoints`;
+  const metadataPath = path.join(checkpointRoot, 'progress.json');
+  const expectedJobIds = jobs.map((job) => job.gameId);
+  invariant(new Set(expectedJobIds).size === expectedJobIds.length, 'Deterministic job IDs are not unique');
+  const inputs = { manifestId: manifest.manifestId, manifestSha256: await sha256File(manifestPath), suiteId: suite.suiteId, suiteSha256: await sha256File(positionsPath), pairing };
+  const fingerprint = sha256(canonicalJson({ inputs, expectedJobIds, runnerSchema: 1 }));
+  if (options.fresh) await rm(checkpointRoot, { recursive: true, force: true });
+  let progress = null;
+  if (await exists(metadataPath)) {
+    progress = await readJson(metadataPath);
+    invariant(progress.schemaVersion === 'agentbattler.run-checkpoint.v1' && progress.fingerprint === fingerprint, 'Checkpoint inputs/config do not match this run');
+  } else {
+    progress = { schemaVersion: 'agentbattler.run-checkpoint.v1', fingerprint, inputs, expectedJobIds, expectedCount: jobs.length, startedAt: startedAt.toISOString(), updatedAt: startedAt.toISOString(), finalized: false, completed: 0, remaining: jobs.length };
+    await atomicJson(metadataPath, progress);
+  }
+  invariant(progress.finalized !== true, 'Checkpoint is already finalized; use the published result or --fresh');
+  const checkpointGames = path.join(checkpointRoot, 'games');
+  const completed = new Map();
+  for (const file of await readdir(checkpointGames).catch((error) => error?.code === 'ENOENT' ? [] : Promise.reject(error))) {
+    invariant(file.endsWith('.json'), `Unexpected checkpoint entry: ${file}`);
+    const game = await readJson(path.join(checkpointGames, file));
+    invariant(typeof game.gameId === 'string' && expectedJobIds.includes(game.gameId), 'Checkpoint game ID does not match expected jobs');
+    invariant(game.resultSha256 === canonicalJsonSha256(Object.fromEntries(Object.entries(game).filter(([key]) => key !== 'resultSha256'))), `Checkpoint game integrity mismatch: ${game.gameId}`);
+    invariant(!completed.has(game.gameId), `Duplicate checkpoint game: ${game.gameId}`);
+    invariant(replayGame(game).ok, `Checkpoint game replay failed: ${game.gameId}`);
+    completed.set(game.gameId, game);
+  }
+  const missing = jobs.filter((job) => !completed.has(job.gameId));
+  progress = { ...progress, completed: completed.size, remaining: missing.length, updatedAt: new Date().toISOString() };
+  await atomicJson(metadataPath, progress);
+  const games = await mapConcurrent(missing, concurrency, async ({ allocation, position, seed, gameId }) => {
     const game = await playGame({ ...allocation, seed, runner });
-    game.gameId = `${position.id}-seed-${seed}-${allocation.white.id}-vs-${allocation.black.id}`;
+    game.gameId = gameId;
     delete game.resultSha256;
     game.resultSha256 = canonicalJsonSha256(game);
+    await atomicJson(path.join(checkpointGames, `${encodeURIComponent(gameId)}.json`), game);
+    if (checkpointTestDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, checkpointTestDelayMs));
+    completed.set(gameId, game);
+    progress = { ...progress, completed: completed.size, remaining: jobs.length - completed.size, updatedAt: new Date().toISOString() };
+    await atomicJson(metadataPath, progress);
     console.log(`${game.gameId}: ${game.final.outcome} (${game.final.reason})`);
     return game;
   });
+
+  const orderedGames = expectedJobIds.map((gameId) => completed.get(gameId));
+  invariant(orderedGames.every(Boolean), 'Checkpoint is missing expected games after run');
 
   const result = {
     schemaVersion: 'agentbattler.run-result.v1',
@@ -253,12 +309,12 @@ async function runCommand(options) {
       pairing,
     },
     roster: manifest.agents,
-    games,
-    summary: summarize(games, manifest.agents),
+    games: orderedGames,
+    summary: summarize(orderedGames, manifest.agents),
   };
   result.resultSha256 = canonicalJsonSha256(result);
 
-  await rm(output, { recursive: true, force: true });
+  invariant(!(await exists(path.join(output, 'result.json'))), 'Refusing to overwrite an existing final result; choose a new output or --fresh after moving it');
   await mkdir(path.join(output, 'agents'), { recursive: true });
   await writeFile(path.join(output, 'result.json'), `${canonicalJson(result, { space: 2 })}\n`);
   await cp(manifestPath, path.join(output, 'agents/manifest.json'));
@@ -273,13 +329,76 @@ async function runCommand(options) {
   const checksums = await createChecksumManifest(relativeFiles, { root: output });
   await writeFile(path.join(output, 'checksums.json'), `${canonicalJson(checksums, { space: 2 })}\n`);
   await writeFile(path.join(output, 'SHA256SUMS'), formatChecksumManifest(checksums));
-  console.log(`Recorded ${games.length} games in ${path.join(output, 'result.json')}`);
+  progress = { ...progress, completed: orderedGames.length, remaining: 0, finalized: true, finalizedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  await atomicJson(metadataPath, progress);
+  console.log(`Recorded ${orderedGames.length} games in ${path.join(output, 'result.json')}`);
+}
+
+async function statusCommand(options) {
+  const progress = await readJson(`${options.output}.checkpoints/progress.json`);
+  console.log(canonicalJson(progress, { space: 2 }));
+}
+
+async function readReplayInput(resultPath) {
+  if (!resultPath.endsWith('.gz')) {
+    const bytes = await readFile(resultPath);
+    return { result: JSON.parse(bytes.toString('utf8')), resultBytes: bytes, compressed: false };
+  }
+  const compressedBytes = await readFile(resultPath);
+  const publication = await readJson(`${resultPath}.manifest.json`);
+  invariant(publication.schemaVersion === 'agentbattler.compressed-result.v1', 'Unsupported compressed result manifest');
+  invariant(publication.compressed?.path === path.basename(resultPath), 'Compressed result manifest path mismatch');
+  invariant(publication.compressed?.sha256 === sha256(compressedBytes), 'Compressed result integrity hash mismatch');
+  invariant(publication.compressed?.sizeBytes === compressedBytes.length, 'Compressed result size mismatch');
+  let resultBytes;
+  try {
+    resultBytes = gunzipSync(compressedBytes);
+  } catch (error) {
+    throw new Error(`Cannot decompress result: ${error.message}`);
+  }
+  invariant(publication.canonical?.path === (resultPath.endsWith('.json.gz') ? 'result.json' : null), 'Compressed result canonical path mismatch');
+  invariant(publication.canonical?.sha256 === sha256(resultBytes), 'Canonical result integrity hash mismatch');
+  invariant(publication.canonical?.sizeBytes === resultBytes.length, 'Canonical result size mismatch');
+  const result = JSON.parse(resultBytes.toString('utf8'));
+  invariant(publication.canonical?.resultSha256 === result.resultSha256, 'Canonical result semantic hash mismatch');
+  return { result, resultBytes, compressed: true };
+}
+
+async function packCommand(input) {
+  invariant(input, 'Usage: agentbattler pack <result.json>');
+  const resultPath = path.resolve(process.cwd(), input);
+  invariant(resultPath.endsWith('.json'), 'Pack input must be an uncompressed result.json');
+  const resultBytes = await readFile(resultPath);
+  const result = JSON.parse(resultBytes.toString('utf8'));
+  invariant(result.schemaVersion === 'agentbattler.run-result.v1', 'Unsupported result schema');
+  const compressedBytes = gzipSync(resultBytes, { level: 9, mtime: 0 });
+  const compressedPath = `${resultPath}.gz`;
+  const publication = {
+    schemaVersion: 'agentbattler.compressed-result.v1',
+    canonical: {
+      path: path.basename(resultPath),
+      sha256: sha256(resultBytes),
+      sizeBytes: resultBytes.length,
+      resultSha256: result.resultSha256,
+    },
+    compressed: {
+      path: path.basename(compressedPath),
+      sha256: sha256(compressedBytes),
+      sizeBytes: compressedBytes.length,
+      algorithm: 'gzip',
+      level: 9,
+      mtime: 0,
+    },
+  };
+  await atomicBytes(compressedPath, compressedBytes);
+  await atomicJson(`${compressedPath}.manifest.json`, publication);
+  console.log(`Packed ${publication.canonical.sizeBytes} canonical bytes as ${publication.compressed.sizeBytes} deterministic gzip bytes.`);
 }
 
 async function replayCommand(input) {
   invariant(input, 'Usage: npm run replay -- <result.json>');
   const resultPath = path.resolve(process.cwd(), input);
-  const result = await readJson(resultPath);
+  const { result, resultBytes, compressed } = await readReplayInput(resultPath);
   invariant(result.schemaVersion === 'agentbattler.run-result.v1', 'Unsupported result schema');
   const { resultSha256, ...unsigned } = result;
   invariant(resultSha256 === canonicalJsonSha256(unsigned), 'Top-level result integrity hash mismatch');
@@ -292,7 +411,13 @@ async function replayCommand(input) {
   invariant(canonicalJson(recomputed) === canonicalJson(result.summary), 'Recorded summary does not match replayed grades');
   const checksumPath = path.join(path.dirname(resultPath), 'checksums.json');
   const checksums = await readJson(checksumPath);
-  const checksumResult = await verifyChecksumManifest(checksums, { root: path.dirname(resultPath) });
+  const virtualResultEntry = checksums.entries.find((entry) => entry.path === 'result.json');
+  invariant(virtualResultEntry, 'Bundle checksum manifest is missing result.json');
+  invariant(virtualResultEntry.sha256 === sha256(resultBytes) && virtualResultEntry.sizeBytes === resultBytes.length, 'Canonical result does not match bundle checksum');
+  const checksumsToVerify = compressed
+    ? { ...checksums, entries: checksums.entries.filter((entry) => entry.path !== 'result.json') }
+    : checksums;
+  const checksumResult = await verifyChecksumManifest(checksumsToVerify, { root: path.dirname(resultPath) });
   invariant(checksumResult.ok, `Bundle checksum mismatch:\n${JSON.stringify(checksumResult.mismatches, null, 2)}`);
   console.log(`Replay verified ${result.games.length} games, all grades, the summary, and ${checksums.entries.length} bundle checksums.`);
 }
@@ -306,6 +431,7 @@ function parseArguments(argv) {
     output: DEFAULT_OUTPUT,
     pairing: 'reference',
     smoke: true,
+    fresh: false,
   };
   for (let index = 0; index < rest.length; index += 1) {
     const value = rest[index];
@@ -314,6 +440,8 @@ function parseArguments(argv) {
     else if (value === '--output') options.output = repoPath(rest[++index], 'output');
     else if (value === '--pairing') options.pairing = rest[++index];
     else if (value === '--no-smoke') options.smoke = false;
+    else if (value === '--fresh') options.fresh = true;
+    else if (value === '--resume') options.fresh = false;
     else if (!input) input = value;
     else throw new Error(`Unexpected argument: ${value}`);
   }
@@ -326,7 +454,9 @@ async function main() {
   if (command === 'validate') return validateCommand(options);
   if (command === 'run') return runCommand(options);
   if (command === 'replay') return replayCommand(input);
-  throw new Error('Usage: agentbattler <validate|run|replay> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model|cross-harness|cross-harness-all] [--no-smoke]');
+  if (command === 'status') return statusCommand(options);
+  if (command === 'pack') return packCommand(input);
+  throw new Error('Usage: agentbattler <validate|run|replay|status|pack> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model|cross-harness|cross-harness-all] [--no-smoke] [--fresh|--resume]');
 }
 
 main().catch((error) => {

@@ -56,6 +56,20 @@ test('cross-harness-all pairs every agent across harnesses regardless of model',
   ]);
 });
 
+test('three-harness pairing stays balanced and controlled comparisons hold model constant', () => {
+  const agents = ['codex-cli', 'pi-coding-agent', 'claude-code'].flatMap((harness) => (
+    ['terra', 'sol', 'luna'].flatMap((family) => Array.from({ length: 5 }, (_, index) => ({
+      id: `${harness}-${family}-${index + 1}`,
+      provenance: { harness, modelRequested: `gpt-5.6-${family}` },
+    })))
+  ));
+  const all = comparisonPairs(agents, 'cross-harness-all');
+  const controlled = comparisonPairs(agents, 'cross-harness');
+  assert.equal(all.length, 675);
+  assert.equal(controlled.length, 225);
+  assert.ok(controlled.every(([first, second]) => first.provenance.modelRequested === second.provenance.modelRequested));
+});
+
 test('all-pairs still includes the 30 within-model generation pairs', () => {
   assert.equal(comparisonPairs(fivePerModelRoster(), 'all-pairs').length, 105);
 });

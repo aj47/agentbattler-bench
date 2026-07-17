@@ -83,8 +83,42 @@ npm run replay:harness-suite
 
 `cross-harness-all` pairs every Pi artifact with every Codex artifact. With 15 engines per harness, that is 225 artifact pairs and 2,700 color-balanced games over the six v2 positions. The website reports all of them, while its controlled harness score filters to the 900 equal-model games so the model identity is held constant.
 
+## Claude Code gateway suite (experimental)
+
+The optional third harness runs Claude Code through a locally built, loopback-only third-party Messages gateway to the ChatGPT Codex backend. This is not an Anthropic-supported use of Claude Code or an Anthropic model comparison. The launcher requires an audited adapter binary and its recorded source identifiers; it creates a fresh `HOME`, workspace, adapter configuration, and 0600 temporary OAuth token file for the suite, enables Claude's `--bare --safe-mode` isolation, disables telemetry/error reporting/updating, allows only the `Write` tool, and never uses an Anthropic credential or `OPENAI_API_KEY`.
+
+After the adapter security gate has been completed, supply the locally built binary plus its audited identifiers and run:
+
+```sh
+export AGENTBATTLER_CLAUDE_ADAPTER_BIN=/absolute/path/to/claude-adapter
+export AGENTBATTLER_CLAUDE_ADAPTER_COMMIT=b5e9f0342a22c3566cd4c11a7ac1dcf58295248b
+export AGENTBATTLER_CLAUDE_ADAPTER_PATCH_SHA256=<audited-local-patch-sha256>
+npm run generate:claude-code-suite
+npm run validate:claude-code-suite
+npm run benchmark:claude-code-suite
+npm run replay:claude-code-suite
+npm run build:harness-suite
+```
+
+Generated output remains outside Git under `results/claude-code-model-suite/`; the roster and manifest are separate under `agents/claude-code-model-suite/`. When this manifest exists, `build:harness-suite` automatically makes the three-harness roster (675 artifact pairs / 8,100 color-balanced games); without it, legacy two-harness artifacts remain unchanged.
+
+## Resumable and publishable results
+
+Every benchmark run writes per-game atomic checkpoints beside its output. An interrupted run resumes automatically only when its manifest, position suite, pairing, and deterministic game IDs match exactly. Inspect its machine-readable progress with `node bin/agentbattler.mjs status --output results/example`; use `--fresh` only for a new run after moving any completed output.
+
+Large canonical result bodies can be published without Git LFS as deterministic gzip artifacts while keeping the local `result.json` unchanged:
+
+```sh
+npm run pack:result -- results/harness-suite/matches/result.json
+npm run replay -- results/harness-suite/matches/result.json.gz
+```
+
+`pack` writes `result.json.gz` and a small adjacent manifest with the compressed and canonical byte sizes and SHA-256 values. Replaying the gzip verifies the compressed hash, byte-for-byte decompressed canonical result hash, semantic result hash, grades, summary, and the existing bundle checksums. The canonical uncompressed result remains the authoritative local output and is intentionally not added to Git.
+
 ## Evidence
+
+The first local three-harness release is sealed in the public [Hugging Face Dataset at commit `b4adcc5258d8e9612a1aae440d6307e9e3248451`](https://huggingface.co/datasets/techfren/agentbattler-bench-results/tree/b4adcc5258d8e9612a1aae440d6307e9e3248451/releases/agentbattler-hf-v1-74dfd024196c904c367c). It contains queryable 900-game Claude Code-only and 8,100-game three-harness Parquet tables plus replayable deterministic gzip result bundles. See [the release notes and verification contract](docs/huggingface-results.md) before drawing comparative conclusions.
 
 Trusted benchmark runs are limited to pushes on `main` and manual `workflow_dispatch` runs. The workflow validates the checked-in roster and suite, runs tests and the benchmark, replays the result, generates SHA-256 checksums, and uploads the sources, manifest, positions, logs, and complete generated result together.
 
-No public workflow run or stable canonical-result URL is claimed by this checkout. GitHub Actions artifacts are convenient evidence copies with retention limits, not a durable publication layer. Until a successful run and durable public result location exist, the repository demonstrates a local proof loop rather than completing the PRD's public-evidence definition of done. Details are in [docs/evidence.md](docs/evidence.md); bundle replay steps are in [docs/replay.md](docs/replay.md).
+The pinned dataset is durable local-run evidence, not a claim that a trusted GitHub Actions run has reproduced it. GitHub Actions artifacts are convenient evidence copies with retention limits, not a durable publication layer. Details are in [docs/evidence.md](docs/evidence.md); bundle replay steps are in [docs/replay.md](docs/replay.md).

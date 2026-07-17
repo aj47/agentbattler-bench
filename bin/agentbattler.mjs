@@ -24,11 +24,26 @@ import {
   verifyChecksumManifest,
 } from '../src/provenance.mjs';
 import { comparisonPairs } from '../src/pairing.mjs';
+import {
+  importRunResult,
+  partitionScheduleJobs,
+  putLedgerGame,
+} from '../src/game-ledger.mjs';
+import {
+  createBattleProtocol,
+  createPlacementSchedule,
+  createSeason,
+  gameSpecification,
+  groupAgentsByCombo,
+  validateSchedule,
+} from '../src/league.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_MANIFEST_PATH = path.join(ROOT, 'agents/manifest.json');
 const DEFAULT_POSITIONS_PATH = path.join(ROOT, 'benchmark/positions/v1.json');
 const DEFAULT_OUTPUT = path.join(ROOT, 'results/latest');
+const DEFAULT_LEDGER = path.join(ROOT, 'results/league/ledger');
+const DEFAULT_SCHEDULE_OUTPUT = path.join(ROOT, 'results/league/schedule.json');
 
 async function readJson(file) {
   return JSON.parse(await readFile(file, 'utf8'));
@@ -202,6 +217,74 @@ async function validateCommand(options) {
   console.log(`Manifest: ${manifest.manifestId}; suite: ${suite.suiteId}`);
 }
 
+function comboSelector(groups, selector) {
+  invariant(typeof selector === 'string' && selector.length > 0, 'Combo selector is required');
+  const matches = [...groups.values()].filter(({ combo, agents }) => (
+    combo.comboId === selector
+    || agents.some((agent) => (
+      agent.comboId === selector
+      || agent.modelFamilyId === selector
+      || agent.provenance?.comboId === selector
+      || agent.provenance?.modelFamilyId === selector
+    ))
+  ));
+  invariant(matches.length === 1, matches.length === 0
+    ? `Unknown combo selector ${selector}; available: ${[...groups.values()].map(({ combo, agents }) => `${agents[0].provenance?.modelFamilyId ?? agents[0].id} (${combo.comboId})`).join(', ')}`
+    : `Ambiguous combo selector: ${selector}`);
+  return matches[0].combo.comboId;
+}
+
+async function scheduleCommand(options) {
+  const validationPairing = options.pairing === 'reference' ? 'all-pairs' : options.pairing;
+  const { suite, agents } = await loadAndValidate({ ...options, pairing: validationPairing, smoke: false });
+  const groups = groupAgentsByCombo(agents);
+  const entrantComboId = comboSelector(groups, options.entrant);
+  const anchorComboIds = options.anchors.map((selector) => comboSelector(groups, selector));
+  const targetComboIds = options.targets.map((selector) => comboSelector(groups, selector));
+  const protocol = createBattleProtocol({ nodeVersion: options.protocolNodeVersion });
+  const season = createSeason({
+    suiteId: suite.suiteId,
+    suiteSha256: await sha256File(options.positionsPath),
+    protocol,
+    evidenceLane: options.evidenceLane,
+  });
+  const schedule = createPlacementSchedule({
+    agents,
+    entrantComboId,
+    anchorComboIds,
+    targetComboIds,
+    positions: suite.positions,
+    season,
+    protocol,
+    tierId: options.tier,
+    rotations: options.rotations,
+  });
+  const partition = await partitionScheduleJobs(options.ledgerPath, schedule.jobs);
+  await atomicJson(options.scheduleOutput, schedule);
+  console.log(`Wrote ${schedule.scheduleId} with ${schedule.jobs.length} games to ${options.scheduleOutput}.`);
+  console.log(`Ledger plan: ${partition.cached.length} reusable and ${partition.missing.length} missing games.`);
+}
+
+async function combosCommand(options) {
+  const { agents } = await loadAndValidate({ ...options, pairing: 'all-pairs', smoke: false });
+  const combos = [...groupAgentsByCombo(agents).values()].map(({ combo, agents: artifacts }) => ({
+    comboId: combo.comboId,
+    harness: combo.harness,
+    model: combo.model,
+    artifacts: artifacts.map((agent) => agent.id),
+  })).sort((left, right) => left.comboId.localeCompare(right.comboId));
+  console.log(canonicalJson(combos, { space: 2 }));
+}
+
+async function importLedgerCommand(input, options) {
+  invariant(input, 'Usage: agentbattler import-ledger <result.json> [--ledger path] [--snapshot-id id]');
+  const resultPath = path.resolve(process.cwd(), input);
+  const { result } = await readReplayInput(resultPath);
+  const summary = await importRunResult(options.ledgerPath, result, { snapshotId: options.snapshotId });
+  console.log(`Ledger import verified ${summary.total} games: ${summary.imported} imported, ${summary.existing} already present, ${summary.skippedVoid} retryable voids skipped.`);
+  console.log(`Protocol: ${summary.protocol.protocolId}`);
+}
+
 async function mapConcurrent(items, concurrency, work) {
   const results = new Array(items.length);
   let next = 0;
@@ -219,11 +302,13 @@ async function mapConcurrent(items, concurrency, work) {
 async function runCommand(options) {
   const startedAt = new Date();
   const startedMs = performance.now();
-  const { manifestPath, positionsPath, output, pairing } = options;
-  const { manifest, suite, agents } = await loadAndValidate(options);
-  const pairs = comparisonPairs(agents, pairing);
+  const { manifestPath, positionsPath, output, pairing, ledgerPath, schedulePath } = options;
+  const validationPairing = schedulePath && pairing === 'reference' ? 'all-pairs' : pairing;
+  const { manifest, suite, agents } = await loadAndValidate({ ...options, pairing: validationPairing });
   const concurrency = Math.max(1, Number.parseInt(process.env.AGENTBATTLER_CONCURRENCY ?? '6', 10) || 1);
   const checkpointTestDelayMs = Number.parseInt(process.env.AGENTBATTLER_CHECKPOINT_TEST_DELAY_MS ?? '0', 10) || 0;
+  const schedule = schedulePath ? validateSchedule(await readJson(schedulePath)) : null;
+  const protocol = schedule?.protocol ?? createBattleProtocol({ nodeVersion: process.version });
   const jobs = [];
   const runner = {
     nodeVersion: process.version,
@@ -231,23 +316,62 @@ async function runCommand(options) {
     benchmarkCommit: process.env.GITHUB_SHA ?? 'unavailable-not-a-git-checkout',
     workflowUrl: workflowUrl(),
     concurrency,
+    battleProtocolId: protocol.protocolId,
   };
-  for (const [agentA, agentB] of pairs) {
-    for (const position of suite.positions) {
-      for (const seed of position.seeds) {
-        for (const allocation of pairedGames(agentA, agentB, position)) {
-          const gameId = `${position.id}-seed-${seed}-${allocation.white.id}-vs-${allocation.black.id}`;
-          jobs.push({ allocation, position, seed, gameId });
+
+  if (schedule) {
+    invariant(schedule.season.suite.id === suite.suiteId, 'Schedule suite ID does not match the selected position suite');
+    invariant(schedule.season.suite.sha256 === await sha256File(positionsPath), 'Schedule suite hash does not match the selected position suite');
+    const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
+    const positionsById = new Map(suite.positions.map((position) => [position.id, position]));
+    for (const scheduled of schedule.jobs) {
+      const white = agentsById.get(scheduled.whiteAgentId);
+      const black = agentsById.get(scheduled.blackAgentId);
+      const position = positionsById.get(scheduled.positionId);
+      invariant(white && black, `Schedule references an unavailable agent for ${scheduled.gameKey}`);
+      invariant(position, `Schedule references an unavailable position: ${scheduled.positionId}`);
+      invariant(position.seeds.includes(scheduled.seed), `Schedule references an unavailable seed: ${scheduled.seed}`);
+      const specification = gameSpecification({ white, black, position, seed: scheduled.seed, protocol });
+      invariant(specification.gameKey === scheduled.gameKey, `Schedule inputs changed for ${scheduled.gameKey}`);
+      const gameId = `${position.id}-seed-${scheduled.seed}-${white.id}-vs-${black.id}`;
+      jobs.push({ allocation: { white, black }, position, seed: scheduled.seed, gameId, specification });
+    }
+  } else {
+    const pairs = comparisonPairs(agents, pairing);
+    for (const [agentA, agentB] of pairs) {
+      for (const position of suite.positions) {
+        for (const seed of position.seeds) {
+          for (const allocation of pairedGames(agentA, agentB, position)) {
+            const gameId = `${position.id}-seed-${seed}-${allocation.white.id}-vs-${allocation.black.id}`;
+            const specification = gameSpecification({ ...allocation, position, seed, protocol });
+            jobs.push({ allocation, position, seed, gameId, specification });
+          }
         }
       }
     }
+  }
+
+  if (ledgerPath) {
+    const relativeLedger = path.relative(output, ledgerPath);
+    invariant(relativeLedger === '..' || relativeLedger.startsWith(`..${path.sep}`) || path.isAbsolute(relativeLedger), 'Ledger must not be inside the replaceable output directory');
   }
   const checkpointRoot = `${output}.checkpoints`;
   const metadataPath = path.join(checkpointRoot, 'progress.json');
   const expectedJobIds = jobs.map((job) => job.gameId);
   invariant(new Set(expectedJobIds).size === expectedJobIds.length, 'Deterministic job IDs are not unique');
-  const inputs = { manifestId: manifest.manifestId, manifestSha256: await sha256File(manifestPath), suiteId: suite.suiteId, suiteSha256: await sha256File(positionsPath), pairing };
-  const fingerprint = sha256(canonicalJson({ inputs, expectedJobIds, runnerSchema: 1 }));
+  invariant(new Set(jobs.map((job) => job.specification.gameKey)).size === jobs.length, 'Deterministic game keys are not unique');
+  const inputs = {
+    manifestId: manifest.manifestId,
+    manifestSha256: await sha256File(manifestPath),
+    suiteId: suite.suiteId,
+    suiteSha256: await sha256File(positionsPath),
+    pairing: schedule ? 'schedule' : pairing,
+    scheduleId: schedule?.scheduleId ?? null,
+    scheduleSha256: schedule?.scheduleSha256 ?? null,
+    seasonId: schedule?.season?.seasonId ?? null,
+    battleProtocolId: protocol.protocolId,
+  };
+  const fingerprint = sha256(canonicalJson({ inputs, expectedJobIds, gameKeys: jobs.map((job) => job.specification.gameKey), runnerSchema: 2 }));
   if (options.fresh) await rm(checkpointRoot, { recursive: true, force: true });
   let progress = null;
   if (await exists(metadataPath)) {
@@ -260,24 +384,55 @@ async function runCommand(options) {
   invariant(progress.finalized !== true, 'Checkpoint is already finalized; use the published result or --fresh');
   const checkpointGames = path.join(checkpointRoot, 'games');
   const completed = new Map();
+  let cacheHits = 0;
+  let checkpointHits = 0;
+  if (ledgerPath) {
+    const partition = await partitionScheduleJobs(ledgerPath, jobs.map((job) => ({ ...job, gameKey: job.specification.gameKey })));
+    for (const { job, entry } of partition.cached) {
+      invariant(entry.record.gameId === job.gameId, `Cached game ID mismatch for ${job.specification.gameKey}`);
+      completed.set(job.gameId, entry.record);
+      cacheHits += 1;
+    }
+  }
   for (const file of await readdir(checkpointGames).catch((error) => error?.code === 'ENOENT' ? [] : Promise.reject(error))) {
     invariant(file.endsWith('.json'), `Unexpected checkpoint entry: ${file}`);
     const game = await readJson(path.join(checkpointGames, file));
     invariant(typeof game.gameId === 'string' && expectedJobIds.includes(game.gameId), 'Checkpoint game ID does not match expected jobs');
     invariant(game.resultSha256 === canonicalJsonSha256(Object.fromEntries(Object.entries(game).filter(([key]) => key !== 'resultSha256'))), `Checkpoint game integrity mismatch: ${game.gameId}`);
-    invariant(!completed.has(game.gameId), `Duplicate checkpoint game: ${game.gameId}`);
     invariant(replayGame(game).ok, `Checkpoint game replay failed: ${game.gameId}`);
-    completed.set(game.gameId, game);
+    if (completed.has(game.gameId)) {
+      invariant(completed.get(game.gameId).resultSha256 === game.resultSha256, `Checkpoint conflicts with ledger game: ${game.gameId}`);
+    } else {
+      completed.set(game.gameId, game);
+      checkpointHits += 1;
+    }
   }
   const missing = jobs.filter((job) => !completed.has(job.gameId));
+  if (missing.length > 0) {
+    invariant(process.version === protocol.runtime.version, `Battle protocol requires Node ${protocol.runtime.version}; current runtime is ${process.version}`);
+  }
   progress = { ...progress, completed: completed.size, remaining: missing.length, updatedAt: new Date().toISOString() };
   await atomicJson(metadataPath, progress);
-  const games = await mapConcurrent(missing, concurrency, async ({ allocation, position, seed, gameId }) => {
-    const game = await playGame({ ...allocation, seed, runner });
+  await mapConcurrent(missing, concurrency, async ({ allocation, position, seed, gameId, specification }) => {
+    const game = await playGame({
+      ...allocation,
+      position,
+      seed,
+      timeoutMs: protocol.limits.timeoutMs,
+      execution: { maxOutputBytes: protocol.limits.maxOutputBytes },
+      runner,
+    });
     game.gameId = gameId;
     delete game.resultSha256;
     game.resultSha256 = canonicalJsonSha256(game);
     await atomicJson(path.join(checkpointGames, `${encodeURIComponent(gameId)}.json`), game);
+    if (ledgerPath && game.final.outcome !== 'void') {
+      await putLedgerGame(ledgerPath, {
+        specification,
+        record: game,
+        source: { kind: schedule ? 'executed-schedule' : 'executed-run', protocol, runnerCommit: runner.runnerCommit },
+      });
+    }
     if (checkpointTestDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, checkpointTestDelayMs));
     completed.set(gameId, game);
     progress = { ...progress, completed: completed.size, remaining: jobs.length - completed.size, updatedAt: new Date().toISOString() };
@@ -298,16 +453,14 @@ async function runCommand(options) {
       durationMs: Math.round((performance.now() - startedMs) * 1000) / 1000,
       runCount: 1,
       scheduledGames: jobs.length,
+      cacheHits,
+      checkpointHits,
+      executedGames: missing.length,
       concurrency,
     },
     runner,
-    inputs: {
-      manifestId: manifest.manifestId,
-      manifestSha256: await sha256File(manifestPath),
-      suiteId: suite.suiteId,
-      suiteSha256: await sha256File(positionsPath),
-      pairing,
-    },
+    inputs,
+    battleProtocol: protocol,
     roster: manifest.agents,
     games: orderedGames,
     summary: summarize(orderedGames, manifest.agents),
@@ -432,6 +585,17 @@ function parseArguments(argv) {
     pairing: 'reference',
     smoke: true,
     fresh: false,
+    ledgerPath: null,
+    schedulePath: null,
+    scheduleOutput: DEFAULT_SCHEDULE_OUTPUT,
+    entrant: null,
+    anchors: [],
+    targets: [],
+    tier: 'challenger',
+    rotations: 1,
+    protocolNodeVersion: 'v26.3.0',
+    evidenceLane: 'exploratory',
+    snapshotId: null,
   };
   for (let index = 0; index < rest.length; index += 1) {
     const value = rest[index];
@@ -442,6 +606,17 @@ function parseArguments(argv) {
     else if (value === '--no-smoke') options.smoke = false;
     else if (value === '--fresh') options.fresh = true;
     else if (value === '--resume') options.fresh = false;
+    else if (value === '--ledger') options.ledgerPath = repoPath(rest[++index], 'ledger');
+    else if (value === '--schedule') options.schedulePath = repoPath(rest[++index], 'schedule');
+    else if (value === '--schedule-output') options.scheduleOutput = repoPath(rest[++index], 'schedule output');
+    else if (value === '--entrant') options.entrant = rest[++index];
+    else if (value === '--anchors') options.anchors = rest[++index].split(',').filter(Boolean);
+    else if (value === '--targets') options.targets = rest[++index].split(',').filter(Boolean);
+    else if (value === '--tier') options.tier = rest[++index];
+    else if (value === '--rotations') options.rotations = Number.parseInt(rest[++index], 10);
+    else if (value === '--protocol-node') options.protocolNodeVersion = rest[++index];
+    else if (value === '--evidence-lane') options.evidenceLane = rest[++index];
+    else if (value === '--snapshot-id') options.snapshotId = rest[++index];
     else if (!input) input = value;
     else throw new Error(`Unexpected argument: ${value}`);
   }
@@ -452,11 +627,23 @@ function parseArguments(argv) {
 async function main() {
   const { command, input, options } = parseArguments(process.argv.slice(2));
   if (command === 'validate') return validateCommand(options);
-  if (command === 'run') return runCommand(options);
+  if (command === 'schedule') {
+    options.ledgerPath ??= DEFAULT_LEDGER;
+    return scheduleCommand(options);
+  }
+  if (command === 'combos') return combosCommand(options);
+  if (command === 'import-ledger') {
+    options.ledgerPath ??= DEFAULT_LEDGER;
+    return importLedgerCommand(input, options);
+  }
+  if (command === 'run') {
+    if (options.schedulePath) options.ledgerPath ??= DEFAULT_LEDGER;
+    return runCommand(options);
+  }
   if (command === 'replay') return replayCommand(input);
   if (command === 'status') return statusCommand(options);
   if (command === 'pack') return packCommand(input);
-  throw new Error('Usage: agentbattler <validate|run|replay|status|pack> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model|cross-harness|cross-harness-all] [--no-smoke] [--fresh|--resume]');
+  throw new Error('Usage: agentbattler <validate|run|replay|status|pack|combos|schedule|import-ledger> [result.json] [--manifest path] [--positions path] [--output dir] [--pairing reference|all-pairs|cross-model|cross-harness|cross-harness-all] [--ledger path] [--schedule path] [--no-smoke] [--fresh|--resume]');
 }
 
 main().catch((error) => {

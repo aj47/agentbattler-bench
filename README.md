@@ -115,6 +115,49 @@ npm run replay -- results/harness-suite/matches/result.json.gz
 
 `pack` writes `result.json.gz` and a small adjacent manifest with the compressed and canonical byte sizes and SHA-256 values. Replaying the gzip verifies the compressed hash, byte-for-byte decompressed canonical result hash, semantic result hash, grades, summary, and the existing bundle checksums. The canonical uncompressed result remains the authoritative local output and is intentionally not added to Git.
 
+## Incremental league scheduling
+
+The league runner avoids rebuilding a Cartesian tournament whenever a harness/model/configuration combo is added. Independent generated artifacts from the same configuration share a content-derived combo ID. Placement schedules use fixed anchors plus targeted nearby opponents, deterministic cyclic artifact rotations, both colors, and the selected position suite.
+
+Import all 9,000 games from the current immutable results snapshot into the ignored append-only ledger without modifying any published game or hash:
+
+```sh
+npm run league:import:published
+```
+
+The earlier 900-game Codex-only release can also be imported directly:
+
+```sh
+npm run league:import:model-suite
+```
+
+List the stable combo IDs in a roster, then create a sealed placement schedule:
+
+```sh
+node bin/agentbattler.mjs combos --manifest agents/model-suite/manifest.json
+node bin/agentbattler.mjs schedule \
+  --manifest agents/model-suite/manifest.json \
+  --positions benchmark/positions/v2.json \
+  --entrant <combo-id> \
+  --anchors <combo-id> \
+  --targets <combo-id> \
+  --tier contender \
+  --rotations 1
+```
+
+The scheduler reports reusable and missing games before execution. Missing placement games use the sealed schedule's exact runtime protocol; the default protocol is Node 26.3.0. Execute the schedule with:
+
+```sh
+node bin/agentbattler.mjs run \
+  --manifest agents/model-suite/manifest.json \
+  --positions benchmark/positions/v2.json \
+  --schedule results/league/schedule.json \
+  --output results/league/latest-placement \
+  --no-smoke
+```
+
+Completed non-void games are stored by a hash of the protocol, source hashes, colors, FEN, seed, and ply limit. Existing checkpoints and immutable ledger entries both resume safely; infrastructure-void games remain retryable. See [docs/leagues.md](docs/leagues.md) for the identity, season, tier, and migration contracts.
+
 ## Evidence
 
 The first local three-harness release is sealed in the public [Hugging Face Dataset at commit `b4adcc5258d8e9612a1aae440d6307e9e3248451`](https://huggingface.co/datasets/techfren/agentbattler-bench-results/tree/b4adcc5258d8e9612a1aae440d6307e9e3248451/releases/agentbattler-hf-v1-74dfd024196c904c367c). It contains queryable 900-game Claude Code-only and 8,100-game three-harness Parquet tables plus replayable deterministic gzip result bundles. See [the release notes and verification contract](docs/huggingface-results.md) before drawing comparative conclusions.

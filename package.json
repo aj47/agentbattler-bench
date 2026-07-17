@@ -20,6 +20,8 @@
     "generate:model-suite": "node scripts/generate-model-suite.mjs",
     "validate:model-suite": "node bin/agentbattler.mjs validate --manifest agents/model-suite/manifest.json --pairing all-pairs",
     "benchmark:model-suite": "node bin/agentbattler.mjs run --manifest agents/model-suite/manifest.json --pairing all-pairs --output results/model-suite/matches --no-smoke",
+    "league:import:model-suite": "node scripts/import-snapshot-ledger.mjs",
+    "league:import:published": "node scripts/import-results-ledger.mjs",
     "replay:model-suite": "node scripts/replay-snapshot.mjs",
     "replay:snapshot": "node scripts/replay-snapshot.mjs",
     "replay:published:model-suite": "node scripts/replay-snapshot.mjs --tournament codex-within-harness",

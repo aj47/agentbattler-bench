@@ -107,6 +107,7 @@ export async function runTerminalSchedule({
       modelFamilyId: coverage?.combo.model.familyId,
       reasoningEffort: coverage?.combo.model.reasoningEffort,
       generationSettings: coverage?.combo.generationSettings ?? {},
+      maxWallTimeMs: challenge.protocol.maxWallTimeMs,
     };
     const file = terminalRunPath(resultRoot, job.runKey);
     let existing = null;

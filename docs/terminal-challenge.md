@@ -47,3 +47,9 @@ The runner is restart-safe: completed results are skipped, infrastructure-invali
 results are visible and skipped by default, and `--retry-invalid` explicitly retries
 only those infrastructure failures. A harness adapter is never guessed or silently
 substituted. A missing adapter is an infrastructure problem, not an agent score.
+
+The original v1 manifest uses a 20-minute per-turn maximum. New schedules may opt into
+an unbounded turn policy with `AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0` while sealing
+the resulting policy into the challenge hash. Unbounded means the adapter does not kill
+the process; it still records per-turn and whole-run wall time. The active v1 schedule
+must not be regenerated during an existing run.

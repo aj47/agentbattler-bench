@@ -53,6 +53,7 @@
     "benchmark:harness-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/harness-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-harness-all --output results/harness-suite/matches --no-smoke",
     "replay:harness-suite": "node bin/agentbattler.mjs replay results/harness-suite/matches/result.json",
     "terminal:matrix": "node scripts/build-terminal-schedule.mjs",
+    "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs"
   }

@@ -39,10 +39,12 @@ export function createMiniLedgerChallenge({
   publicVerifierSha256,
   holdoutVerifierPath = 'benchmark/challenges/mini-ledger-v1/holdout-verifier.mjs',
   holdoutVerifierSha256,
+  maxWallTimeMs = 20 * 60 * 1000,
 } = {}) {
   nonEmpty(promptSha256, 'promptSha256');
   nonEmpty(publicVerifierSha256, 'publicVerifierSha256');
   nonEmpty(holdoutVerifierSha256, 'holdoutVerifierSha256');
+  invariant(maxWallTimeMs === null || (Number.isSafeInteger(maxWallTimeMs) && maxWallTimeMs > 0), 'maxWallTimeMs must be null or a positive integer');
   return seal('challenge', {
     schemaVersion: TERMINAL_CHALLENGE_SCHEMA,
     kind: 'long-horizon-terminal-task',
@@ -57,7 +59,7 @@ export function createMiniLedgerChallenge({
       turns: 8,
       sameWorkspace: true,
       sameSession: true,
-      maxWallTimeMs: 20 * 60 * 1000,
+      maxWallTimeMs,
       maxWorkspaceBytes: 50 * 1024 * 1024,
       network: 'disabled',
       humanIntervention: 'invalidates-run',

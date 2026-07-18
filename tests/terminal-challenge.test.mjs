@@ -36,6 +36,12 @@ test('mini-ledger challenge is sealed and validates', () => {
   assert.equal(challenge.scoring.maxPoints, 100);
 });
 
+test('challenge can seal an unbounded turn policy', () => {
+  const unbounded = createMiniLedgerChallenge({ promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64), maxWallTimeMs: null });
+  assert.equal(validateTerminalChallenge(unbounded), unbounded);
+  assert.equal(unbounded.protocol.maxWallTimeMs, null);
+});
+
 test('terminal combo identity separates harness/model but groups generations', () => {
   const first = terminalComboForAgent(agent('codex', 'terra', 1), challenge);
   const second = terminalComboForAgent(agent('codex', 'terra', 2), challenge);

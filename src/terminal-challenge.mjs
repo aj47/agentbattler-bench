@@ -220,7 +220,9 @@ export function scoreTerminalRun(run, challenge) {
   invariant(run.challengeId === challenge.challengeId && run.challengeSha256 === challenge.challengeSha256, 'Terminal run challenge mismatch');
   invariant(run.status === 'completed', 'Only completed terminal runs receive a score');
   invariant(Array.isArray(run.stages), 'Terminal run stages are required');
-  const stageMap = new Map(run.stages.map((stage) => [stage.id, stage]));
+  // Accept the original adapter spelling for already-completed v1 runs while
+  // emitting the canonical `id` field for all new runs.
+  const stageMap = new Map(run.stages.map((stage) => [stage.id ?? stage.stageId, stage]));
   invariant(stageMap.size === challenge.stages.length, 'Terminal run stage count mismatch');
   for (const stage of challenge.stages) invariant(stageMap.has(stage.id), `Missing terminal stage ${stage.id}`);
   const visiblePoints = challenge.stages.reduce((total, stage) => total + (stageMap.get(stage.id).passed === true ? stage.points : 0), 0);

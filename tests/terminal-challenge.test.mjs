@@ -82,6 +82,12 @@ test('terminal score is transparent and deterministic', () => {
   assert.equal(scored.scorePct, 76);
 });
 
+test('terminal score accepts legacy stageId results from the v1 adapter', () => {
+  const legacy = run(6);
+  legacy.stages = legacy.stages.map(({ id, ...stage }) => ({ stageId: id, ...stage }));
+  assert.equal(scoreTerminalRun(legacy, challenge).scorePoints, 76);
+});
+
 test('score-derived Elo publishes all pairwise comparisons and ties', () => {
   assert.equal(compareTerminalScores({ scorePoints: 70 }, { scorePoints: 70 }), 0.5);
   const result = computeTerminalElo([

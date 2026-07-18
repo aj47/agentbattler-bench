@@ -98,7 +98,7 @@ export async function runTerminalJob({ job, runDirectory }) {
     const u = usageFor(result.events); for (const [source, target] of [['input_tokens', 'inputTokens'], ['cached_input_tokens', 'cachedInputTokens'], ['output_tokens', 'outputTokens'], ['reasoning_output_tokens', 'reasoningTokens']]) usage[target] += Number.isFinite(u[source]) ? u[source] : 0;
     const stage = await verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index] });
     turns.push({ index: index + 1, sessionId: observedSession, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt: turnStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - turnStartedClock, usage: u });
-    stages.push(stage);
+    stages.push({ ...stage, id: stage.id ?? stage.stageId });
   }
   const holdout = await verifyHoldout({ workspace });
   return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'codex-cli', harnessVersion: CODEX_VERSION, model: job.model ?? job.modelRequested, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };

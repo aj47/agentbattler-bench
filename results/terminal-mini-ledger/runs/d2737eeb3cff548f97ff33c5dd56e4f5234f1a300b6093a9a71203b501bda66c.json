@@ -1,0 +1,228 @@
+{
+  "artifactId": "terminal-codex-cli-terra-03",
+  "challengeId": "challenge-5102798bbf8f9e2d",
+  "challengeSha256": "5102798bbf8f9e2dd30c37aa59b6b944f5e14faaea28819533ed9fd6cd41d7ed",
+  "comboId": "combo-778fc60b8993167c",
+  "generationIndex": 3,
+  "generationSettings": {},
+  "harness": "codex-cli",
+  "harnessVersion": "0.144.0",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": null,
+        "name": "missing-record-exit",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "invalid-import-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "deterministic-query-order",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "recovery-contract",
+        "passed": true
+      },
+      {
+        "diagnostic": "query failed: Usage: ledger.mjs query --kind KIND [--limit N]",
+        "name": "public-performance-stage",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 5
+  },
+  "humanIntervention": "none",
+  "model": "gpt-5.6-terra",
+  "modelFamilyId": "terra",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "9f54874d42520db4d5f9ecd98f8514e24a383f1d7863cc9d9212fe469a4af575",
+  "runKey": "d2737eeb3cff548f97ff33c5dd56e4f5234f1a300b6093a9a71203b501bda66c",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 92,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "append-get"
+    },
+    {
+      "diagnostic": "append failed: Event not unique: b1",
+      "durationMs": 35,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "query"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 33,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "export"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 65,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "import"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 31,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "recovery"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 94,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "compatibility"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 38,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "audit"
+    },
+    {
+      "diagnostic": "query failed: Usage: ledger.mjs query --kind KIND [--limit N]",
+      "durationMs": 658,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "performance"
+    }
+  ],
+  "status": "completed",
+  "toolCalls": 28,
+  "turns": [
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 68864,
+        "input_tokens": 81667,
+        "output_tokens": 2926,
+        "reasoning_output_tokens": 562
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 154880,
+        "input_tokens": 173305,
+        "output_tokens": 4849,
+        "reasoning_output_tokens": 921
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 217856,
+        "input_tokens": 246574,
+        "output_tokens": 6372,
+        "reasoning_output_tokens": 1588
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 298240,
+        "input_tokens": 332612,
+        "output_tokens": 8607,
+        "reasoning_output_tokens": 2810
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 391936,
+        "input_tokens": 430729,
+        "output_tokens": 10979,
+        "reasoning_output_tokens": 3928
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 493824,
+        "input_tokens": 545935,
+        "output_tokens": 15764,
+        "reasoning_output_tokens": 7600
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 701696,
+        "input_tokens": 765336,
+        "output_tokens": 23680,
+        "reasoning_output_tokens": 13249
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f72f0-95b1-7fa2-9e24-bf0fe68f5409",
+      "usage": {
+        "cached_input_tokens": 782592,
+        "input_tokens": 849659,
+        "output_tokens": 26054,
+        "reasoning_output_tokens": 14459
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 3109888,
+    "inputTokens": 3425817,
+    "outputTokens": 99231,
+    "reasoningTokens": 45117
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

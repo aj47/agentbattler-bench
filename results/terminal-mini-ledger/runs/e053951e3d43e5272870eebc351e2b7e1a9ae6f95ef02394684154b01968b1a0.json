@@ -1,0 +1,228 @@
+{
+  "artifactId": "terminal-codex-cli-terra-04",
+  "challengeId": "challenge-5102798bbf8f9e2d",
+  "challengeSha256": "5102798bbf8f9e2dd30c37aa59b6b944f5e14faaea28819533ed9fd6cd41d7ed",
+  "comboId": "combo-778fc60b8993167c",
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "codex-cli",
+  "harnessVersion": "0.144.0",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": null,
+        "name": "missing-record-exit",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "invalid-import-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "deterministic-query-order",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "recovery-contract",
+        "passed": true
+      },
+      {
+        "diagnostic": "query failed: {\"error\":\"kind must be a non-empty string\"}",
+        "name": "public-performance-stage",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 5
+  },
+  "humanIntervention": "none",
+  "model": "gpt-5.6-terra",
+  "modelFamilyId": "terra",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "4808a8ac3cdc767b5f6ad993ea20f10d0067df3f29988c584a93be80d6524cd2",
+  "runKey": "e053951e3d43e5272870eebc351e2b7e1a9ae6f95ef02394684154b01968b1a0",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 100,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "append-get"
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"event already exists: b1\"}",
+      "durationMs": 39,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "query"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 38,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "export"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 67,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "import"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 40,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "recovery"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 93,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "compatibility"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 37,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "audit"
+    },
+    {
+      "diagnostic": "query failed: {\"error\":\"kind must be a non-empty string\"}",
+      "durationMs": 660,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "performance"
+    }
+  ],
+  "status": "completed",
+  "toolCalls": 22,
+  "turns": [
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 58880,
+        "input_tokens": 71435,
+        "output_tokens": 3452,
+        "reasoning_output_tokens": 1026
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 100608,
+        "input_tokens": 115875,
+        "output_tokens": 4687,
+        "reasoning_output_tokens": 1257
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 146944,
+        "input_tokens": 164706,
+        "output_tokens": 6113,
+        "reasoning_output_tokens": 2061
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 197888,
+        "input_tokens": 218446,
+        "output_tokens": 7715,
+        "reasoning_output_tokens": 2804
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 254464,
+        "input_tokens": 277262,
+        "output_tokens": 9130,
+        "reasoning_output_tokens": 3382
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 360192,
+        "input_tokens": 387877,
+        "output_tokens": 12323,
+        "reasoning_output_tokens": 5383
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 488448,
+        "input_tokens": 524837,
+        "output_tokens": 16748,
+        "reasoning_output_tokens": 8255
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f72f9-2d16-7200-a271-8f8234447ba9",
+      "usage": {
+        "cached_input_tokens": 548864,
+        "input_tokens": 587544,
+        "output_tokens": 18260,
+        "reasoning_output_tokens": 8808
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 2156288,
+    "inputTokens": 2347982,
+    "outputTokens": 78428,
+    "reasoningTokens": 32976
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

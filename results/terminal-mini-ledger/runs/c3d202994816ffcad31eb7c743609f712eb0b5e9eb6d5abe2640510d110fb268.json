@@ -1,0 +1,228 @@
+{
+  "artifactId": "terminal-codex-cli-luna-04",
+  "challengeId": "challenge-5102798bbf8f9e2d",
+  "challengeSha256": "5102798bbf8f9e2dd30c37aa59b6b944f5e14faaea28819533ed9fd6cd41d7ed",
+  "comboId": "combo-e12f5fb525481541",
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "codex-cli",
+  "harnessVersion": "0.144.0",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": null,
+        "name": "missing-record-exit",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "invalid-import-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "deterministic-query-order",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "recovery-contract",
+        "passed": true
+      },
+      {
+        "diagnostic": "query failed: {\"error\":\"missing required option --kind\"}",
+        "name": "public-performance-stage",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 5
+  },
+  "humanIntervention": "none",
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "f246e432dd13b598400a76a5f276cfdc1c5c55d9874a1556a20f48cc5a943232",
+  "runKey": "c3d202994816ffcad31eb7c743609f712eb0b5e9eb6d5abe2640510d110fb268",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 78,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "append-get"
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"event ID already exists: b1\"}",
+      "durationMs": 36,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "query"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 39,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "export"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 62,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "import"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 39,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "recovery"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 78,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "compatibility"
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 38,
+      "exitCode": 0,
+      "passed": true,
+      "regressions": 0,
+      "stageId": "audit"
+    },
+    {
+      "diagnostic": "query failed: {\"error\":\"missing required option --kind\"}",
+      "durationMs": 557,
+      "exitCode": 1,
+      "passed": false,
+      "regressions": 1,
+      "stageId": "performance"
+    }
+  ],
+  "status": "completed",
+  "toolCalls": 38,
+  "turns": [
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 85760,
+        "input_tokens": 99830,
+        "output_tokens": 4321,
+        "reasoning_output_tokens": 1769
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 152064,
+        "input_tokens": 180211,
+        "output_tokens": 6077,
+        "reasoning_output_tokens": 2237
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 220672,
+        "input_tokens": 256272,
+        "output_tokens": 7948,
+        "reasoning_output_tokens": 3207
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 300544,
+        "input_tokens": 346689,
+        "output_tokens": 10531,
+        "reasoning_output_tokens": 4638
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 504320,
+        "input_tokens": 571494,
+        "output_tokens": 15824,
+        "reasoning_output_tokens": 7862
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 736000,
+        "input_tokens": 813271,
+        "output_tokens": 20616,
+        "reasoning_output_tokens": 10742
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 961792,
+        "input_tokens": 1058345,
+        "output_tokens": 26377,
+        "reasoning_output_tokens": 14741
+      }
+    },
+    {
+      "durationMs": 0,
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f7369-167b-7e51-9668-6fc8e3be7408",
+      "usage": {
+        "cached_input_tokens": 1188864,
+        "input_tokens": 1292838,
+        "output_tokens": 29689,
+        "reasoning_output_tokens": 16276
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 4150016,
+    "inputTokens": 4618950,
+    "outputTokens": 121383,
+    "reasoningTokens": 61472
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

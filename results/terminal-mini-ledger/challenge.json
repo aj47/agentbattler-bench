@@ -1,0 +1,115 @@
+{
+  "challengeId": "challenge-5102798bbf8f9e2d",
+  "challengeSha256": "5102798bbf8f9e2dd30c37aa59b6b944f5e14faaea28819533ed9fd6cd41d7ed",
+  "fairness": {
+    "comparableFields": [
+      "promptSha256",
+      "verifiers",
+      "protocol",
+      "reasoningEffort",
+      "generationSettings"
+    ],
+    "exhaustiveMatrixRequired": true,
+    "generationIndexIsArtifact": true,
+    "publish": [
+      "challenge",
+      "schedule",
+      "manifests",
+      "run-results",
+      "pairwise-comparisons",
+      "checksums"
+    ],
+    "redact": [
+      "credentials",
+      "hostPaths",
+      "privateTraces",
+      "unrelatedFiles"
+    ]
+  },
+  "id": "terminal-mini-ledger-v1",
+  "kind": "long-horizon-terminal-task",
+  "prompt": {
+    "path": "benchmark/challenges/mini-ledger-v1.md",
+    "sha256": "ccf522d932e94f9e555c115ae052e78bdd8cbf60e6aeb65a12ad701c1d354931"
+  },
+  "protocol": {
+    "humanIntervention": "invalidates-run",
+    "maxWallTimeMs": 1200000,
+    "maxWorkspaceBytes": 52428800,
+    "network": "disabled",
+    "sameSession": true,
+    "sameWorkspace": true,
+    "turns": 8
+  },
+  "schemaVersion": "agentbattler.terminal-challenge.v1",
+  "scoring": {
+    "holdoutPoints": 20,
+    "infrastructureInvalid": true,
+    "maxPoints": 100,
+    "regressionPenalty": 0,
+    "tieTolerancePoints": 1,
+    "visibleStagePoints": 80
+  },
+  "stages": [
+    {
+      "id": "append-get",
+      "order": 1,
+      "points": 10,
+      "title": "Append and get records"
+    },
+    {
+      "id": "query",
+      "order": 2,
+      "points": 10,
+      "title": "Deterministic filtered query"
+    },
+    {
+      "id": "export",
+      "order": 3,
+      "points": 10,
+      "title": "Export the complete ledger"
+    },
+    {
+      "id": "import",
+      "order": 4,
+      "points": 10,
+      "title": "Import and round-trip verification"
+    },
+    {
+      "id": "recovery",
+      "order": 5,
+      "points": 10,
+      "title": "Atomic restart recovery"
+    },
+    {
+      "id": "compatibility",
+      "order": 6,
+      "points": 10,
+      "title": "Malformed input and schema compatibility"
+    },
+    {
+      "id": "audit",
+      "order": 7,
+      "points": 10,
+      "title": "Full contract audit and repair"
+    },
+    {
+      "id": "performance",
+      "order": 8,
+      "points": 10,
+      "title": "Final performance and audit pass"
+    }
+  ],
+  "title": "Mini Ledger v1",
+  "verifiers": {
+    "holdout": {
+      "cases": 5,
+      "path": "benchmark/challenges/mini-ledger-v1/holdout-verifier.mjs",
+      "sha256": "8f2793ef228d93eff7738f93b7876008b52b152b279ac58683ee7200d3cb2f9e"
+    },
+    "public": {
+      "path": "benchmark/challenges/mini-ledger-v1/public-verifier.mjs",
+      "sha256": "87352b1d4f022cde09f9e2bbf124834652119bb8fd1d5f23fddcdcbee8a858ae"
+    }
+  }
+}

@@ -53,3 +53,19 @@ test('terminal runner bounds independent job concurrency without parallelizing t
   assert.equal(result.completed, 2);
   assert.equal(peak, 2);
 });
+
+test('terminal runner can select one model and generation for calibration', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-selection-'));
+  const calibrationSchedule = createExhaustiveTerminalSchedule({
+    challenge,
+    agents: [agent('codex-cli', 'terra', 1), agent('codex-cli', 'terra', 2), agent('codex-cli', 'sol', 1), agent('codex-cli', 'sol', 2)],
+    expectedHarnesses: ['codex-cli'], expectedModels: ['terra', 'sol'], generationsPerCombo: 2,
+  });
+  const result = await runTerminalSchedule({
+    challenge, schedule: calibrationSchedule, resultRoot: root, challengeRoot: root,
+    onlyModels: ['sol'], onlyGenerationIndices: [1],
+    runTerminalJob: async ({ job }) => completed(job),
+  });
+  assert.equal(result.expected, 1);
+  assert.equal(result.completed, 1);
+});

@@ -22,6 +22,11 @@ const adapterPath = arg('--adapter', process.env.AGENTBATTLER_TERMINAL_ADAPTER);
 const retryInvalid = process.argv.includes('--retry-invalid');
 const harnessArg = arg('--harness', process.env.AGENTBATTLER_TERMINAL_HARNESSES ?? '');
 const onlyHarnesses = harnessArg.split(',').map((value) => value.trim()).filter(Boolean);
+const modelArg = arg('--model', process.env.AGENTBATTLER_TERMINAL_MODELS ?? '');
+const onlyModels = modelArg.split(',').map((value) => value.trim()).filter(Boolean);
+const generationArg = arg('--generation', process.env.AGENTBATTLER_TERMINAL_GENERATIONS ?? '');
+const onlyGenerationIndices = generationArg.split(',').map((value) => Number.parseInt(value.trim(), 10)).filter(Number.isSafeInteger);
+if (generationArg && onlyGenerationIndices.length !== generationArg.split(',').filter((value) => value.trim()).length) throw new Error('--generation must be a comma-separated list of integers');
 const concurrency = Number.parseInt(arg('--concurrency', process.env.AGENTBATTLER_TERMINAL_CONCURRENCY ?? '1'), 10);
 if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error('--concurrency must be a positive integer');
 if (!adapterPath) throw new Error('Set --adapter MODULE or AGENTBATTLER_TERMINAL_ADAPTER');
@@ -41,6 +46,8 @@ const summary = await runTerminalSchedule({
   challengeRoot: CHALLENGE_ROOT,
   retryInvalid,
   onlyHarnesses,
+  onlyModels,
+  onlyGenerationIndices,
   concurrency,
   runTerminalJob: adapter.runTerminalJob,
   onProgress: ({ job, status, error }) => console.log(`[${status}] ${job.artifactId}${error ? `: ${error}` : ''}`),

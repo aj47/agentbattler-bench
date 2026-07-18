@@ -86,6 +86,8 @@ export async function runTerminalSchedule({
   runTerminalJob,
   retryInvalid = false,
   onlyHarnesses = null,
+  onlyModels = null,
+  onlyGenerationIndices = null,
   concurrency = 1,
   onProgress = () => {},
 }) {
@@ -95,9 +97,12 @@ export async function runTerminalSchedule({
   invariant(Number.isSafeInteger(concurrency) && concurrency > 0, 'Terminal concurrency must be a positive integer');
   await mkdir(path.join(resultRoot, 'runs'), { recursive: true });
 
-  const selected = onlyHarnesses?.length
-    ? schedule.jobs.filter((job) => onlyHarnesses.includes(schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo.harness.id))
-    : schedule.jobs;
+  const selected = schedule.jobs.filter((job) => {
+    const combo = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo;
+    return (!onlyHarnesses?.length || onlyHarnesses.includes(combo?.harness.id))
+      && (!onlyModels?.length || onlyModels.includes(combo?.model.id))
+      && (!onlyGenerationIndices?.length || onlyGenerationIndices.includes(job.generationIndex));
+  });
   const summary = { expected: selected.length, skipped: 0, completed: 0, invalid: 0, failed: 0 };
   async function executeJob(job) {
     const coverage = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId);

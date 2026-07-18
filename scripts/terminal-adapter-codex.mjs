@@ -4,8 +4,8 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v1/holdout-verifier.mjs';
-import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v1/public-verifier.mjs';
+import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v2/holdout-verifier.mjs';
+import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v2/public-verifier.mjs';
 import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
 
 const CODEX_VERSION = '0.144.0';

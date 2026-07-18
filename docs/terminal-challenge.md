@@ -4,7 +4,7 @@ The chess lane remains the original head-to-head game benchmark. The long-runnin
 terminal lane is a separate, versioned experiment so a coding-task score cannot be
 mistaken for a chess win or silently change existing ratings.
 
-The first challenge is [`benchmark/challenges/mini-ledger-v1.md`](../benchmark/challenges/mini-ledger-v1.md).
+The active challenge is [`benchmark/challenges/mini-ledger-v2.md`](../benchmark/challenges/mini-ledger-v2.md).
 Its sealed manifest binds the prompt, public verifier, holdout verifier, protocol, stage
 weights, resource limits, and exhaustive combo matrix. A run is valid only when the same
 session and workspace survive all eight turns, all verifier events have terminal status,
@@ -44,7 +44,7 @@ independent jobs at once. Turns within each job always remain serialized in the 
 session and workspace. An adapter
 exports `runTerminalJob({ challenge, job, challengeRoot, runDirectory })` and returns
 one `agentbattler.terminal-run.v1` result with the exact scheduled identity. The runner
-writes each result atomically to `results/terminal-mini-ledger/runs/<runKey>.json`.
+writes each result atomically to `results/terminal-mini-ledger-v2/runs/<runKey>.json`.
 
 The runner is restart-safe: completed results are skipped, infrastructure-invalid
 results are visible and skipped by default, and `--retry-invalid` explicitly retries
@@ -56,8 +56,10 @@ session, result file, and scheduled identity. Concurrency is recorded in the ada
 job metadata and should be reported with benchmark runs because provider throttling and
 machine contention can affect wall time even though they do not change the verifier.
 
-The original v1 manifest uses a 20-minute per-turn maximum. New schedules may opt into
+The corrected v2 manifest uses a 20-minute per-turn maximum. New schedules may opt into
 an unbounded turn policy with `AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0` while sealing
 the resulting policy into the challenge hash. Unbounded means the adapter does not kill
-the process; it still records per-turn and whole-run wall time. The active v1 schedule
-must not be regenerated during an existing run.
+the process; it still records per-turn and whole-run wall time. The active v2 schedule
+must not be regenerated during an existing run. The v1 evidence is retained only as
+withdrawn diagnostic history because its verifier contradicted its prompt; it is not
+eligible for ratings.

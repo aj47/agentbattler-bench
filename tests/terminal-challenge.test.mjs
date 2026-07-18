@@ -36,6 +36,11 @@ test('mini-ledger challenge is sealed and validates', () => {
   assert.equal(challenge.scoring.maxPoints, 100);
 });
 
+test('challenge validation accepts the corrected v2 challenge identity', () => {
+  const v2 = createMiniLedgerChallenge({ challengeId: 'terminal-mini-ledger-v2', title: 'Mini Ledger v2', promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64) });
+  assert.equal(validateTerminalChallenge(v2), v2);
+});
+
 test('challenge can seal an unbounded turn policy', () => {
   const unbounded = createMiniLedgerChallenge({ promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64), maxWallTimeMs: null });
   assert.equal(validateTerminalChallenge(unbounded), unbounded);

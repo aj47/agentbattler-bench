@@ -6,8 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runTerminalSchedule } from '../src/terminal-runner.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const RESULT_ROOT = path.join(ROOT, 'results/terminal-mini-ledger');
-const CHALLENGE_ROOT = path.join(ROOT, 'benchmark/challenges/mini-ledger-v1');
+const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
+if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
+const RESULT_ROOT = path.join(ROOT, `results/terminal-mini-ledger-${challengeVersion}`);
+const CHALLENGE_ROOT = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}`);
 
 function arg(name, fallback = null) {
   const index = process.argv.indexOf(name);

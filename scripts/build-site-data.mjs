@@ -686,7 +686,7 @@ function publicMatch(game) {
 }
 
 async function loadTerminalChallengeLane() {
-  const root = 'results/terminal-mini-ledger';
+  const root = 'results/terminal-mini-ledger-v2';
   try {
     const [challenge, schedule, summary] = await Promise.all([
       readJson(`${root}/challenge.json`),

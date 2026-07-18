@@ -123,7 +123,7 @@ published results.
 
 ### Phase 4 — Long-horizon terminal lane
 
-The first general task is `terminal-mini-ledger-v1`: one isolated workspace and one
+The first general task is `terminal-mini-ledger-v2`: one isolated workspace and one
 continuous session across eight turns. Its challenge manifest binds the prompt, public
 verifier, holdout verifier, protocol, scoring, and exhaustive harness/model/generation
 matrix. Every completed run publishes stage results, holdout cases, telemetry, hashes,

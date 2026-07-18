@@ -33,6 +33,8 @@ function nonEmpty(value, label) {
 }
 
 export function createMiniLedgerChallenge({
+  challengeId = 'terminal-mini-ledger-v1',
+  title = 'Mini Ledger v1',
   promptPath = 'benchmark/challenges/mini-ledger-v1.md',
   promptSha256,
   publicVerifierPath = 'benchmark/challenges/mini-ledger-v1/public-verifier.mjs',
@@ -48,8 +50,8 @@ export function createMiniLedgerChallenge({
   return seal('challenge', {
     schemaVersion: TERMINAL_CHALLENGE_SCHEMA,
     kind: 'long-horizon-terminal-task',
-    id: 'terminal-mini-ledger-v1',
-    title: 'Mini Ledger v1',
+    id: challengeId,
+    title,
     prompt: { path: promptPath, sha256: promptSha256 },
     verifiers: {
       public: { path: publicVerifierPath, sha256: publicVerifierSha256 },
@@ -89,7 +91,7 @@ export function validateMiniLedgerChallenge(challenge) {
   const actual = canonicalJsonSha256(descriptor);
   invariant(challengeSha256 === actual, 'Terminal challenge hash mismatch');
   invariant(challengeId === `challenge-${actual.slice(0, 16)}`, 'Terminal challenge ID mismatch');
-  invariant(challenge.id === 'terminal-mini-ledger-v1', 'Unexpected terminal challenge ID');
+  invariant(/^terminal-mini-ledger-v\d+$/.test(challenge.id), 'Unexpected terminal challenge ID');
   invariant(challenge.stages.length === STAGES.length, 'Terminal challenge stage count changed');
   invariant(JSON.stringify(challenge.stages.map((stage) => stage.id)) === JSON.stringify(MINI_LEDGER_STAGE_IDS), 'Terminal challenge stage order changed');
   return challenge;

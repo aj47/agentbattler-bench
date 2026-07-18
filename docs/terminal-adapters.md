@@ -35,12 +35,14 @@ must prove session continuity.
 | --- | --- | --- |
 | `codex-cli` | `scripts/terminal-adapter-codex.mjs` | Implemented and exercised on M4 |
 | `pi-coding-agent` | `scripts/terminal-adapter-pi.mjs` | Implemented; live session/network audit still pending |
-| `claude-code` | — | Requires a terminal-session adapter and audited gateway/session setup |
-| `dotagents-mono` | — | Requires a stateful conversation adapter; the existing generation harness is single-generation |
+| `claude-code` | `scripts/terminal-adapter-claude.mjs` | Implemented with explicit CLI session IDs and loopback gateway; live audit pending |
+| `dotagents-mono` | `scripts/terminal-adapter-dotagents.mjs` | Implemented with a stateful container conversation; live API audit pending |
+
+`scripts/terminal-adapter-all.mjs` dispatches by scheduled harness so the full matrix
+can be run with one explicit adapter. Claude Code and DotAgents remain unpublished
+until their first live terminal smoke runs prove the session-continuity and isolation
+assertions on the target machine.
 
 The exhaustive schedule already includes all declared harness/model combinations.
-Running it with only the Codex adapter therefore fails closed unless a supported
-subset is selected explicitly with `--harness codex-cli`. The Pi adapter can be
-smoke-tested with `--harness pi-coding-agent`, but its results should remain
-unpublished until a live run confirms the native session file and command-isolation
-properties.
+Run the complete schedule with `npm run terminal:run -- --adapter scripts/terminal-adapter-all.mjs`.
+Use `--harness` to smoke-test one adapter subset before running the complete matrix.

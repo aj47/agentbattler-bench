@@ -23,6 +23,12 @@ test('creates an isolated DotAgents configuration for the requested model', () =
   assert.equal(profile.skillsConfig.allSkillsDisabledByDefault, true);
 });
 
+test('can configure a stateful DotAgents benchmark profile', () => {
+  const config = createDotAgentsConfig({ model: 'gpt-5.6-terra', remoteApiKey: 'a'.repeat(64), stateful: true });
+  assert.match(config.files['agents/agentbattler-benchmark/agent.md'], /isStateful: true/);
+  assert.equal(config.generationSettings.stateful, true);
+});
+
 test('summarizes a sealed trace and rejects model, tool, and network drift', () => {
   const events = [
     { type: 'progress', data: { modelInfo: { model: 'gpt-5.6-sol' }, steps: [{ toolCall: { id: 'one', name: 'execute_command', arguments: { command: 'node --check agent.js' } } }], sessionCost: { inputTokens: 10, outputTokens: 5 } } },

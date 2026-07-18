@@ -16,7 +16,7 @@ function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210 }) {
+export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, stateful = false }) {
   invariant(typeof model === 'string' && /^gpt-5\.6-(terra|sol|luna)$/.test(model), `Unsupported DotAgents benchmark model: ${model}`);
   invariant(typeof remoteApiKey === 'string' && remoteApiKey.length >= 32, 'DotAgents benchmark API key is missing');
   invariant(Number.isSafeInteger(remotePort) && remotePort > 0 && remotePort <= 65_535, 'Invalid DotAgents remote port');
@@ -50,7 +50,7 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210 }
     mcpParallelToolExecution: false,
     mcpMessageQueueEnabled: false,
   };
-  const profileMarkdown = `---\nkind: agent\nid: ${DOTAGENTS_PROFILE_ID}\nname: AgentBattler Benchmark\ndisplayName: AgentBattler Benchmark\nenabled: true\nrole: chat-agent\nconnection-type: internal\nisDefault: true\nisStateful: false\ncreatedAt: 0\nupdatedAt: 0\n---\n`;
+  const profileMarkdown = `---\nkind: agent\nid: ${DOTAGENTS_PROFILE_ID}\nname: AgentBattler Benchmark\ndisplayName: AgentBattler Benchmark\nenabled: true\nrole: chat-agent\nconnection-type: internal\nisDefault: true\nisStateful: ${stateful}\ncreatedAt: 0\nupdatedAt: 0\n---\n`;
   const profile = {
     toolConfig: {
       allServersDisabledByDefault: true,
@@ -89,6 +89,7 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210 }
       finalSummaryPass: false,
       parallelToolExecution: false,
       runtimeTools: DOTAGENTS_RUNTIME_TOOLS,
+      stateful,
       externalMcpServers: 0,
       skillsEnabled: false,
     },

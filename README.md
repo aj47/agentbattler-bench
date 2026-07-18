@@ -15,6 +15,7 @@ Elo. Build and inspect the exhaustive 60-run matrix locally with:
 ```sh
 npm run terminal:matrix
 npm run terminal:run -- --adapter scripts/terminal-adapter-codex.mjs --harness codex-cli
+npm run terminal:run:all
 npm run terminal:verify -- --allow-incomplete
 ```
 

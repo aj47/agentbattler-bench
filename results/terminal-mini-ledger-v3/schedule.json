@@ -1,0 +1,1218 @@
+{
+  "challenge": {
+    "id": "challenge-432352e87000f595",
+    "sha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd"
+  },
+  "coverage": [
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-codex-cli-terra-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-codex-cli-terra-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-codex-cli-terra-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-codex-cli-terra-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-codex-cli-terra-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-138a9b416c4ab4ea",
+        "comboSha256": "138a9b416c4ab4ea0d7e7b9565c5629701a117c54294ec7e8e8246716957c4d0",
+        "generationSettings": {},
+        "harness": {
+          "id": "codex-cli",
+          "version": "0.144.0"
+        },
+        "model": {
+          "familyId": "terra",
+          "id": "gpt-5.6-terra",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-claude-code-sol-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-claude-code-sol-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-claude-code-sol-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-claude-code-sol-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-claude-code-sol-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-20506016bcdfafcc",
+        "comboSha256": "20506016bcdfafcca1cb93bf7343a4cf810beaef94a668341861e60c3ae7a32c",
+        "generationSettings": {},
+        "harness": {
+          "id": "claude-code",
+          "version": "2.1.211"
+        },
+        "model": {
+          "familyId": "sol",
+          "id": "gpt-5.6-sol",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-claude-code-terra-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-claude-code-terra-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-claude-code-terra-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-claude-code-terra-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-claude-code-terra-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-32d710f4c697b79e",
+        "comboSha256": "32d710f4c697b79e32c45a3582f8094032d050c6895a8915ecb19f90cb9e4dfd",
+        "generationSettings": {},
+        "harness": {
+          "id": "claude-code",
+          "version": "2.1.211"
+        },
+        "model": {
+          "familyId": "terra",
+          "id": "gpt-5.6-terra",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-pi-coding-agent-terra-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-pi-coding-agent-terra-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-pi-coding-agent-terra-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-pi-coding-agent-terra-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-pi-coding-agent-terra-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-38ad1e47d4029361",
+        "comboSha256": "38ad1e47d402936144baabc2e0d9d1742f487e500b08ded9c5d7145323fad648",
+        "generationSettings": {},
+        "harness": {
+          "id": "pi-coding-agent",
+          "version": "0.80.7"
+        },
+        "model": {
+          "familyId": "terra",
+          "id": "gpt-5.6-terra",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-claude-code-luna-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-claude-code-luna-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-claude-code-luna-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-claude-code-luna-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-claude-code-luna-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-3cf55160a37c4d97",
+        "comboSha256": "3cf55160a37c4d97d02d4ef6b1f8450f196b03717de9a04af812f806b0226f17",
+        "generationSettings": {},
+        "harness": {
+          "id": "claude-code",
+          "version": "2.1.211"
+        },
+        "model": {
+          "familyId": "luna",
+          "id": "gpt-5.6-luna",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-dotagents-mono-luna-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-dotagents-mono-luna-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-dotagents-mono-luna-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-dotagents-mono-luna-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-dotagents-mono-luna-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-4cd40de842672659",
+        "comboSha256": "4cd40de8426726596f2448afae0a94461dd3dca974491079a7a05438c7c39724",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": {
+          "id": "dotagents-mono",
+          "version": "1.1.6"
+        },
+        "model": {
+          "familyId": "luna",
+          "id": "gpt-5.6-luna",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-codex-cli-luna-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-codex-cli-luna-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-codex-cli-luna-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-codex-cli-luna-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-codex-cli-luna-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-6a1ac7d6e440062e",
+        "comboSha256": "6a1ac7d6e440062e10f1e9889c6e0eedbf6400edd39f4daeba7c6cd4197f54e4",
+        "generationSettings": {},
+        "harness": {
+          "id": "codex-cli",
+          "version": "0.144.0"
+        },
+        "model": {
+          "familyId": "luna",
+          "id": "gpt-5.6-luna",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-pi-coding-agent-luna-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-pi-coding-agent-luna-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-pi-coding-agent-luna-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-pi-coding-agent-luna-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-pi-coding-agent-luna-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-a3e00f2907050082",
+        "comboSha256": "a3e00f29070500824d76964840566f860e2e1123a9d05dc1d99228021d9c8018",
+        "generationSettings": {},
+        "harness": {
+          "id": "pi-coding-agent",
+          "version": "0.80.7"
+        },
+        "model": {
+          "familyId": "luna",
+          "id": "gpt-5.6-luna",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-codex-cli-sol-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-codex-cli-sol-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-codex-cli-sol-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-codex-cli-sol-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-codex-cli-sol-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-bfa43258b68a604d",
+        "comboSha256": "bfa43258b68a604d0f24691183d5095ad8cbeb722530bde0056c9f9ffd498e9e",
+        "generationSettings": {},
+        "harness": {
+          "id": "codex-cli",
+          "version": "0.144.0"
+        },
+        "model": {
+          "familyId": "sol",
+          "id": "gpt-5.6-sol",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-dotagents-mono-terra-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-dotagents-mono-terra-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-dotagents-mono-terra-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-dotagents-mono-terra-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-dotagents-mono-terra-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-edf2cbfebe103083",
+        "comboSha256": "edf2cbfebe1030834830aee4acf2f42f7307cb73c14ac64015f923f6b196542d",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": {
+          "id": "dotagents-mono",
+          "version": "1.1.6"
+        },
+        "model": {
+          "familyId": "terra",
+          "id": "gpt-5.6-terra",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-dotagents-mono-sol-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-dotagents-mono-sol-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-dotagents-mono-sol-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-dotagents-mono-sol-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-dotagents-mono-sol-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-ee7b54600f331d20",
+        "comboSha256": "ee7b54600f331d20bf1ec62f864191c88621bd9a2e8c8e180acb351701335ad9",
+        "generationSettings": {
+          "completionVerification": true,
+          "externalMcpServers": 0,
+          "finalSummaryPass": false,
+          "maxIterations": 12,
+          "parallelToolExecution": false,
+          "provider": "chatgpt-web",
+          "reasoningEffort": "high",
+          "runtimeTools": [
+            "execute_command",
+            "mark_work_complete"
+          ],
+          "skillsEnabled": false,
+          "textVerbosity": "medium",
+          "verificationRetries": 1
+        },
+        "harness": {
+          "id": "dotagents-mono",
+          "version": "1.1.6"
+        },
+        "model": {
+          "familyId": "sol",
+          "id": "gpt-5.6-sol",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "generationIndex": 1,
+          "id": "terminal-pi-coding-agent-sol-01"
+        },
+        {
+          "generationIndex": 2,
+          "id": "terminal-pi-coding-agent-sol-02"
+        },
+        {
+          "generationIndex": 3,
+          "id": "terminal-pi-coding-agent-sol-03"
+        },
+        {
+          "generationIndex": 4,
+          "id": "terminal-pi-coding-agent-sol-04"
+        },
+        {
+          "generationIndex": 5,
+          "id": "terminal-pi-coding-agent-sol-05"
+        }
+      ],
+      "combo": {
+        "challengeId": "challenge-432352e87000f595",
+        "comboId": "combo-fc6c53cc6222b941",
+        "comboSha256": "fc6c53cc6222b94128649adebc10e44577e035c103e6218251cfbaa8af3b4c84",
+        "generationSettings": {},
+        "harness": {
+          "id": "pi-coding-agent",
+          "version": "0.80.7"
+        },
+        "model": {
+          "familyId": "sol",
+          "id": "gpt-5.6-sol",
+          "reasoningEffort": "high"
+        },
+        "schemaVersion": "agentbattler.terminal-combo.v1"
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "artifactId": "terminal-codex-cli-terra-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-138a9b416c4ab4ea",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "6b22f1185d5a76fa36cd119e6ff7003af0c2d5cd0838120d9ce1d408f78d9e7d",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-terra-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-138a9b416c4ab4ea",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "9c910a70864232efee2be95db570346ed131d932ac77965807e7e1db42d32d1c",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-terra-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-138a9b416c4ab4ea",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "f22dce23d09bbbc2d5c911dcebc909ba1ea66156fa5aea8d581b91f73460d46f",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-terra-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-138a9b416c4ab4ea",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "2d927bdbf57160f4fb28c2e26e47fffb9b549abb52d0760f1d36fc9647515593",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-terra-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-138a9b416c4ab4ea",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "9f1e18bd96fe91be65fb0ac3a5a07413e5c2ad23233f7f8e9115e64f480b5b33",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-sol-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-20506016bcdfafcc",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "01e1c97dadb69d0b8c0cd38b2224bc07b2a5bf15002e10b66ac907dce4502445",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-sol-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-20506016bcdfafcc",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "902c2739617c0e33b70efd9f91ca2f63aa98532afc0925ed42f1b5d59ed664f1",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-sol-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-20506016bcdfafcc",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "ddc6e93ec06f68b6453300ca4d5c292100dfe69c1520991ef9f3d7a38833f9c0",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-sol-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-20506016bcdfafcc",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "a65d9e530154d8895c9c54bb89b687f1536f5a5304183d4d0638b719ad1558a5",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-sol-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-20506016bcdfafcc",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "03ac510e06830e6d70c3af45cf84d7ade62e74ae43f7e0f66f334f0911f3711d",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-terra-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-32d710f4c697b79e",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "9112c8537079f36845712c42d0490016c70cc9a82002aafd5779a1e96f5f0efc",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-terra-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-32d710f4c697b79e",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "5ac090258c8dcae07c3767f26b832d92353f8e3b38c1b262bff81299e7f3507f",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-terra-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-32d710f4c697b79e",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "eda75885608a70ef013639b7b70f681a51e2e65a3de4aa0f2d5a05afc5847090",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-terra-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-32d710f4c697b79e",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "74791a9fc865559cc503db9b0950fc060244ea95aa3029e5c5d1fa708cf33fee",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-terra-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-32d710f4c697b79e",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "2de04265d01618089c09cbf3b62d6eb3c0069a21224ce70b502ee92a8b3e4969",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-terra-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-38ad1e47d4029361",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "ab004021045ddfb336bd9b4cd83b37529c2ebe68f1ec8f422c805292b256878e",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-terra-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-38ad1e47d4029361",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "c550b17f77edeb460662b199ef48d705591e786626c909f0eff57edf0282c3ac",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-terra-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-38ad1e47d4029361",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "c41b14af7026f10a16a1e1d92b185f79cb47d2ddd55e9ab087a2d4f549f279f8",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-terra-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-38ad1e47d4029361",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "3b8d2b556baac9aa173e6d59f8db57db0a2c0727852540fd4ef09914c9fdfe05",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-terra-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-38ad1e47d4029361",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "3c640d7b94316c7725babbc240c4d31d216a27b49989b5f4dedd2377bb75c94d",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-luna-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-3cf55160a37c4d97",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "3e9df5f2ff76d57364a5675d348e78b6477b2749ba937d591ae40d8e8c82efff",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-luna-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-3cf55160a37c4d97",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "ba07ca70994387b74943b52475854abe06d4b1678bbce66c1ca866c2182f5a85",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-luna-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-3cf55160a37c4d97",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "00989f2b59606859d7bf041606722a098266f1d3899e23f68c5b2010cd2e5a27",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-luna-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-3cf55160a37c4d97",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "279c2bc6f5462b66f93e0069b27f5e1365c1aa07c228fb6cbdf8b1b2c224ce9b",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-claude-code-luna-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-3cf55160a37c4d97",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "bdb8cab85e10fa5796968a63afd928cd925205f24fe76a0d79c084e501f24f84",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-luna-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-4cd40de842672659",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "66c3d5103b8d3989f3c219388b8a7ac2b1ca6303a43e664089c5042955849eba",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-luna-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-4cd40de842672659",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "bafb6081b2706771f83db1825166d7bb32b09a7e7a5bc29bf0b01120c78fc296",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-luna-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-4cd40de842672659",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "6b1189f0d166692fdb02aab078d824143b0d67293ce28cef7ca8fb90fb5e0d13",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-luna-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-4cd40de842672659",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "cafeec51afa47666b231143496c9be362391ea928b3085b2994a4a0ffa97edaf",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-luna-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-4cd40de842672659",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "497cbe5b2196a81d79e4825f3dac190e04a4f2a0a9d4685389f34d3c82c7fdce",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-luna-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-6a1ac7d6e440062e",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "006c8c90c3cdcf8809a5eba4cc257bde5a1b79d02335af7ea5dcda3117da9aa6",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-luna-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-6a1ac7d6e440062e",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "481c6ca8a4905245acd719db0e1c8127ecb8623ba210725ed8fed803e0ea915c",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-luna-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-6a1ac7d6e440062e",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "92701ba7533ca7a3c8029eb11bc19d17b45835905dd0381e1ae66d107d07d7aa",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-luna-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-6a1ac7d6e440062e",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "1b25b33d9e48b5392a82f5d7f70ff6a84f416d99e829985a8ecda2f159c355c7",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-luna-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-6a1ac7d6e440062e",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "3264801da99f7d44c476b0d5c78a05bb2e361071fdc34cc29d4182fcc3159b0a",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-luna-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-a3e00f2907050082",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "90f46632bf9f8ad1ccd3062e4228927203d7d7af270fd21b448ff3f0eec423f8",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-luna-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-a3e00f2907050082",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "a20a7279c2b62de33795e72a8104bd5c631491081a24016f051a21330b5f200d",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-luna-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-a3e00f2907050082",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "4fc6ef9daec6c0962df2aa4002982feb60a1e67cc6435ffd74fe2a6932a14945",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-luna-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-a3e00f2907050082",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "f7d571fa305e0a036665b2027708c8eb12418ec64118e490c1d063bf22feb13b",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-luna-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-a3e00f2907050082",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "a8a600c59607e3538f0d1d62d9e9a2d9d259792db33a614ef2aabad5aedc6562",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-sol-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-bfa43258b68a604d",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "33bd24b5aba4d357f3435e6047108c3b607cb674ce062d8ba7f6ec92fa8a48c5",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-sol-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-bfa43258b68a604d",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "7af5de19d1cbe8a3bda1be589ffd164715055a5117f9dd64586b6d58ec619859",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-sol-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-bfa43258b68a604d",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "1ab38466454cef23ca5db12d81653f4273028190094163f61246849edfca2bd7",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-sol-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-bfa43258b68a604d",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "420b64007548b6bbda72edbe24e5ae1ed292d5fdbd8c042dfff05bcf486ebc35",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-codex-cli-sol-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-bfa43258b68a604d",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "21f58e79559020f327d1f6363a7342f009ac94e379b51c0ae58184acf4e41ebb",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-terra-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-edf2cbfebe103083",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "f01b9276c90b6ba0e4dac41b65c807151925ff46e7c5aee93c84a858cc1fe3c0",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-terra-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-edf2cbfebe103083",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "94041184d2b2a0f49c42fa1fbeb85926716aa6740253facf7fa8505f7b0e8f77",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-terra-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-edf2cbfebe103083",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "4987051eefac0df1701da19266fc35038dad6a9cf7e0e7e5897892f5bfd90955",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-terra-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-edf2cbfebe103083",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "7a4e72ccbc2e74cff60f5017c517e4b2d45f44ae214881ae7dfafc67442d5aee",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-terra-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-edf2cbfebe103083",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "a101e88a8e8f98d0d4b3613c79385665e83f07f796437a8ac1286d161c7ddf64",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-sol-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-ee7b54600f331d20",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "88a9c22917914e3e9c1af1a7ef55cb4c07425af850ae7acc4bf95dfb245be6f5",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-sol-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-ee7b54600f331d20",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "6a0316e3f324d7b7fbbe472007e3ca5ded108fa8a20d330368dfda9bec190808",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-sol-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-ee7b54600f331d20",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "a4071747a92625e7d495f4552e61929c0d6e43a44bdaaef6ac27455c767da156",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-sol-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-ee7b54600f331d20",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "caa6eea8e5dcd23594875b5dd67a6c108a4cda539196f2d67c753728f506b3c6",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-dotagents-mono-sol-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-ee7b54600f331d20",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "657b79a7a71626fc60b41eeef5d2f1a0416dd5fc47596752fff6f224f68c890a",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-sol-01",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-fc6c53cc6222b941",
+      "generationIndex": 1,
+      "repeat": 1,
+      "runKey": "b28a85fec9f5d82b55722082e56b26d05da5c8dec9da8a5dddf5819be14ed0e3",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-sol-02",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-fc6c53cc6222b941",
+      "generationIndex": 2,
+      "repeat": 1,
+      "runKey": "7f926424717b28b15846543ad9bc0c4a8b8c213320cec9c38d13ea4865beff9c",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-sol-03",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-fc6c53cc6222b941",
+      "generationIndex": 3,
+      "repeat": 1,
+      "runKey": "3a80d6be6aa65283b137a37c52f0e83ed3bddc4b97d518e6abf1b4d4118d4963",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-sol-04",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-fc6c53cc6222b941",
+      "generationIndex": 4,
+      "repeat": 1,
+      "runKey": "976fd038ca0c1788304c6ab569493a329fc1c4b97a77c6aeaac99e8169c2c6be",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    },
+    {
+      "artifactId": "terminal-pi-coding-agent-sol-05",
+      "challengeId": "challenge-432352e87000f595",
+      "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+      "comboId": "combo-fc6c53cc6222b941",
+      "generationIndex": 5,
+      "repeat": 1,
+      "runKey": "00b672e0fc0dd9db35a04c1c694550bf3a38333f6b700b5522eb915a941c6b28",
+      "schemaVersion": "agentbattler.terminal-run.v1",
+      "seed": 1
+    }
+  ],
+  "kind": "exhaustive-terminal-combo-schedule",
+  "matrix": {
+    "expectedRuns": 60,
+    "generationsPerCombo": 5,
+    "harnesses": [
+      "claude-code",
+      "codex-cli",
+      "dotagents-mono",
+      "pi-coding-agent"
+    ],
+    "models": [
+      "gpt-5.6-luna",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra"
+    ],
+    "repeats": 1,
+    "seeds": [
+      1
+    ]
+  },
+  "scheduleId": "schedule-c2e451880eb04675",
+  "scheduleSha256": "c2e451880eb046750053fdcd960fd000499514162c932c47e18fbd99d51ee5aa",
+  "schemaVersion": "agentbattler.terminal-schedule.v1"
+}

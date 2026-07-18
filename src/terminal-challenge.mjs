@@ -5,7 +5,7 @@ export const TERMINAL_RUN_SCHEMA = 'agentbattler.terminal-run.v1';
 export const TERMINAL_SCHEDULE_SCHEMA = 'agentbattler.terminal-schedule.v1';
 export const TERMINAL_COMBO_SCHEMA = 'agentbattler.terminal-combo.v1';
 
-const STAGES = Object.freeze([
+const DEFAULT_STAGES = Object.freeze([
   ['append-get', 'Append and get records'],
   ['query', 'Deterministic filtered query'],
   ['export', 'Export the complete ledger'],
@@ -16,7 +16,22 @@ const STAGES = Object.freeze([
   ['performance', 'Final performance and audit pass'],
 ].map(([id, title], index) => Object.freeze({ id, order: index + 1, title, points: 10 })));
 
-export const MINI_LEDGER_STAGE_IDS = Object.freeze(STAGES.map((stage) => stage.id));
+export const MINI_LEDGER_V3_STAGES = Object.freeze([
+  ['foundation', 'Append/get foundation', 6],
+  ['batch', 'Atomic batches and idempotency', 6],
+  ['pagination', 'Deterministic pagination', 6],
+  ['migration', 'Legacy schema migration', 6],
+  ['atomicity', 'Crash-safe writes', 6],
+  ['recovery', 'Interrupted-write recovery', 6],
+  ['concurrency', 'Multi-process concurrency', 6],
+  ['compaction', 'Checksummed compaction', 6],
+  ['roundtrip', 'Export/import round trip', 6],
+  ['replay', 'Replay and integrity', 6],
+  ['audit', 'Full regression audit', 10],
+  ['scale', 'Scale and performance', 10],
+].map(([id, title, points], index) => Object.freeze({ id, order: index + 1, title, points })));
+
+export const MINI_LEDGER_STAGE_IDS = Object.freeze(DEFAULT_STAGES.map((stage) => stage.id));
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -42,11 +57,36 @@ export function createMiniLedgerChallenge({
   holdoutVerifierPath = 'benchmark/challenges/mini-ledger-v1/holdout-verifier.mjs',
   holdoutVerifierSha256,
   maxWallTimeMs = 20 * 60 * 1000,
+  stages = DEFAULT_STAGES,
+  turns = stages.length,
+  holdoutCases = 5,
+  scoring = null,
 } = {}) {
   nonEmpty(promptSha256, 'promptSha256');
   nonEmpty(publicVerifierSha256, 'publicVerifierSha256');
   nonEmpty(holdoutVerifierSha256, 'holdoutVerifierSha256');
   invariant(maxWallTimeMs === null || (Number.isSafeInteger(maxWallTimeMs) && maxWallTimeMs > 0), 'maxWallTimeMs must be null or a positive integer');
+  invariant(Array.isArray(stages) && stages.length > 0, 'stages are required');
+  const normalizedStages = stages.map((stage, index) => Object.freeze({
+    id: nonEmpty(stage.id, `stage[${index}].id`),
+    order: index + 1,
+    title: nonEmpty(stage.title, `stage[${index}].title`),
+    points: stage.points,
+  }));
+  invariant(normalizedStages.every((stage) => Number.isSafeInteger(stage.points) && stage.points > 0), 'stage points must be positive integers');
+  invariant(Number.isSafeInteger(turns) && turns >= normalizedStages.length, 'turns must cover all stages');
+  invariant(Number.isSafeInteger(holdoutCases) && holdoutCases > 0, 'holdoutCases must be positive');
+  const visibleStagePoints = normalizedStages.reduce((total, stage) => total + stage.points, 0);
+  const score = scoring ?? {
+    visibleStagePoints,
+    holdoutPoints: 20,
+    maxPoints: visibleStagePoints + 20,
+    tieTolerancePoints: 1,
+    regressionPenalty: 0,
+    infrastructureInvalid: true,
+  };
+  invariant(score.visibleStagePoints === visibleStagePoints, 'visibleStagePoints must equal stage points');
+  invariant(score.visibleStagePoints + score.holdoutPoints === score.maxPoints, 'terminal scoring must sum to maxPoints');
   return seal('challenge', {
     schemaVersion: TERMINAL_CHALLENGE_SCHEMA,
     kind: 'long-horizon-terminal-task',
@@ -55,10 +95,10 @@ export function createMiniLedgerChallenge({
     prompt: { path: promptPath, sha256: promptSha256 },
     verifiers: {
       public: { path: publicVerifierPath, sha256: publicVerifierSha256 },
-      holdout: { path: holdoutVerifierPath, sha256: holdoutVerifierSha256, cases: 5 },
+      holdout: { path: holdoutVerifierPath, sha256: holdoutVerifierSha256, cases: holdoutCases },
     },
     protocol: {
-      turns: 8,
+      turns,
       sameWorkspace: true,
       sameSession: true,
       maxWallTimeMs,
@@ -66,15 +106,8 @@ export function createMiniLedgerChallenge({
       network: 'disabled',
       humanIntervention: 'invalidates-run',
     },
-    stages: STAGES,
-    scoring: {
-      visibleStagePoints: 80,
-      holdoutPoints: 20,
-      maxPoints: 100,
-      tieTolerancePoints: 1,
-      regressionPenalty: 0,
-      infrastructureInvalid: true,
-    },
+    stages: normalizedStages,
+    scoring: score,
     fairness: {
       exhaustiveMatrixRequired: true,
       generationIndexIsArtifact: true,
@@ -92,8 +125,11 @@ export function validateMiniLedgerChallenge(challenge) {
   invariant(challengeSha256 === actual, 'Terminal challenge hash mismatch');
   invariant(challengeId === `challenge-${actual.slice(0, 16)}`, 'Terminal challenge ID mismatch');
   invariant(/^terminal-mini-ledger-v\d+$/.test(challenge.id), 'Unexpected terminal challenge ID');
-  invariant(challenge.stages.length === STAGES.length, 'Terminal challenge stage count changed');
-  invariant(JSON.stringify(challenge.stages.map((stage) => stage.id)) === JSON.stringify(MINI_LEDGER_STAGE_IDS), 'Terminal challenge stage order changed');
+  invariant(challenge.stages.length > 0, 'Terminal challenge stage count is invalid');
+  invariant(challenge.stages.every((stage, index) => stage.order === index + 1 && Number.isSafeInteger(stage.points) && stage.points > 0), 'Terminal challenge stage metadata changed');
+  invariant(challenge.protocol.turns >= challenge.stages.length, 'Terminal challenge turns do not cover stages');
+  invariant(challenge.scoring.visibleStagePoints === challenge.stages.reduce((total, stage) => total + stage.points, 0), 'Terminal challenge visible scoring mismatch');
+  invariant(Number.isSafeInteger(challenge.verifiers.holdout.cases) && challenge.verifiers.holdout.cases > 0, 'Terminal holdout case count is invalid');
   return challenge;
 }
 

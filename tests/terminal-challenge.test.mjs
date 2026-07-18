@@ -6,6 +6,7 @@ import {
   computeTerminalElo,
   createExhaustiveTerminalSchedule,
   createMiniLedgerChallenge,
+  MINI_LEDGER_V3_STAGES,
   scoreTerminalRun,
   terminalComboForAgent,
   validateTerminalChallenge,
@@ -39,6 +40,22 @@ test('mini-ledger challenge is sealed and validates', () => {
 test('challenge validation accepts the corrected v2 challenge identity', () => {
   const v2 = createMiniLedgerChallenge({ challengeId: 'terminal-mini-ledger-v2', title: 'Mini Ledger v2', promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64) });
   assert.equal(validateTerminalChallenge(v2), v2);
+});
+
+test('challenge supports the harder v3 stage and turn contract', () => {
+  const v3 = createMiniLedgerChallenge({
+    challengeId: 'terminal-mini-ledger-v3',
+    title: 'Mini Ledger v3',
+    stages: MINI_LEDGER_V3_STAGES,
+    turns: 12,
+    promptSha256: HASH,
+    publicVerifierSha256: 'b'.repeat(64),
+    holdoutVerifierSha256: 'c'.repeat(64),
+  });
+  assert.equal(v3.protocol.turns, 12);
+  assert.equal(v3.stages.length, 12);
+  assert.equal(v3.scoring.visibleStagePoints, 80);
+  assert.equal(validateTerminalChallenge(v3), v3);
 });
 
 test('challenge can seal an unbounded turn policy', () => {

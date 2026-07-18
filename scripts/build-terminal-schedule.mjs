@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   createExhaustiveTerminalSchedule,
   createMiniLedgerChallenge,
+  MINI_LEDGER_V3_STAGES,
   validateTerminalSchedule,
 } from '../src/terminal-challenge.mjs';
 import { canonicalJson, sha256File } from '../src/provenance.mjs';
@@ -33,7 +34,18 @@ const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = aw
   sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')),
   readFile(manifestPath, 'utf8').then(JSON.parse),
 ]);
-const challenge = createMiniLedgerChallenge({ challengeId, title: `Mini Ledger ${challengeVersion}`, promptPath: `benchmark/challenges/mini-ledger-${challengeVersion}.md`, publicVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/public-verifier.mjs`, holdoutVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/holdout-verifier.mjs`, promptSha256, publicVerifierSha256, holdoutVerifierSha256, ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }) });
+const challenge = createMiniLedgerChallenge({
+  challengeId,
+  title: `Mini Ledger ${challengeVersion}`,
+  promptPath: `benchmark/challenges/mini-ledger-${challengeVersion}.md`,
+  publicVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/public-verifier.mjs`,
+  holdoutVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/holdout-verifier.mjs`,
+  promptSha256,
+  publicVerifierSha256,
+  holdoutVerifierSha256,
+  ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
+  ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
+});
 const expectedHarnesses = manifest.comparison?.harnesses ?? [...new Set(manifest.agents.map((agent) => agent.provenance.harness))];
 const expectedModels = manifest.comparison?.models ?? [...new Set(manifest.agents.map((agent) => agent.provenance.modelRequested))];
 const generationsPerCombo = manifest.comparison?.generationsPerHarnessModel ?? Math.max(...manifest.agents.map((agent) => agent.generationIndex ?? agent.provenance.generationIndex ?? 0));

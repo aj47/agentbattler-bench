@@ -6,9 +6,7 @@ import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v2/holdout-verifier.mjs';
-import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v2/public-verifier.mjs';
-import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
+import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
   DOTAGENTS_COMMIT,
   DOTAGENTS_IMAGE,
@@ -23,6 +21,7 @@ import { canonicalJson } from '../src/provenance.mjs';
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
 const IMAGE = process.env.AGENTBATTLER_DOTAGENTS_IMAGE ?? DOTAGENTS_IMAGE;
 export const harnesses = ['dotagents-mono'];
+const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
@@ -128,7 +127,7 @@ async function stopContainer(container) {
   if (!container.state.closed) container.child.kill('SIGKILL');
 }
 
-export async function runTerminalJob({ job, runDirectory }) {
+export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === 'dotagents-mono', `DotAgents adapter received ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const container = await startContainer(runDirectory, job);
@@ -136,9 +135,9 @@ export async function runTerminalJob({ job, runDirectory }) {
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   const runStartedAt = new Date().toISOString(); let conversationId = null; let toolCalls = 0;
   try {
-    for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
+    for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
-      const result = await streamTurn({ port: container.port, apiKey: container.apiKey, prompt: MINI_LEDGER_TURN_PROMPTS[index], conversationId, timeoutMs: job.maxWallTimeMs });
+      const result = await streamTurn({ port: container.port, apiKey: container.apiKey, prompt: prompts[index], conversationId, timeoutMs: job.maxWallTimeMs });
       await writeFile(path.join(runDirectory, `turn-${index + 1}.jsonl`), `${result.events.map((event) => canonicalJson(event)).join('\n')}\n`);
       const telemetry = summarizeDotAgentsTrace(result.events, job.model);
       invariant(telemetry.conversationId, `DotAgents turn ${index + 1} emitted no conversation ID`);
@@ -149,11 +148,11 @@ export async function runTerminalJob({ job, runDirectory }) {
       usage.cachedInputTokens += telemetry.sessionCost?.cacheReadTokens ?? 0;
       usage.outputTokens += telemetry.sessionCost?.outputTokens ?? 0;
       usage.reasoningTokens += telemetry.sessionCost?.reasoningTokens ?? 0;
-      const stage = await verifyPublicStage({ workspace: container.workspace, stageId: ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index] });
+      const stage = await publicVerifier.verifyPublicStage({ workspace: container.workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
       stages.push({ ...stage, id: stage.id ?? stage.stageId });
       turns.push({ index: index + 1, sessionId: telemetry.conversationId, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry.sessionCost ?? {} });
     }
-    const holdout = await verifyHoldout({ workspace: container.workspace });
+    const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
     return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT } };

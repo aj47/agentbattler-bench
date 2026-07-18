@@ -6,14 +6,13 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v2/holdout-verifier.mjs';
-import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v2/public-verifier.mjs';
-import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
+import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 
 const CLAUDE_VERSION = process.env.AGENTBATTLER_CLAUDE_VERSION ?? '2.1.211';
 const REASONING = 'high';
 const ADAPTER_BINARY = process.env.AGENTBATTLER_CLAUDE_ADAPTER_BIN;
 export const harnesses = ['claude-code'];
+const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
@@ -152,7 +151,7 @@ function claudeArgs({ model, sessionId, prompt }) {
   ];
 }
 
-export async function runTerminalJob({ job, runDirectory }) {
+export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === 'claude-code', `Claude adapter received ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const workspace = path.join(runDirectory, 'workspace'); await mkdir(workspace, { recursive: true, mode: 0o700 });
@@ -161,10 +160,10 @@ export async function runTerminalJob({ job, runDirectory }) {
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   const runStartedAt = new Date().toISOString(); let sessionId = null; let toolCalls = 0;
   try {
-    for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
+    for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
       const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`); const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
-      const result = await runClaude({ args: claudeArgs({ model: job.model, sessionId, prompt: MINI_LEDGER_TURN_PROMPTS[index] }), cwd: workspace, env: gateway.env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
+      const result = await runClaude({ args: claudeArgs({ model: job.model, sessionId, prompt: prompts[index] }), cwd: workspace, env: gateway.env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
       invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Claude turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);
       const telemetry = summarize(result.events, job.model);
       invariant(telemetry.sessionId, `Claude turn ${index + 1} emitted no session ID`);
@@ -172,11 +171,11 @@ export async function runTerminalJob({ job, runDirectory }) {
       invariant(telemetry.sessionId === sessionId, `Claude session changed on turn ${index + 1}`);
       sessionIds.push(telemetry.sessionId); toolCalls += telemetry.toolCallCount;
       for (const key of ['inputTokens', 'cachedInputTokens', 'outputTokens', 'reasoningTokens']) usage[key] += telemetry[key];
-      const stage = await verifyPublicStage({ workspace, stageId: ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index] });
+      const stage = await publicVerifier.verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
       stages.push({ ...stage, id: stage.id ?? stage.stageId });
       turns.push({ index: index + 1, sessionId: telemetry.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry });
     }
-    const holdout = await verifyHoldout({ workspace });
+    const holdout = await holdoutVerifier.verifyHoldout({ workspace });
     return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
   } finally {
     await stopGateway(gateway);

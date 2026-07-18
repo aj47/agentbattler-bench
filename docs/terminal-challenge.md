@@ -4,7 +4,7 @@ The chess lane remains the original head-to-head game benchmark. The long-runnin
 terminal lane is a separate, versioned experiment so a coding-task score cannot be
 mistaken for a chess win or silently change existing ratings.
 
-The active challenge is [`benchmark/challenges/mini-ledger-v2.md`](../benchmark/challenges/mini-ledger-v2.md).
+The active baseline challenge is [`benchmark/challenges/mini-ledger-v2.md`](../benchmark/challenges/mini-ledger-v2.md).
 Its sealed manifest binds the prompt, public verifier, holdout verifier, protocol, stage
 weights, resource limits, and exhaustive combo matrix. A run is valid only when the same
 session and workspace survive all eight turns, all verifier events have terminal status,
@@ -63,3 +63,21 @@ the process; it still records per-turn and whole-run wall time. The active v2 sc
 must not be regenerated during an existing run. The v1 evidence is retained only as
 withdrawn diagnostic history because its verifier contradicted its prompt; it is not
 eligible for ratings.
+
+## Mini Ledger v3
+
+`terminal-mini-ledger-v3` is the harder follow-on challenge. It keeps the same exhaustive
+four-harness × three-model × five-generation matrix, but expands the task to twelve
+interacting turns: idempotent batches, migration, crash recovery, multi-process locking,
+checksummed compaction, replay, round trips, and a 2,000-event scale audit. It has its own
+sealed result root and does not mix with v2 ratings.
+
+Build and inspect its schedule with:
+
+```sh
+npm run terminal:matrix:v3
+npm run terminal:verify:v3 -- --allow-incomplete
+```
+
+Run it through all adapters with `npm run terminal:run:v3`. The v3 verifier uses fixed
+correctness bands and seeded hidden cases; it does not rank machines by raw wall-clock speed.

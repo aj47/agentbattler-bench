@@ -19,6 +19,18 @@ npm run terminal:run:all
 npm run terminal:verify -- --allow-incomplete
 ```
 
+The harder follow-on challenge is available independently as `terminal-mini-ledger-v3`:
+
+```sh
+npm run terminal:matrix:v3
+npm run terminal:run:v3
+npm run terminal:verify:v3 -- --allow-incomplete
+```
+
+V3 adds interacting requirements for idempotency, migration, crash recovery, concurrency,
+checksummed compaction, replay, and a 2,000-event audit. Its scores are sealed separately
+from the v2 baseline until calibration is complete.
+
 The matrix is scheduled before any model run. The runner persists one result atomically
 per scheduled `runKey`, skips completed work on restart, and records infrastructure-invalid
 adapter failures instead of turning them into agent scores. Each harness must be supplied

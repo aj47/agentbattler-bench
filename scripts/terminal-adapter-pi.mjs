@@ -4,8 +4,7 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v2/holdout-verifier.mjs';
-import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v2/public-verifier.mjs';
+import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
   buildPiDockerArgs,
   parsePiEventStream,
@@ -14,7 +13,7 @@ import {
   piSubscriptionAuthFromCodex,
   validateNativePiSession,
 } from '../src/pi-harness.mjs';
-import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
+const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
 const PI_SESSION_CONTAINER_PATH = '/pi-home/sessions/terminal-session.jsonl';
@@ -71,7 +70,7 @@ function isolatedEnv(piHome) {
   };
 }
 
-export async function runTerminalJob({ job, runDirectory }) {
+export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === 'pi-coding-agent', `Pi adapter received ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const workspace = path.join(runDirectory, 'workspace');
@@ -85,8 +84,8 @@ export async function runTerminalJob({ job, runDirectory }) {
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   let toolCalls = 0;
 
-  for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
-    const prompt = MINI_LEDGER_TURN_PROMPTS[index];
+  for (let index = 0; index < prompts.length; index += 1) {
+    const prompt = prompts[index];
     const startedAt = new Date().toISOString(); const startedClock = Date.now();
     const args = buildPiDockerArgs({
       image: PI_IMAGE_OVERRIDE,
@@ -106,15 +105,15 @@ export async function runTerminalJob({ job, runDirectory }) {
     invariant(stream.sessionId, `Pi turn ${index + 1} emitted no session ID`);
     sessionIds.push(stream.sessionId); toolCalls += stream.toolCallCount;
     usage.inputTokens += stream.inputTokens; usage.cachedInputTokens += stream.cacheReadTokens; usage.outputTokens += stream.outputTokens;
-    const stageId = ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index];
-    stages.push(await verifyPublicStage({ workspace, stageId }));
+    const stageId = job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id;
+    stages.push(await publicVerifier.verifyPublicStage({ workspace, stageId }));
     turns.push({ index: index + 1, sessionId: stream.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: { inputTokens: stream.inputTokens, cachedInputTokens: stream.cacheReadTokens, outputTokens: stream.outputTokens, totalTokens: stream.totalTokens } });
   }
 
   const nativeSession = await readFile(sessionHostPath, 'utf8');
   const session = validateNativePiSession(nativeSession, { sessionId: sessionIds[0], model: job.model });
   invariant(sessionIds.every((sessionId) => sessionId === sessionIds[0]), 'Pi session changed across turns');
-  const holdout = await verifyHoldout({ workspace });
+  const holdout = await holdoutVerifier.verifyHoldout({ workspace });
   return {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',

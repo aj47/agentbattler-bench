@@ -4,13 +4,12 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v2/holdout-verifier.mjs';
-import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v2/public-verifier.mjs';
-import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
+import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 
 const CODEX_VERSION = '0.144.0';
 const REASONING = 'high';
 export const harnesses = ['codex-cli'];
+const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
@@ -65,7 +64,7 @@ async function prepareHome(runDirectory) {
   return home;
 }
 
-export async function runTerminalJob({ job, runDirectory }) {
+export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === undefined || job.harness === 'codex-cli', 'Codex adapter received a non-Codex job');
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const workspace = path.join(runDirectory, 'workspace'); await mkdir(workspace, { recursive: true });
@@ -74,8 +73,8 @@ export async function runTerminalJob({ job, runDirectory }) {
   const timeoutMs = job.maxWallTimeMs ?? null;
   const stages = []; const sessionIds = []; const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   let sessionId = null; let toolCalls = 0; const turns = [];
-  for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
-    const prompt = MINI_LEDGER_TURN_PROMPTS[index];
+  for (let index = 0; index < prompts.length; index += 1) {
+    const prompt = prompts[index];
     const turnStartedAt = new Date().toISOString();
     const turnStartedClock = Date.now();
     const common = ['--model', job.model ?? job.modelRequested, '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(REASONING)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}'];
@@ -96,10 +95,10 @@ export async function runTerminalJob({ job, runDirectory }) {
     invariant(result.events.some((event) => event.type === 'turn.completed'), `Codex turn ${index + 1} emitted no turn.completed event`);
     sessionIds.push(observedSession); toolCalls += result.events.filter((event) => event.type === 'item.started' && !['agent_message', 'reasoning'].includes(event.item?.type)).length;
     const u = usageFor(result.events); for (const [source, target] of [['input_tokens', 'inputTokens'], ['cached_input_tokens', 'cachedInputTokens'], ['output_tokens', 'outputTokens'], ['reasoning_output_tokens', 'reasoningTokens']]) usage[target] += Number.isFinite(u[source]) ? u[source] : 0;
-    const stage = await verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index] });
+    const stage = await publicVerifier.verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
     turns.push({ index: index + 1, sessionId: observedSession, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt: turnStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - turnStartedClock, usage: u });
     stages.push({ ...stage, id: stage.id ?? stage.stageId });
   }
-  const holdout = await verifyHoldout({ workspace });
+  const holdout = await holdoutVerifier.verifyHoldout({ workspace });
   return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'codex-cli', harnessVersion: CODEX_VERSION, model: job.model ?? job.modelRequested, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
 }

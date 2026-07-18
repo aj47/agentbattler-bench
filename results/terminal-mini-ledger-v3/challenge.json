@@ -1,0 +1,139 @@
+{
+  "challengeId": "challenge-432352e87000f595",
+  "challengeSha256": "432352e87000f5950e8226428bc4c6fd4fb09560e2a99d6e7c60479ef87b09fd",
+  "fairness": {
+    "comparableFields": [
+      "promptSha256",
+      "verifiers",
+      "protocol",
+      "reasoningEffort",
+      "generationSettings"
+    ],
+    "exhaustiveMatrixRequired": true,
+    "generationIndexIsArtifact": true,
+    "publish": [
+      "challenge",
+      "schedule",
+      "manifests",
+      "run-results",
+      "pairwise-comparisons",
+      "checksums"
+    ],
+    "redact": [
+      "credentials",
+      "hostPaths",
+      "privateTraces",
+      "unrelatedFiles"
+    ]
+  },
+  "id": "terminal-mini-ledger-v3",
+  "kind": "long-horizon-terminal-task",
+  "prompt": {
+    "path": "benchmark/challenges/mini-ledger-v3.md",
+    "sha256": "6d3e91d15232c3e2a175b4590ef22c9b6a6ba81bd2195317b887ce1a5caad912"
+  },
+  "protocol": {
+    "humanIntervention": "invalidates-run",
+    "maxWallTimeMs": 1200000,
+    "maxWorkspaceBytes": 52428800,
+    "network": "disabled",
+    "sameSession": true,
+    "sameWorkspace": true,
+    "turns": 12
+  },
+  "schemaVersion": "agentbattler.terminal-challenge.v1",
+  "scoring": {
+    "holdoutPoints": 20,
+    "infrastructureInvalid": true,
+    "maxPoints": 100,
+    "regressionPenalty": 0,
+    "tieTolerancePoints": 1,
+    "visibleStagePoints": 80
+  },
+  "stages": [
+    {
+      "id": "foundation",
+      "order": 1,
+      "points": 6,
+      "title": "Append/get foundation"
+    },
+    {
+      "id": "batch",
+      "order": 2,
+      "points": 6,
+      "title": "Atomic batches and idempotency"
+    },
+    {
+      "id": "pagination",
+      "order": 3,
+      "points": 6,
+      "title": "Deterministic pagination"
+    },
+    {
+      "id": "migration",
+      "order": 4,
+      "points": 6,
+      "title": "Legacy schema migration"
+    },
+    {
+      "id": "atomicity",
+      "order": 5,
+      "points": 6,
+      "title": "Crash-safe writes"
+    },
+    {
+      "id": "recovery",
+      "order": 6,
+      "points": 6,
+      "title": "Interrupted-write recovery"
+    },
+    {
+      "id": "concurrency",
+      "order": 7,
+      "points": 6,
+      "title": "Multi-process concurrency"
+    },
+    {
+      "id": "compaction",
+      "order": 8,
+      "points": 6,
+      "title": "Checksummed compaction"
+    },
+    {
+      "id": "roundtrip",
+      "order": 9,
+      "points": 6,
+      "title": "Export/import round trip"
+    },
+    {
+      "id": "replay",
+      "order": 10,
+      "points": 6,
+      "title": "Replay and integrity"
+    },
+    {
+      "id": "audit",
+      "order": 11,
+      "points": 10,
+      "title": "Full regression audit"
+    },
+    {
+      "id": "scale",
+      "order": 12,
+      "points": 10,
+      "title": "Scale and performance"
+    }
+  ],
+  "title": "Mini Ledger v3",
+  "verifiers": {
+    "holdout": {
+      "cases": 5,
+      "path": "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs",
+      "sha256": "0ef6cb1c85fd10a4ecfa9286928517c7be79c06562b36d546f4b1ac837481e0d"
+    },
+    "public": {
+      "path": "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+      "sha256": "ac02f029e6e9de8ce4e6fe117f54d9aad5e0026da49b4291775e1ba2e8f8ac04"
+    }
+  }
+}

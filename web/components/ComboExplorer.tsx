@@ -8,17 +8,17 @@ import styles from './ComboExplorer.module.css';
 type SortKey = 'score' | 'tokens' | 'duration' | 'price' | 'agents';
 
 function formatInteger(value: number | null, suffix = '') {
-  return value === null ? 'not published' : `${new Intl.NumberFormat('en-US').format(Math.round(value))}${suffix}`;
+  return value === null ? '—' : `${new Intl.NumberFormat('en-US').format(Math.round(value))}${suffix}`;
 }
 
 function formatDuration(value: number | null) {
-  if (value === null) return 'not published';
+  if (value === null) return '—';
   if (value < 1000) return `${Math.round(value)} ms`;
   return `${(value / 1000).toFixed(1)} s`;
 }
 
 function formatPrice(value: number | null) {
-  if (value === null) return 'not published';
+  if (value === null) return '—';
   return `$${value.toFixed(value < 0.01 ? 4 : 2)}`;
 }
 
@@ -114,10 +114,10 @@ export function ComboExplorer({ rows }: { rows: ComboRow[] }) {
                   <tr className={`${styles.row} ${styles[row.tone]} ${selected?.id === row.id ? styles.selected : ''}`} key={row.id}>
                     <td><button className={styles.identity} onClick={() => setSelectedId(row.id)} aria-pressed={selected?.id === row.id}><span className={styles.comboMark} aria-hidden="true" /><span><strong>{row.harnessDisplayName} <small>v{row.harnessVersion}</small></strong><b>{row.familyDisplayName}</b><em>{row.model}</em></span><span className={styles.open}>inspect →</span></button></td>
                     <td><div className={styles.scoreCell}><strong>{score(row.scorePct)}</strong><span>{row.wins}–{row.draws}–{row.losses} · {row.gamesPerAgent} games / agent</span></div></td>
-                    <td><strong className={styles.dataValue}>{formatPrice(row.telemetry.avgPricePerTurnUsd)}</strong><span className={styles.dataUnit}>{row.telemetry.avgPricePerTurnUsd === null ? 'billing not recorded' : 'USD / turn'}</span></td>
-                    <td><strong className={styles.dataValue}>{formatInteger(row.telemetry.avgTokensPerTurn)}</strong><span className={styles.dataUnit}>{row.telemetry.avgTokensPerTurn === null ? 'tokens not published' : 'tokens / turn'}</span></td>
-                    <td><strong className={styles.dataValue}>{formatDuration(row.telemetry.avgDurationPerTurnMs)}</strong><span className={styles.dataUnit}>{row.telemetry.avgDurationPerTurnMs === null ? 'duration not published' : 'wall time / turn'}</span></td>
-                    <td><span className={`${styles.coverage} ${row.telemetry.available ? styles.coverageGood : ''}`}>{row.telemetry.available ? `${row.telemetry.availableAgents}/${row.agents.length} agents` : 'not published'}</span><span className={styles.dataUnit}>{row.telemetry.avgTurnsPerAgent === null ? '—' : `${row.telemetry.avgTurnsPerAgent.toFixed(1)} turns / agent`}</span></td>
+                    <td><div className={styles.metricCell}><strong className={styles.dataValue}>{formatPrice(row.telemetry.avgPricePerTurnUsd)}</strong><span className={styles.dataUnit}>{row.telemetry.avgPricePerTurnUsd === null ? 'not published' : 'USD / turn'}</span></div></td>
+                    <td><div className={styles.metricCell}><strong className={styles.dataValue}>{formatInteger(row.telemetry.avgTokensPerTurn)}</strong><span className={styles.dataUnit}>{row.telemetry.avgTokensPerTurn === null ? 'not published' : 'tokens / turn'}</span></div></td>
+                    <td><div className={styles.metricCell}><strong className={styles.dataValue}>{formatDuration(row.telemetry.avgDurationPerTurnMs)}</strong><span className={styles.dataUnit}>{row.telemetry.avgDurationPerTurnMs === null ? 'not published' : 'wall time / turn'}</span></div></td>
+                    <td><div className={styles.metricCell}><span className={`${styles.coverage} ${row.telemetry.available ? styles.coverageGood : ''}`}>{row.telemetry.available ? `${row.telemetry.availableAgents}/${row.agents.length} agents` : 'not published'}</span><span className={styles.dataUnit}>{row.telemetry.avgTurnsPerAgent === null ? 'no turn data' : `${row.telemetry.avgTurnsPerAgent.toFixed(1)} turns / agent`}</span></div></td>
                   </tr>
                 ))}
               </tbody>

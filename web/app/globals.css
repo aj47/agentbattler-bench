@@ -289,7 +289,9 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
 @media (max-width: 640px) {
   .shell, .header-inner, .site-footer { width: min(100% - 28px, 1180px); }
   .header-inner { height: 54px; }
-  .nav-links { gap: 16px; }
+  .brand > span:last-child { display: none; }
+  .nav-links { gap: 10px; font-size: 10px; }
+  .nav-links a:nth-child(3) { display: none; }
   .nav-links a:last-child { display: none; }
   .hero { padding-top: 54px; }
   .hero-grid { padding-top: 27px; padding-bottom: 45px; }

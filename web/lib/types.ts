@@ -255,6 +255,43 @@ export type SiteData = {
   matches: Match[];
   latestDecisiveId: string | null;
   dotAgentsPlacement?: DotAgentsPlacement;
+  terminalChallenge?: TerminalChallengeLane | null;
+};
+
+export type TerminalChallengeLane = {
+  id: string;
+  title: string;
+  challengeId: string;
+  challengeSha256: string;
+  scheduleId: string;
+  scheduleSha256: string;
+  matrix: {
+    harnesses: string[];
+    models: string[];
+    generationsPerCombo: number;
+    repeats: number;
+    seeds: number[];
+    expectedRuns: number;
+  };
+  coverage: Array<{
+    comboId: string;
+    harness: string;
+    harnessVersion: string;
+    model: string;
+    generations: number;
+  }>;
+  expectedRuns: number;
+  completedRuns: number;
+  missingRuns: number;
+  invalidRuns: number;
+  scoring: {
+    maxPoints: number;
+    visibleStagePoints: number;
+    holdoutPoints: number;
+    tieTolerancePoints: number;
+  };
+  standings: Array<{ rank: number; comboId: string | null; scorePoints: number; rating: number }>;
+  status: 'scheduled' | 'complete';
 };
 
 export type HarnessRecord = {

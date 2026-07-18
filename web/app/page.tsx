@@ -11,6 +11,7 @@ export default function HomePage() {
   const fullLeagueAgents = agents.filter((agent) => agent.harness !== 'dotagents-mono');
   const hasPlacement = Boolean(siteData.dotAgentsPlacement);
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
+  const harnessSummary = siteData.harnesses.map((harness) => `${harness.displayName} v${harness.harnessVersion}`).join(' · ');
 
   return (
     <main>
@@ -37,7 +38,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="metrics-strip">
-          <Metric label="agent harnesses" value={benchmark.totals.harnesses} detail={hasPlacement ? 'Codex CLI · Pi · Claude Code · DotAgents' : 'Codex CLI · Pi · Claude Code'} />
+          <Metric label="agent harnesses" value={benchmark.totals.harnesses} detail={harnessSummary} />
           <Metric label="generated engines" value={benchmark.totals.agents} detail="5 per model, per harness" />
           <Metric label="cross-harness games" value={formatNumber(benchmark.totals.crossHarnessMatches)} detail={`${harnessModelEntrants.length} harness × model entrants`} />
           <Metric label="generation tokens" value={formatNumber(benchmark.totals.generationTokens)} detail={`${benchmark.totals.generationToolCalls} tool calls · ${benchmark.totals.generationMcpCalls} MCP`} />
@@ -47,13 +48,29 @@ export default function HomePage() {
       <section className="notice-band">
         <div className="shell notice-inner">
           <strong>Exploratory harness suite</strong>
-          <p>All {benchmark.totals.agents} engines used the same prompt and requested high reasoning. The leaderboard compares same-model games across all four harnesses and shows each combo’s schedule size; independent Harbor reproduction is not claimed.</p>
+          <p>All {benchmark.totals.agents} engines used the same prompt and requested high reasoning. The leaderboard compares same-model games across {benchmark.totals.harnesses} harnesses — {harnessSummary} — and shows each combo’s schedule size; independent Harbor reproduction is not claimed.</p>
           <Link href="/methodology/#verification">verification levels →</Link>
         </div>
       </section>
 
       <div className="shell home-stack">
         <HarnessModelLeaderboard entrants={harnessModelEntrants} />
+
+        {siteData.terminalChallenge ? (
+          <section className="terminal-challenge-card" aria-labelledby="terminal-challenge-title">
+            <div>
+              <span className="eyebrow">long-horizon terminal lane</span>
+              <h2 id="terminal-challenge-title">{siteData.terminalChallenge.title}</h2>
+              <p>One continuous workspace and session across eight turns. The schedule covers every {siteData.terminalChallenge.matrix.harnesses.length} harnesses × {siteData.terminalChallenge.matrix.models.length} models × {siteData.terminalChallenge.matrix.generationsPerCombo} generations.</p>
+            </div>
+            <dl>
+              <div><dt>runs</dt><dd>{siteData.terminalChallenge.completedRuns}/{siteData.terminalChallenge.expectedRuns}</dd></div>
+              <div><dt>challenge</dt><dd>{siteData.terminalChallenge.challengeId.slice(0, 23)}</dd></div>
+              <div><dt>status</dt><dd>{siteData.terminalChallenge.status}</dd></div>
+            </dl>
+            <Link href="/methodology/#terminal">read the terminal protocol →</Link>
+          </section>
+        ) : null}
 
         <Leaderboard agents={fullLeagueAgents} title={`All ${fullLeagueAgents.length} full-league generated engines`} />
 
@@ -82,7 +99,7 @@ export default function HomePage() {
             <div><span className="eyebrow">evidence chain</span><h2 id="pipeline-title">From prompt to public result</h2></div>
           </div>
           <ol>
-            <li><span>01</span><strong>Generate</strong><p>Isolated Codex CLI, Pi, and Claude Code harnesses each write executable chess agents.</p></li>
+            <li><span>01</span><strong>Generate</strong><p>Isolated {harnessSummary} harnesses each write executable chess agents.</p></li>
             <li><span>02</span><strong>Probe</strong><p>Known positions catch malformed output before competition.</p></li>
             <li><span>03</span><strong>Battle</strong><p>Deterministic positions, colors, seeds, and move limits are recorded.</p></li>
             <li><span>04</span><strong>Publish</strong><p>Source hashes, telemetry, standings, and replay traces travel together.</p></li>

@@ -6,6 +6,27 @@ Raw generation traces and tournament result bodies are not stored in Git history
 
 AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
 
+The long-horizon terminal lane is separate from chess. `terminal-mini-ledger-v1` gives one
+isolated workspace and one continuous session eight staged maintenance turns. Its sealed
+schedule covers every declared harness × model × generation combination; it uses an
+objective 0–100 score and publishes the pairwise score comparisons used for provisional
+Elo. Build and inspect the exhaustive 60-run matrix locally with:
+
+```sh
+npm run terminal:matrix
+npm run terminal:run -- --adapter scripts/terminal-adapter-codex.mjs --harness codex-cli
+npm run terminal:verify -- --allow-incomplete
+```
+
+The matrix is scheduled before any model run. The runner persists one result atomically
+per scheduled `runKey`, skips completed work on restart, and records infrastructure-invalid
+adapter failures instead of turning them into agent scores. Each harness must be supplied
+through an explicit adapter; the Codex adapter above is the native M4 path. Missing runs
+and infrastructure-invalid runs remain visible and never become silent losses or wins.
+See [docs/terminal-challenge.md](docs/terminal-challenge.md)
+and [benchmark/challenges/mini-ledger-v1.md](benchmark/challenges/mini-ledger-v1.md) for the
+full contract and scoring rules.
+
 The default runner roster remains an intentionally small fixture set: one human reference and two clearly labeled, hand-authored non-reference fixtures. The public generated suites use separate manifests under `agents/model-suite/`, `agents/pi-model-suite/`, and `agents/harness-suite/`. See [PRD.md](PRD.md) for the product boundary and each manifest for exact provenance.
 
 ## Run locally

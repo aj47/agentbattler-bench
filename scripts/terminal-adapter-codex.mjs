@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+import { chmod, mkdir, mkdtemp, readFile, writeFile, copyFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
+
+import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v1/holdout-verifier.mjs';
+import { verifyPublicStage } from '../benchmark/challenges/mini-ledger-v1/public-verifier.mjs';
+import { MINI_LEDGER_TURN_PROMPTS } from '../src/terminal-prompts.mjs';
+
+const CODEX_VERSION = '0.144.0';
+const REASONING = 'high';
+export const harnesses = ['codex-cli'];
+
+function invariant(condition, message) { if (!condition) throw new Error(message); }
+
+function isolatedEnv(home) {
+  const keep = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL', 'NO_COLOR'];
+  return {
+    ...Object.fromEntries(keep.flatMap((key) => typeof process.env[key] === 'string' ? [[key, process.env[key]]] : [])),
+    HOME: home, CODEX_HOME: home, CODEX_SQLITE_HOME: home,
+    XDG_CONFIG_HOME: path.join(home, 'xdg-config'), XDG_DATA_HOME: path.join(home, 'xdg-data'),
+    XDG_CACHE_HOME: path.join(home, 'xdg-cache'), TMPDIR: path.join(home, 'tmp'), CODEX_NON_INTERACTIVE: '1',
+  };
+}
+
+function parseEvents(stdout) {
+  return stdout.split(/\r?\n/).filter(Boolean).map((line, index) => {
+    try { return JSON.parse(line); } catch (error) { throw new Error(`Codex JSONL parse failed on line ${index + 1}: ${error.message}`); }
+  });
+}
+
+function usageFor(events) {
+  return [...events].reverse().find((event) => event.type === 'turn.completed')?.usage ?? {};
+}
+
+function runCodex({ args, prompt, cwd, env, outputPath, errorPath }) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('codex', args, { cwd, env, shell: false, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    const stdout = []; const stderr = []; let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try { process.kill(-child.pid, 'SIGTERM'); } catch { child.kill('SIGTERM'); }
+      setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); } }, 15_000).unref();
+    }, 20 * 60_000);
+    child.stdout.on('data', (chunk) => stdout.push(chunk)); child.stderr.on('data', (chunk) => stderr.push(chunk));
+    child.on('error', (error) => { clearTimeout(timer); reject(error); });
+    child.on('close', async (exitCode, signal) => {
+      clearTimeout(timer);
+      const out = Buffer.concat(stdout).toString('utf8'); const err = Buffer.concat(stderr).toString('utf8');
+      await writeFile(outputPath, out); await writeFile(errorPath, err);
+      resolve({ exitCode, signal, timedOut, stdout: out, stderr: err, events: parseEvents(out) });
+    });
+    child.stdin.end(prompt, 'utf8');
+  });
+}
+
+async function prepareHome(runDirectory) {
+  const home = path.join(runDirectory, 'codex-home');
+  await mkdir(home, { recursive: true, mode: 0o700 });
+  const auth = path.join(os.homedir(), '.codex', 'auth.json');
+  try { await copyFile(auth, path.join(home, 'auth.json')); await chmod(path.join(home, 'auth.json'), 0o600); }
+  catch { throw new Error('Codex ChatGPT auth.json is unavailable for the isolated terminal run'); }
+  await Promise.all(['xdg-config', 'xdg-data', 'xdg-cache', 'tmp'].map((name) => mkdir(path.join(home, name), { recursive: true })));
+  return home;
+}
+
+export async function runTerminalJob({ job, runDirectory }) {
+  invariant(job.harness === undefined || job.harness === 'codex-cli', 'Codex adapter received a non-Codex job');
+  await mkdir(runDirectory, { recursive: true, mode: 0o700 });
+  const workspace = path.join(runDirectory, 'workspace'); await mkdir(workspace, { recursive: true });
+  const home = await prepareHome(runDirectory); const env = isolatedEnv(home);
+  const stages = []; const sessionIds = []; const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
+  let sessionId = null; let toolCalls = 0; const turns = [];
+  for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
+    const prompt = MINI_LEDGER_TURN_PROMPTS[index];
+    const base = ['--model', job.model ?? job.modelRequested, '--sandbox', 'workspace-write', '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(REASONING)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}', '-C', workspace];
+    const args = sessionId ? ['exec', 'resume', sessionId, ...base] : ['exec', ...base];
+    const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`); const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
+    const result = await runCodex({ args, prompt, cwd: workspace, env, outputPath, errorPath });
+    invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Codex turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);
+    const started = result.events.find((event) => event.type === 'thread.started');
+    const observedSession = started?.thread_id ?? null;
+    invariant(observedSession, `Codex turn ${index + 1} emitted no thread.started event`);
+    if (!sessionId) sessionId = observedSession;
+    invariant(observedSession === sessionId, `Codex session changed on turn ${index + 1}`);
+    invariant(result.events.some((event) => event.type === 'turn.completed'), `Codex turn ${index + 1} emitted no turn.completed event`);
+    sessionIds.push(observedSession); toolCalls += result.events.filter((event) => event.type === 'item.started' && !['agent_message', 'reasoning'].includes(event.item?.type)).length;
+    const u = usageFor(result.events); for (const [source, target] of [['input_tokens', 'inputTokens'], ['cached_input_tokens', 'cachedInputTokens'], ['output_tokens', 'outputTokens'], ['reasoning_output_tokens', 'reasoningTokens']]) usage[target] += Number.isFinite(u[source]) ? u[source] : 0;
+    const stage = await verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? ['append-get', 'query', 'export', 'import', 'recovery', 'compatibility', 'audit', 'performance'][index] });
+    stages.push(stage); turns.push({ index: index + 1, sessionId: observedSession, exitCode: result.exitCode, durationMs: 0, usage: u });
+  }
+  const holdout = await verifyHoldout({ workspace });
+  return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'codex-cli', harnessVersion: CODEX_VERSION, model: job.model ?? job.modelRequested, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionId), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
+}

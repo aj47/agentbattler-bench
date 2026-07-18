@@ -14,6 +14,11 @@ The product has two layers:
 - **Competition surface:** turns verified results into a readable leaderboard and match
   history. The UI is secondary until the experiment loop is trustworthy.
 
+The benchmark has two explicit lanes. The chess lane is a direct agent-vs-agent game
+benchmark. The terminal lane is a long-horizon coding-task benchmark with deterministic
+stage verifiers and score-derived provisional Elo. Terminal results never enter chess
+standings or change their rating protocol.
+
 ## MVP goal
 
 Run a small, controlled roster of generated chess agents and make every result inspectable
@@ -116,10 +121,20 @@ run paired experiments, and publish provisional comparison results.
 Add the minimal leaderboard, run detail, replay links, and agent dossiers backed by canonical
 published results.
 
-### Phase 4 — General benchmark
+### Phase 4 — Long-horizon terminal lane
 
-Only after the chess proof loop is trusted, evaluate Harbor for terminal and multi-step tasks,
-add uncertainty-aware ratings, sealed tasks, and a broader community adapter protocol.
+The first general task is `terminal-mini-ledger-v1`: one isolated workspace and one
+continuous session across eight turns. Its challenge manifest binds the prompt, public
+verifier, holdout verifier, protocol, scoring, and exhaustive harness/model/generation
+matrix. Every completed run publishes stage results, holdout cases, telemetry, hashes,
+and the pairwise comparisons used for score-derived Elo. Infrastructure-invalid runs are
+excluded from ratings; hard agent failures remain valid scores.
+
+### Phase 5 — General benchmark
+
+Only after the terminal proof loop is trusted, evaluate Harbor as an additional execution
+adapter for terminal and multi-step tasks, add uncertainty-aware ratings, sealed tasks, and
+a broader community adapter protocol.
 
 ## Non-goals for MVP
 

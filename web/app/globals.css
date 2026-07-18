@@ -77,6 +77,13 @@ button, input { font: inherit; }
 .notice-inner p { margin: 0; color: #b9b39f; font-size: 13px; }
 .notice-inner a { color: var(--amber); font: 500 11px/1 var(--mono); white-space: nowrap; }
 .home-stack { padding: 88px 0 110px; display: grid; gap: 112px; }
+.terminal-challenge-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.25rem 2rem; padding: 1.5rem; border: 1px solid var(--line); background: var(--paper); }
+.terminal-challenge-card h2 { margin: .35rem 0 .6rem; }
+.terminal-challenge-card p { max-width: 58rem; margin: 0; color: var(--muted); }
+.terminal-challenge-card dl { display: grid; grid-template-columns: repeat(3, auto); gap: .8rem 1.2rem; margin: 0; }
+.terminal-challenge-card dt { color: var(--dim); font: 500 .65rem/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.terminal-challenge-card dd { margin: .25rem 0 0; font: 600 .9rem/1 var(--mono); }
+.terminal-challenge-card > a { grid-column: 1 / -1; color: var(--accent); font: 600 .72rem/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
 
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 27px; }
 .section-heading h2 { margin: 0; font-size: clamp(25px, 3vw, 38px); line-height: 1; letter-spacing: -.04em; }
@@ -128,6 +135,7 @@ button, input { font: inherit; }
 .breadcrumbs span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-hero { display: grid; grid-template-columns: 1fr 310px; gap: 90px; align-items: end; padding: 66px 0 56px; }
 .detail-hero h1 { font-size: clamp(46px, 6vw, 78px); }
+.detail-hero h1 .harness-version { color: var(--dim); font: 500 .24em/1 var(--mono); letter-spacing: .02em; }
 .detail-hero > div:first-child > p { max-width: 700px; margin: 25px 0 0; color: var(--muted); font-size: 16px; }
 .detail-status { border-left: 1px solid var(--line); padding-left: 24px; }
 .detail-status p { margin: 15px 0 0; color: var(--muted); font-size: 12px; }
@@ -292,6 +300,9 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
   .notice-inner { grid-template-columns: 1fr; gap: 9px; }
   .notice-inner a { grid-column: auto; }
   .home-stack { padding-top: 68px; gap: 85px; }
+  .terminal-challenge-card { grid-template-columns: 1fr; }
+  .terminal-challenge-card dl { grid-template-columns: repeat(2, 1fr); }
+  .terminal-challenge-card > a { grid-column: auto; }
   .section-heading { align-items: start; flex-direction: column; gap: 10px; }
   .leaderboard { overflow: hidden; }
   .leaderboard-head, .leaderboard-row { grid-template-columns: 35px minmax(140px, 1fr) 67px; gap: 9px; padding-inline: 7px; }

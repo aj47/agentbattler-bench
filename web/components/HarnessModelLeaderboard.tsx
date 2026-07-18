@@ -44,7 +44,7 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
               <div className={styles.identity}>
                 <span className={styles.rank}>{String(entrant.rank).padStart(2, '0')}</span>
                 <div>
-                  <span className={styles.harness}>{entrant.harnessDisplayName}</span>
+                  <span className={styles.harness}>{entrant.harnessDisplayName} <b>v{entrant.harnessVersion}</b></span>
                   <strong>{entrant.familyDisplayName}</strong>
                   <small>{entrant.model}</small>
                 </div>

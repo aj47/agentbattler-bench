@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Agent } from '../lib/types';
+import { formatHarnessLabel } from '../lib/data';
 import { VerificationBadge } from './VerificationBadge';
 
 export function Leaderboard({ agents, title = `All ${agents.length} generated engines` }: { agents: Agent[]; title?: string }) {
@@ -21,7 +22,7 @@ export function Leaderboard({ agents, title = `All ${agents.length} generated en
           <Link className="leaderboard-row" href={`/submissions/${agent.id}/`} key={agent.id}>
             <span className="rank">{String(agent.standing.rank).padStart(2, '0')}</span>
             <span className="agent-cell">
-              <strong>{agent.harness}</strong>
+              <strong>{formatHarnessLabel(agent.harness, agent.harnessVersion)}</strong>
               <small>{agent.displayName}</small>
             </span>
             <span className="model-cell">{agent.model}</span>

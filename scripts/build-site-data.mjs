@@ -532,6 +532,8 @@ async function preparePublishedSnapshot() {
     await fetchVerified([url, url, url], cache, artifact);
   }
   let data = await readJson(cache);
+  const terminalChallenge = await loadTerminalChallengeLane();
+  if (terminalChallenge) data = { ...data, terminalChallenge };
   invariant(data.schemaVersion === 'agentbattler.site-data.v2', 'Published site data has an unsupported schema');
   invariant(data.matches.length === snapshot.totals.matches, 'Published site data match count disagrees with snapshot');
   invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
@@ -683,8 +685,46 @@ function publicMatch(game) {
   };
 }
 
+async function loadTerminalChallengeLane() {
+  const root = 'results/terminal-mini-ledger';
+  try {
+    const [challenge, schedule, summary] = await Promise.all([
+      readJson(`${root}/challenge.json`),
+      readJson(`${root}/schedule.json`),
+      readJson(`${root}/summary.json`),
+    ]);
+    return {
+      id: challenge.id,
+      title: challenge.title,
+      challengeId: challenge.challengeId,
+      challengeSha256: challenge.challengeSha256,
+      scheduleId: schedule.scheduleId,
+      scheduleSha256: schedule.scheduleSha256,
+      matrix: schedule.matrix,
+      coverage: schedule.coverage.map((entry) => ({
+        comboId: entry.combo.comboId,
+        harness: entry.combo.harness.id,
+        harnessVersion: entry.combo.harness.version,
+        model: entry.combo.model.id,
+        generations: entry.artifacts.length,
+      })),
+      expectedRuns: summary.expectedRuns,
+      completedRuns: summary.completedRuns,
+      missingRuns: summary.missingRuns.length,
+      invalidRuns: summary.invalidRuns.length,
+      scoring: challenge.scoring,
+      standings: summary.elo?.standings ?? [],
+      status: summary.completedRuns === summary.expectedRuns && summary.invalidRuns.length === 0 ? 'complete' : 'scheduled',
+    };
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 async function main() {
   if (await preparePublishedSnapshot()) return;
+  const terminalChallenge = await loadTerminalChallengeLane();
   const loadedSuites = await Promise.all(SUITES.map(async (descriptor) => {
     const [manifest, suite, tournament] = await Promise.all([
       readJson(descriptor.manifest),
@@ -826,6 +866,7 @@ async function main() {
     agents,
     matches,
     latestDecisiveId: latestDecisive?.id ?? null,
+    terminalChallenge,
   };
 
   await mkdir(path.dirname(OUTPUT), { recursive: true });

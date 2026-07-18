@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { CopyButton } from '../../../components/CopyButton';
 import { Metric } from '../../../components/Metric';
 import { VerificationBadge } from '../../../components/VerificationBadge';
-import { formatDuration, formatNumber, getAgent, shortHash, siteData } from '../../../lib/data';
+import { formatDuration, getAgent, getHarness, formatNumber, shortHash, siteData } from '../../../lib/data';
 import { publication } from '../../../lib/publication';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -26,6 +26,8 @@ export default async function SubmissionPage({ params }: PageProps) {
   const trace = publication.agents[agent.id];
   const telemetryPublished = agent.generation.telemetryPublished !== false;
   const isPlacementAgent = agent.harness === 'dotagents-mono';
+  const harness = getHarness(agent.harness);
+  const harnessDisplayName = harness?.displayName ?? agent.harness;
   const withinHarnessGames = agent.matches.filter((match) => match.scope === 'within-harness').length;
   const crossHarnessGames = agent.matches.length - withinHarnessGames;
 
@@ -35,7 +37,7 @@ export default async function SubmissionPage({ params }: PageProps) {
       <header className="detail-hero">
         <div>
           <span className="eyebrow">submission dossier · rank {String(agent.standing.rank).padStart(2, '0')}</span>
-          <h1>{agent.harness}<br /><span>{agent.model}</span></h1>
+          <h1>{harnessDisplayName}<br /><span className="harness-version">v{agent.harnessVersion}</span><br /><span>{agent.model}</span></h1>
           <p>{agent.displayName} is an executable artifact generated at high reasoning effort, then probed and run through the local chess suite.</p>
         </div>
         <div className="detail-status">

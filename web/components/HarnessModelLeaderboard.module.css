@@ -13,6 +13,7 @@
 .identity div, .aggregate, .distribution, .record { display: flex; flex-direction: column; }
 .rank { color: var(--dim); font: 500 14px/1 var(--mono); }
 .harness { width: fit-content; margin-bottom: 7px; padding: 4px 6px; border: 1px solid #485d2d; color: var(--accent); font: 650 8px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.harness b { color: var(--muted); font-weight: 500; letter-spacing: .04em; }
 .pi .harness { border-color: #604e2b; color: var(--amber); }
 .claude .harness { border-color: #28545b; color: var(--cyan); }
 .dotagents .harness { border-color: #59456f; color: #d2a8ff; }

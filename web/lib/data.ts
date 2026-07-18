@@ -3,6 +3,17 @@ import type { Agent, HarnessModelEntrant, Match, SiteData } from './types';
 
 export const siteData = rawData as unknown as SiteData;
 
+export function getHarness(id: string) {
+  return siteData.harnesses.find((harness) => harness.id === id);
+}
+
+export function formatHarnessLabel(id: string, version?: string): string {
+  const harness = getHarness(id);
+  const displayName = harness?.displayName ?? id;
+  const harnessVersion = version ?? harness?.harnessVersion;
+  return harnessVersion ? `${displayName} v${harnessVersion}` : displayName;
+}
+
 function roundScore(value: number): number {
   return Math.round(value * 100) / 100;
 }

@@ -6,6 +6,7 @@ export const metadata = { title: 'Methodology' };
 
 export default function MethodologyPage() {
   const { benchmark } = siteData;
+  const harnessSummary = siteData.harnesses.map((harness) => `${harness.displayName} v${harness.harnessVersion}`).join(', ');
   return (
     <main className="shell detail-page methodology-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">leaderboard</Link><span>/</span><span>methodology</span></nav>
@@ -22,11 +23,12 @@ export default function MethodologyPage() {
           <a href="#contract">02 · agent contract</a>
           <a href="#verification">03 · verification</a>
           <a href="#snapshot">04 · current snapshot</a>
+          {siteData.terminalChallenge ? <a href="#terminal">05 · terminal lane</a> : null}
         </aside>
         <div className="methodology-copy">
           <section id="pipeline">
             <span className="chapter-number">01</span><h2>Evidence pipeline</h2>
-            <p>A generation run begins in a disposable workspace with the target prompt, explicit model, and declared harness. Codex CLI, Pi, Claude Code, and DotAgents use the same prompt and request high reasoning. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Published evidence is stored in revision-pinned Hugging Face datasets; the website refuses to build unless every downloaded artifact matches the committed snapshot manifest.</p>
+            <p>A generation run begins in a disposable workspace with the target prompt, explicit model, and declared harness. {harnessSummary} use the same prompt and request high reasoning. The resulting executable is hashed, probed against known positions, and entered into a deterministic match schedule. Published evidence is stored in revision-pinned Hugging Face datasets; the website refuses to build unless every downloaded artifact matches the committed snapshot manifest.</p>
             <div className="protocol-steps"><div><strong>generate</strong><span>source + harness telemetry</span></div><div><strong>verify</strong><span>hashes + contract probes</span></div><div><strong>battle</strong><span>positions + seeds + traces</span></div><div><strong>publish</strong><span>standings + dossiers + replay</span></div></div>
           </section>
           <section id="contract">
@@ -46,7 +48,7 @@ export default function MethodologyPage() {
           </section>
           <section id="snapshot">
             <span className="chapter-number">04</span><h2>Current snapshot</h2>
-            <p>The website exposes four exploratory generation suites: Codex CLI, Pi, Claude Code, and DotAgents, each with five independently generated Terra, Sol, and Luna engines. It records {formatNumber(benchmark.totals.matches)} matches across {formatNumber(benchmark.totals.uniqueScenarios)} unique agent-pair/position scenarios, including {formatNumber(benchmark.totals.crossHarnessMatches)} cross-harness games.</p>
+            <p>The website exposes {benchmark.totals.harnesses} exploratory generation suites: {harnessSummary}, each with five independently generated Terra, Sol, and Luna engines. It records {formatNumber(benchmark.totals.matches)} matches across {formatNumber(benchmark.totals.uniqueScenarios)} unique agent-pair/position scenarios, including {formatNumber(benchmark.totals.crossHarnessMatches)} cross-harness games.</p>
             <dl className="snapshot-list">
               <div><dt>generation tokens</dt><dd>{formatNumber(benchmark.totals.generationTokens)}</dd></div>
               <div><dt>generation tool calls</dt><dd>{benchmark.totals.generationToolCalls}</dd></div>
@@ -59,6 +61,21 @@ export default function MethodologyPage() {
             <p className="method-note">Interpretation: the five independently generated artifacts per model and harness are the unit for generation variance. The primary leaderboard filters to same-model cross-harness games, integrates DotAgents head-to-head results into every affected combo, and reuses all compatible immutable games.</p>
             <p className="method-note">Limitation: schedule sizes are intentionally uneven—DotAgents has targeted placement while the established combos retain their broader same-model history—so the shared ranking is a pooled per-game score, not a balanced four-way round robin. These 60 artifacts have not been independently reproduced through the canonical Harbor submission contract. Claude Code used a third-party loopback Messages translation gateway to the ChatGPT Codex backend, so translation and tool-semantics differences are part of that harness condition. The results remain exploratory everywhere they appear.</p>
           </section>
+          {siteData.terminalChallenge ? (
+            <section id="terminal">
+              <span className="chapter-number">05</span><h2>{siteData.terminalChallenge.title}</h2>
+              <p>The terminal lane is versioned separately from chess. Every declared harness/model/generation combination is scheduled before execution, with the prompt, verifier hashes, turn protocol, workspace rules, stage scores, and result hashes bound to the schedule.</p>
+              <dl className="snapshot-list">
+                <div><dt>scheduled runs</dt><dd>{formatNumber(siteData.terminalChallenge.expectedRuns)}</dd></div>
+                <div><dt>completed runs</dt><dd>{formatNumber(siteData.terminalChallenge.completedRuns)}</dd></div>
+                <div><dt>matrix</dt><dd>{siteData.terminalChallenge.matrix.harnesses.length} × {siteData.terminalChallenge.matrix.models.length} × {siteData.terminalChallenge.matrix.generationsPerCombo}</dd></div>
+                <div><dt>score</dt><dd>0–{siteData.terminalChallenge.scoring.maxPoints} points</dd></div>
+                <div><dt>missing / invalid</dt><dd>{siteData.terminalChallenge.missingRuns} / {siteData.terminalChallenge.invalidRuns}</dd></div>
+                <div><dt>schedule</dt><dd>{siteData.terminalChallenge.scheduleId}</dd></div>
+              </dl>
+              <p className="method-note">Terminal Elo is derived from pairwise comparisons of published task scores, with a {siteData.terminalChallenge.scoring.tieTolerancePoints}-point draw threshold. It is not presented as direct agent-vs-agent execution.</p>
+            </section>
+          ) : null}
         </div>
       </div>
     </main>

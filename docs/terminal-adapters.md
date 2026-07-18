@@ -34,10 +34,13 @@ must prove session continuity.
 | Harness | Adapter | Status |
 | --- | --- | --- |
 | `codex-cli` | `scripts/terminal-adapter-codex.mjs` | Implemented and exercised on M4 |
-| `pi-coding-agent` | — | Requires a terminal-session adapter and audit |
+| `pi-coding-agent` | `scripts/terminal-adapter-pi.mjs` | Implemented; live session/network audit still pending |
 | `claude-code` | — | Requires a terminal-session adapter and audited gateway/session setup |
 | `dotagents-mono` | — | Requires a stateful conversation adapter; the existing generation harness is single-generation |
 
 The exhaustive schedule already includes all declared harness/model combinations.
 Running it with only the Codex adapter therefore fails closed unless a supported
-subset is selected explicitly with `--harness codex-cli`.
+subset is selected explicitly with `--harness codex-cli`. The Pi adapter can be
+smoke-tested with `--harness pi-coding-agent`, but its results should remain
+unpublished until a live run confirms the native session file and command-isolation
+properties.

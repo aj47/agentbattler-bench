@@ -63,6 +63,15 @@ test('builds a read-only, capability-free Pi container with only ephemeral mount
   assert.deepEqual(args.slice(args.indexOf('--provider'), args.indexOf('--provider') + 2), ['--provider', 'openai-codex']);
 });
 
+test('builds a resumable Pi terminal invocation with one explicit session file', () => {
+  const args = buildPiDockerArgs({
+    model: 'gpt-5.6-terra', prompt: 'Continue', workspace: '/tmp/workspace', piHome: '/tmp/pi-home', user: '501:20',
+    sessionPath: '/pi-home/sessions/terminal-session.jsonl', continueSession: true,
+  });
+  assert.deepEqual(args.slice(args.indexOf('--session'), args.indexOf('--session') + 2), ['--session', '/pi-home/sessions/terminal-session.jsonl']);
+  assert.ok(args.includes('--continue'));
+});
+
 const nativeSession = [
   { type: 'session', version: 3, id: 'pi-run-1', timestamp: '2026-07-15T00:00:00Z', cwd: '/workspace' },
   { type: 'thinking_level_change', id: '00000001', parentId: null, timestamp: '2026-07-15T00:00:01Z', thinkingLevel: 'high' },

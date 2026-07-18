@@ -70,12 +70,14 @@ export function buildPiDockerArgs({
   workspace,
   piHome,
   user,
+  sessionPath = null,
+  continueSession = false,
 }) {
   for (const [name, value] of Object.entries({ image, model, prompt, workspace, piHome, user })) {
     invariant(typeof value === 'string' && value.length > 0, `${name} is required to run Pi`);
   }
 
-  return [
+  const args = [
     'run', '--rm', '--init',
     '--network', 'bridge',
     '--read-only',
@@ -106,8 +108,11 @@ export function buildPiDockerArgs({
     '--no-themes',
     '--no-context-files',
     '--no-approve',
-    prompt,
   ];
+  if (sessionPath) args.push('--session', sessionPath);
+  if (continueSession) args.push('--continue');
+  args.push(prompt);
+  return args;
 }
 
 function parseJsonLines(content, label) {

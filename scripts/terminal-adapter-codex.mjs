@@ -74,11 +74,13 @@ export async function runTerminalJob({ job, runDirectory }) {
   let sessionId = null; let toolCalls = 0; const turns = [];
   for (let index = 0; index < MINI_LEDGER_TURN_PROMPTS.length; index += 1) {
     const prompt = MINI_LEDGER_TURN_PROMPTS[index];
-    const base = ['--model', job.model ?? job.modelRequested, '--sandbox', 'workspace-write', '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(REASONING)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}', '-C', workspace];
+    const common = ['--model', job.model ?? job.modelRequested, '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(REASONING)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}'];
     // Codex 0.144 parses resume as `exec resume [OPTIONS] <SESSION_ID> [PROMPT]`.
-    // Keeping the session ID after the options is required for a true continuation;
-    // placing it first makes the CLI reject every resume with exit 2.
-    const args = sessionId ? ['exec', 'resume', ...base, sessionId] : ['exec', ...base];
+    // Resume does not accept --sandbox or -C; it inherits the original session's
+    // sandbox and working directory. The child is still spawned with cwd=workspace.
+    const args = sessionId
+      ? ['exec', 'resume', ...common, sessionId]
+      : ['exec', '--sandbox', 'workspace-write', '-C', workspace, ...common];
     const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`); const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
     const result = await runCodex({ args, prompt, cwd: workspace, env, outputPath, errorPath });
     invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Codex turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);

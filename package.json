@@ -55,6 +55,7 @@
     "terminal:matrix": "node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",
+    "terminal:run:parallel": "AGENTBATTLER_TERMINAL_CONCURRENCY=4 node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs"
   }
 }

@@ -86,18 +86,20 @@ export async function runTerminalSchedule({
   runTerminalJob,
   retryInvalid = false,
   onlyHarnesses = null,
+  concurrency = 1,
   onProgress = () => {},
 }) {
   validateMiniLedgerChallenge(challenge);
   validateTerminalSchedule(schedule, challenge);
   invariant(typeof runTerminalJob === 'function', 'A terminal adapter is required');
+  invariant(Number.isSafeInteger(concurrency) && concurrency > 0, 'Terminal concurrency must be a positive integer');
   await mkdir(path.join(resultRoot, 'runs'), { recursive: true });
 
   const selected = onlyHarnesses?.length
     ? schedule.jobs.filter((job) => onlyHarnesses.includes(schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo.harness.id))
     : schedule.jobs;
   const summary = { expected: selected.length, skipped: 0, completed: 0, invalid: 0, failed: 0 };
-  for (const job of selected) {
+  async function executeJob(job) {
     const coverage = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId);
     const adapterJob = {
       ...job,
@@ -108,20 +110,21 @@ export async function runTerminalSchedule({
       reasoningEffort: coverage?.combo.model.reasoningEffort,
       generationSettings: coverage?.combo.generationSettings ?? {},
       maxWallTimeMs: challenge.protocol.maxWallTimeMs,
+      executionConcurrency: concurrency,
     };
     const file = terminalRunPath(resultRoot, job.runKey);
     let existing = null;
     try { existing = await readExistingRun(file, job); } catch (error) {
       summary.failed += 1;
       onProgress({ job, status: 'invalid-persisted-result', error: error.message });
-      continue;
+      return;
     }
     if (existing?.status === 'completed' || (existing?.status === 'infrastructure-invalid' && !retryInvalid)) {
       summary.skipped += 1;
       if (existing.status === 'completed') summary.completed += 1;
       else summary.invalid += 1;
       onProgress({ job, status: 'skipped', result: existing });
-      continue;
+      return;
     }
 
     const runDirectory = path.join(resultRoot, 'work', job.runKey);
@@ -144,5 +147,16 @@ export async function runTerminalSchedule({
       onProgress({ job, status: 'infrastructure-invalid', result: invalid });
     }
   }
+
+  let cursor = 0;
+  async function worker() {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= selected.length) return;
+      await executeJob(selected[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, selected.length) }, () => worker()));
   return summary;
 }

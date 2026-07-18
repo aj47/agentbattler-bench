@@ -20,6 +20,8 @@ const adapterPath = arg('--adapter', process.env.AGENTBATTLER_TERMINAL_ADAPTER);
 const retryInvalid = process.argv.includes('--retry-invalid');
 const harnessArg = arg('--harness', process.env.AGENTBATTLER_TERMINAL_HARNESSES ?? '');
 const onlyHarnesses = harnessArg.split(',').map((value) => value.trim()).filter(Boolean);
+const concurrency = Number.parseInt(arg('--concurrency', process.env.AGENTBATTLER_TERMINAL_CONCURRENCY ?? '1'), 10);
+if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error('--concurrency must be a positive integer');
 if (!adapterPath) throw new Error('Set --adapter MODULE or AGENTBATTLER_TERMINAL_ADAPTER');
 const adapter = await import(pathToFileURL(path.resolve(ROOT, adapterPath)).href);
 if (typeof adapter.runTerminalJob !== 'function') throw new Error(`Adapter ${adapterPath} must export runTerminalJob`);
@@ -37,7 +39,8 @@ const summary = await runTerminalSchedule({
   challengeRoot: CHALLENGE_ROOT,
   retryInvalid,
   onlyHarnesses,
+  concurrency,
   runTerminalJob: adapter.runTerminalJob,
   onProgress: ({ job, status, error }) => console.log(`[${status}] ${job.artifactId}${error ? `: ${error}` : ''}`),
 });
-console.log(`Terminal matrix execution: ${summary.completed} completed, ${summary.invalid} infrastructure-invalid, ${summary.skipped} skipped, ${summary.failed} persisted-result failures`);
+console.log(`Terminal matrix execution: ${summary.completed} completed, ${summary.invalid} infrastructure-invalid, ${summary.skipped} skipped, ${summary.failed} persisted-result failures (concurrency ${concurrency})`);

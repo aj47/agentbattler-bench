@@ -37,3 +37,19 @@ test('terminal runner records infrastructure-invalid and retries it explicitly',
   const second = await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, runTerminalJob: async ({ job }) => { calls += 1; return completed(job); }, retryInvalid: true });
   assert.equal(second.completed, 2); assert.equal(calls, 4);
 });
+
+test('terminal runner bounds independent job concurrency without parallelizing turns', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-concurrency-'));
+  const s = schedule(); let active = 0; let peak = 0;
+  const result = await runTerminalSchedule({
+    challenge, schedule: s, resultRoot: root, challengeRoot: root, concurrency: 2,
+    runTerminalJob: async ({ job }) => {
+      active += 1; peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      active -= 1;
+      return completed(job);
+    },
+  });
+  assert.equal(result.completed, 2);
+  assert.equal(peak, 2);
+});

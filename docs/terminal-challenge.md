@@ -38,7 +38,10 @@ runner, missing credentials, or a model implementation failure from being confla
 ## Execution protocol
 
 `npm run terminal:matrix` seals `challenge.json` and the exhaustive `schedule.json`.
-`npm run terminal:run -- --adapter PATH` executes that schedule serially. An adapter
+`npm run terminal:run -- --adapter PATH` executes that schedule with bounded
+concurrency; the default concurrency is `1`. `--concurrency N` runs up to `N`
+independent jobs at once. Turns within each job always remain serialized in the same
+session and workspace. An adapter
 exports `runTerminalJob({ challenge, job, challengeRoot, runDirectory })` and returns
 one `agentbattler.terminal-run.v1` result with the exact scheduled identity. The runner
 writes each result atomically to `results/terminal-mini-ledger/runs/<runKey>.json`.
@@ -47,6 +50,11 @@ The runner is restart-safe: completed results are skipped, infrastructure-invali
 results are visible and skipped by default, and `--retry-invalid` explicitly retries
 only those infrastructure failures. A harness adapter is never guessed or silently
 substituted. A missing adapter is an infrastructure problem, not an agent score.
+
+Parallel execution is safe because every job has its own workspace, harness home,
+session, result file, and scheduled identity. Concurrency is recorded in the adapter
+job metadata and should be reported with benchmark runs because provider throttling and
+machine contention can affect wall time even though they do not change the verifier.
 
 The original v1 manifest uses a 20-minute per-turn maximum. New schedules may opt into
 an unbounded turn policy with `AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0` while sealing

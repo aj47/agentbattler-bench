@@ -100,8 +100,16 @@ async function startContainer(runDirectory, job) {
   const stdout = []; const stderr = []; const state = { closed: false, exitCode: null };
   child.stdout.on('data', (chunk) => stdout.push(chunk)); child.stderr.on('data', (chunk) => stderr.push(chunk));
   child.on('close', (code) => { state.closed = true; state.exitCode = code; });
-  await waitForHealth(port, apiKey, state);
-  return { port, apiKey, workspace, child, name, state, stdout, stderr };
+  const container = { port, apiKey, workspace, child, name, state, stdout, stderr };
+  try {
+    await waitForHealth(port, apiKey, state);
+    return container;
+  } catch (error) {
+    await stopContainer(container);
+    await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(stdout));
+    await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(stderr));
+    throw error;
+  }
 }
 
 async function stopContainer(container) {

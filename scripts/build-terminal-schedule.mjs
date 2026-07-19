@@ -44,7 +44,7 @@ const challenge = createMiniLedgerChallenge({
   promptSha256,
   publicVerifierSha256,
   holdoutVerifierSha256,
-  ...(challengeVersion === 'v4' ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 10, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
+  ...(challengeVersion === 'v4' ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
 });

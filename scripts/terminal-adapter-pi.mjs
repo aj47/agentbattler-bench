@@ -1,5 +1,8 @@
 #!/usr/bin/env node
+import { createReadStream, createWriteStream } from 'node:fs';
 import { chmod, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createInterface } from 'node:readline';
+import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -26,24 +29,72 @@ function invariant(condition, message) { if (!condition) throw new Error(message
 function runProcess(command, args, { cwd, env, outputPath, errorPath, timeoutMs = null } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, env, shell: false, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    const stdout = []; const stderr = []; let timedOut = false;
+    const stdoutFile = outputPath ? createWriteStream(outputPath) : null;
+    const stderrFile = errorPath ? createWriteStream(errorPath) : null;
+    if (stdoutFile) child.stdout.pipe(stdoutFile);
+    if (stderrFile) child.stderr.pipe(stderrFile);
+    let timedOut = false;
     const timer = Number.isSafeInteger(timeoutMs) && timeoutMs > 0 ? setTimeout(() => {
       timedOut = true;
       try { process.kill(-child.pid, 'SIGTERM'); } catch { child.kill('SIGTERM'); }
       setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); } }, 15_000).unref();
     }, timeoutMs) : null;
-    child.stdout.on('data', (chunk) => stdout.push(chunk));
-    child.stderr.on('data', (chunk) => stderr.push(chunk));
     child.on('error', (error) => { if (timer) clearTimeout(timer); reject(error); });
     child.on('close', async (exitCode, signal) => {
       if (timer) clearTimeout(timer);
-      const stdoutText = Buffer.concat(stdout).toString('utf8');
-      const stderrText = Buffer.concat(stderr).toString('utf8');
-      if (outputPath) await writeFile(outputPath, stdoutText);
-      if (errorPath) await writeFile(errorPath, stderrText);
-      resolve({ exitCode, signal, timedOut, stdoutText, stderrText });
+      await Promise.all([stdoutFile && finished(stdoutFile), stderrFile && finished(stderrFile)]);
+      resolve({ exitCode, signal, timedOut });
     });
   });
+}
+
+function addUsage(total, usage = {}) {
+  total.input += Number.isFinite(usage.input) ? usage.input : 0;
+  total.output += Number.isFinite(usage.output) ? usage.output : 0;
+  total.cacheRead += Number.isFinite(usage.cacheRead) ? usage.cacheRead : 0;
+  total.cacheWrite += Number.isFinite(usage.cacheWrite) ? usage.cacheWrite : 0;
+  total.totalTokens += Number.isFinite(usage.totalTokens) ? usage.totalTokens : 0;
+}
+
+async function summarizePiEventFile(file) {
+  const input = createReadStream(file, { encoding: 'utf8' });
+  const lines = createInterface({ input, crlfDelay: Infinity });
+  const eventTypes = new Map(); const toolBreakdown = new Map();
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  let count = 0; let header = null; let agentEnd = false; let toolCallCount = 0; let mcpCallCount = 0;
+  try {
+    for await (const line of lines) {
+      if (!line.trim()) continue;
+      let event;
+      try { event = JSON.parse(line); } catch (error) { throw new Error(`Pi event stream JSON parse failed: ${error.message}`); }
+      count += 1;
+      eventTypes.set(event.type, (eventTypes.get(event.type) ?? 0) + 1);
+      if (count === 1) header = event;
+      if (event.type === 'agent_end') agentEnd = true;
+      if (event.type === 'tool_execution_start') {
+        toolCallCount += 1;
+        const name = event.toolName ?? 'unknown';
+        toolBreakdown.set(name, (toolBreakdown.get(name) ?? 0) + 1);
+        if (/mcp/i.test(name)) mcpCallCount += 1;
+      }
+      if (event.type === 'message_end' && event.message?.role === 'assistant') addUsage(usage, event.message.usage);
+    }
+  } finally {
+    lines.close();
+  }
+  invariant(count > 0, 'Pi event stream is empty');
+  invariant(header?.type === 'session' && typeof header.id === 'string', 'Pi event stream is missing its session header');
+  invariant(agentEnd, 'Pi event stream is missing agent_end');
+  return {
+    sessionId: header.id,
+    eventCount: count,
+    eventTypes: Object.fromEntries(eventTypes),
+    turnCount: eventTypes.get('turn_start') ?? 0,
+    toolCallCount,
+    toolCallBreakdown: Object.fromEntries(toolBreakdown),
+    mcpCallCount,
+    ...usage,
+  };
 }
 
 async function preparePiHome(runDirectory) {
@@ -101,7 +152,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
     const result = await runProcess('docker', args, { cwd: workspace, env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
     invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Pi turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);
-    const stream = parsePiEventStream(result.stdoutText);
+    const stream = await summarizePiEventFile(outputPath);
     invariant(stream.sessionId, `Pi turn ${index + 1} emitted no session ID`);
     sessionIds.push(stream.sessionId); toolCalls += stream.toolCallCount;
     usage.inputTokens += stream.inputTokens; usage.cachedInputTokens += stream.cacheReadTokens; usage.outputTokens += stream.outputTokens;

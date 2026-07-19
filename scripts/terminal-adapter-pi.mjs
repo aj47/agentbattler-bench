@@ -118,7 +118,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',
     harness: 'pi-coding-agent', harnessVersion: PI_HARNESS_VERSION, model: job.model,
-    reasoningEffort: job.reasoningEffort ?? 'high', sessionId: sessionIds[0], sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionIds[0]),
+    reasoningEffort: job.reasoningEffort ?? 'high', sessionId: sessionIds[0], sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionIds[0]),
     nativeSession: { version: session.sessionVersion, eventCount: session.eventCount, path: '<ephemeral-pi-session>' },
     startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout,
     humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' },

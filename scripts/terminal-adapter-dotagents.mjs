@@ -155,7 +155,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT } };
   } finally {
     await stopContainer(container);
   }

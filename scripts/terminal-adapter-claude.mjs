@@ -176,7 +176,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       turns.push({ index: index + 1, sessionId: telemetry.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry });
     }
     const holdout = await holdoutVerifier.verifyHoldout({ workspace });
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
   } finally {
     await stopGateway(gateway);
   }

@@ -10,7 +10,6 @@ import path from 'node:path';
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
   buildPiDockerArgs,
-  parsePiEventStream,
   PI_HARNESS_VERSION,
   PI_IMAGE,
   piSubscriptionAuthFromCodex,
@@ -93,7 +92,11 @@ async function summarizePiEventFile(file) {
     toolCallCount,
     toolCallBreakdown: Object.fromEntries(toolBreakdown),
     mcpCallCount,
-    ...usage,
+    inputTokens: usage.input,
+    cachedInputTokens: usage.cacheRead,
+    outputTokens: usage.output,
+    reasoningTokens: 0,
+    totalTokens: usage.totalTokens,
   };
 }
 

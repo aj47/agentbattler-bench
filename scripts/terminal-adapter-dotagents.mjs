@@ -43,7 +43,7 @@ function parseSse(content) {
 
 async function waitForHealth(port, apiKey, childState) {
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    if (childState.closed) throw new Error(`DotAgents container exited before health check (${childState.exitCode})`);
+    if (childState.closed) throw new Error(`DotAgents container exited before health check (${childState.error?.code ?? childState.exitCode ?? 'unknown'})`);
     try {
       if ((await fetch(`http://127.0.0.1:${port}/v1/operator/health`, { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(1_000) })).ok) return;
     } catch { /* wait for the container */ }
@@ -98,6 +98,7 @@ async function startContainer(runDirectory, job) {
   const child = spawn('docker', args, { cwd: runDirectory, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
   const stdout = []; const stderr = []; const state = { closed: false, exitCode: null };
   child.stdout.on('data', (chunk) => stdout.push(chunk)); child.stderr.on('data', (chunk) => stderr.push(chunk));
+  child.on('error', (error) => { state.closed = true; state.error = error; });
   child.on('close', (code) => { state.closed = true; state.exitCode = code; });
   const container = { port, apiKey, workspace, child, name, state, stdout, stderr };
   try {

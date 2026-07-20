@@ -62,7 +62,7 @@ async function stagePagination(workspace, ledgerPath) {
 }
 async function stageMigration(workspace, ledgerPath) {
   await prepare(workspace, ledgerPath); const file = path.join(workspace, 'legacy.json');
-  await writeFile(file, JSON.stringify({ schemaVersion: 'agentbattler.ledger.v1', events: [{ id: 'old-1', kind: 'task', payload: { old: true }, sequence: 10 }, { id: 'old-2', kind: 'note', payload: { old: true }, sequence: 11 }] }));
+  await writeFile(file, JSON.stringify({ schemaVersion: 'agentbattler.ledger.v1', events: [{ id: 'old-1', kind: 'task', payload: { old: true } }, { id: 'old-2', kind: 'note', payload: { old: true } }] }));
   await runLedger(workspace, ledgerPath, ['import', file]); const result = rows(await query(workspace, ledgerPath, 'task', 0, 10));
   invariant(result.length === 1 && result[0].id === 'old-1' && result[0].sequence === 1, 'legacy migration did not normalize sequences');
   await writeFile(file, JSON.stringify({ schemaVersion: 'unknown', events: [] })); await runLedger(workspace, ledgerPath, ['import', file], { expectFailure: true });

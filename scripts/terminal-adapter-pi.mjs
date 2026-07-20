@@ -158,10 +158,10 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const stream = await summarizePiEventFile(outputPath);
     invariant(stream.sessionId, `Pi turn ${index + 1} emitted no session ID`);
     sessionIds.push(stream.sessionId); toolCalls += stream.toolCallCount;
-    usage.inputTokens += stream.inputTokens; usage.cachedInputTokens += stream.cacheReadTokens; usage.outputTokens += stream.outputTokens;
+    usage.inputTokens += stream.inputTokens; usage.cachedInputTokens += stream.cachedInputTokens; usage.outputTokens += stream.outputTokens;
     const stageId = job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id;
     stages.push(await publicVerifier.verifyPublicStage({ workspace, stageId }));
-    turns.push({ index: index + 1, sessionId: stream.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: { inputTokens: stream.inputTokens, cachedInputTokens: stream.cacheReadTokens, outputTokens: stream.outputTokens, totalTokens: stream.totalTokens } });
+    turns.push({ index: index + 1, sessionId: stream.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: { inputTokens: stream.inputTokens, cachedInputTokens: stream.cachedInputTokens, outputTokens: stream.outputTokens, totalTokens: stream.totalTokens } });
   }
 
   const nativeSession = await readFile(sessionHostPath, 'utf8');

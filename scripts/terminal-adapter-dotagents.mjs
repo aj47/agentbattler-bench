@@ -90,7 +90,7 @@ function compactTraceEvent(event) {
   if (event?.type === 'progress') {
     return {
       type: 'progress',
-      data: {
+      data: Object.fromEntries(Object.entries({
         contextInfo: event.data?.contextInfo,
         conversationId: event.data?.conversationId,
         conversationState: event.data?.conversationState,
@@ -100,7 +100,7 @@ function compactTraceEvent(event) {
         sessionId: event.data?.sessionId,
         steps: (event.data?.steps ?? []).filter((step) => step?.toolCall).map((step) => ({ toolCall: step.toolCall })),
         sessionCost: event.data?.sessionCost,
-      },
+      }).filter(([, value]) => value !== undefined)),
     };
   }
   if (event?.type === 'done') {

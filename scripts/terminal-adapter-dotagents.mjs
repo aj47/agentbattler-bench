@@ -24,10 +24,32 @@ import { canonicalJson } from '../src/provenance.mjs';
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
 const CHATGPT_TOKEN_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR;
 const IMAGE = process.env.AGENTBATTLER_DOTAGENTS_IMAGE ?? DOTAGENTS_IMAGE;
+const CLIPROXY_BASE_URL = process.env.AGENTBATTLER_CLIPROXY_DOCKER_BASE_URL;
+const CLIPROXY_API_KEY = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
+const CLIPROXY_NETWORK = process.env.AGENTBATTLER_CLIPROXY_DOCKER_NETWORK;
+const CLIPROXY_COMMIT = process.env.AGENTBATTLER_CLIPROXY_COMMIT;
+const CLIPROXY_IMAGE_ID = process.env.AGENTBATTLER_CLIPROXY_IMAGE_ID;
+const CLIPROXY_CONFIG_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CONFIG_SHA256;
+const CLIPROXY_RUNTIME_SHA256 = process.env.AGENTBATTLER_CLIPROXY_RUNTIME_SHA256;
 export const harnesses = ['dotagents-mono'];
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
+
+function cliProxyConfig() {
+  const values = [CLIPROXY_BASE_URL, CLIPROXY_API_KEY, CLIPROXY_NETWORK, CLIPROXY_COMMIT, CLIPROXY_IMAGE_ID, CLIPROXY_CONFIG_SHA256, CLIPROXY_RUNTIME_SHA256];
+  if (values.every((value) => value === undefined)) return null;
+  invariant(values.every((value) => typeof value === 'string' && value.length > 0), 'Set all AGENTBATTLER_CLIPROXY_* variables for DotAgents proxy routing');
+  invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_COMMIT), 'CLIProxyAPI commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_CONFIG_SHA256), 'CLIProxyAPI config hash must be SHA-256');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_RUNTIME_SHA256), 'CLIProxyAPI runtime hash must be SHA-256');
+  return {
+    baseUrl: CLIPROXY_BASE_URL,
+    apiKey: CLIPROXY_API_KEY,
+    network: CLIPROXY_NETWORK,
+    provenance: { name: 'CLIProxyAPI', commit: CLIPROXY_COMMIT, imageId: CLIPROXY_IMAGE_ID, configSha256: CLIPROXY_CONFIG_SHA256, runtimeSha256: CLIPROXY_RUNTIME_SHA256 },
+  };
+}
 
 async function loadChatGptAuth() {
   const auth = JSON.parse(await readFile(CODEX_AUTH, 'utf8'));
@@ -96,6 +118,20 @@ async function waitForHealth(port, apiKey, childState) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error('DotAgents container did not become healthy within 60 seconds');
+}
+
+async function verifyProxySettings(port, apiKey, job, proxy) {
+  if (!proxy) return;
+  const response = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(5_000),
+  });
+  invariant(response.ok, `DotAgents settings preflight failed (${response.status})`);
+  const settings = await response.json();
+  invariant(settings.agentProviderId === 'openai', `DotAgents effective provider is ${settings.agentProviderId ?? 'missing'}, not openai`);
+  invariant(settings.agentOpenaiModel === job.model, `DotAgents effective model is ${settings.agentOpenaiModel ?? 'missing'}, not ${job.model}`);
+  invariant(settings.openaiBaseUrl === proxy.baseUrl.replace(/\/$/, ''), `DotAgents effective proxy URL is ${settings.openaiBaseUrl ?? 'missing'}`);
+  invariant(typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0, 'DotAgents effective proxy API key is empty');
 }
 
 async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, outputPath }) {
@@ -174,25 +210,42 @@ async function archivePreviousAttempt(runDirectory) {
 }
 
 async function startContainer(runDirectory, job) {
-  const auth = await loadChatGptAuth();
+  const proxy = cliProxyConfig();
+  const auth = proxy ? null : await loadChatGptAuth();
   const home = path.join(runDirectory, 'dotagents-home'); const configRoot = path.join(runDirectory, 'config-workspace'); const workspace = path.join(runDirectory, 'workspace');
   await archivePreviousAttempt(runDirectory);
   await Promise.all([home, configRoot, workspace].map((directory) => mkdir(directory, { recursive: true, mode: 0o700 })));
-  await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });
-  await writeFile(path.join(home, '.codex', 'auth.json'), `${canonicalJson(auth, { space: 2 })}\n`, { mode: 0o600 });
-  await chmod(path.join(home, '.codex', 'auth.json'), 0o600);
+  if (auth) {
+    await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });
+    await writeFile(path.join(home, '.codex', 'auth.json'), `${canonicalJson(auth, { space: 2 })}\n`, { mode: 0o600 });
+    await chmod(path.join(home, '.codex', 'auth.json'), 0o600);
+  }
   const apiKey = randomBytes(32).toString('hex'); const port = await availablePort();
-  await writeConfig(configRoot, createDotAgentsConfig({ model: job.model, remoteApiKey: apiKey, remotePort: 3210, stateful: true }));
+  const generatedConfig = createDotAgentsConfig({
+    model: job.model,
+    remoteApiKey: apiKey,
+    remotePort: 3210,
+    stateful: true,
+    openaiProxy: proxy ? { baseUrl: proxy.baseUrl, apiKey: proxy.apiKey } : null,
+  });
+  // DotAgents treats ~/.agents as its global persisted layer and the mounted
+  // workspace as an overlay. Seed both with the sealed config so provider
+  // credentials are available even during early main-process initialization.
+  await Promise.all([writeConfig(home, generatedConfig), writeConfig(configRoot, generatedConfig)]);
+  const legacyConfigPath = path.join(home, '.config', 'app.dotagents.agentbattler', 'config.json');
+  await mkdir(path.dirname(legacyConfigPath), { recursive: true, mode: 0o700 });
+  await writeFile(legacyConfigPath, `${canonicalJson(generatedConfig.legacyConfig, { space: 2 })}\n`, { mode: 0o600 });
   const name = `agentbattler-terminal-${job.runKey.slice(0, 12)}`.toLowerCase();
-  const args = buildDotAgentsDockerArgs({ image: IMAGE, name, hostPort: port, home, configRoot, workspace });
+  const args = buildDotAgentsDockerArgs({ image: IMAGE, name, hostPort: port, home, configRoot, workspace, network: proxy?.network ?? null });
   const child = spawn('docker', args, { cwd: runDirectory, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
   const stdout = []; const stderr = []; const state = { closed: false, exitCode: null };
   child.stdout.on('data', (chunk) => stdout.push(chunk)); child.stderr.on('data', (chunk) => stderr.push(chunk));
   child.on('error', (error) => { state.closed = true; state.error = error; });
   child.on('close', (code) => { state.closed = true; state.exitCode = code; });
-  const container = { port, apiKey, workspace, child, name, state, stdout, stderr };
+  const container = { port, apiKey, workspace, child, name, state, stdout, stderr, proxy, generationSettings: generatedConfig.generationSettings };
   try {
     await waitForHealth(port, apiKey, state);
+    await verifyProxySettings(port, apiKey, job, proxy);
     return container;
   } catch (error) {
     await stopContainer(container);
@@ -252,7 +305,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
   } finally {
     await stopContainer(container);
   }

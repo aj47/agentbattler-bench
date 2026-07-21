@@ -29,6 +29,25 @@ test('can configure a stateful DotAgents benchmark profile', () => {
   assert.equal(config.generationSettings.stateful, true);
 });
 
+test('can route DotAgents through a pinned OpenAI-compatible proxy', () => {
+  const config = createDotAgentsConfig({
+    model: 'gpt-5.6-luna',
+    remoteApiKey: 'a'.repeat(64),
+    openaiProxy: { baseUrl: 'http://agentbattler-cliproxy:8317/v1', apiKey: 'b'.repeat(64) },
+  });
+  const models = JSON.parse(config.files['models.json']);
+  const profile = JSON.parse(config.files['agents/agentbattler-benchmark/config.json']);
+  assert.equal(models.agentProviderId, 'openai');
+  assert.equal(models.agentOpenaiModel, 'gpt-5.6-luna');
+  assert.equal(models.openaiBaseUrl, 'http://agentbattler-cliproxy:8317/v1');
+  assert.equal(models.openaiApiKey, 'b'.repeat(64));
+  assert.equal(models.currentModelPresetId, 'agentbattler-cliproxy');
+  assert.equal(models.modelPresets[0].agentModel, 'gpt-5.6-luna');
+  assert.equal(config.legacyConfig.openaiApiKey, 'b'.repeat(64));
+  assert.equal(profile.modelConfig.agentProviderId, 'openai');
+  assert.equal(config.generationSettings.transport, 'cliproxyapi');
+});
+
 test('summarizes a sealed trace and rejects model, tool, and network drift', () => {
   const events = [
     { type: 'progress', data: { modelInfo: { model: 'gpt-5.6-sol' }, steps: [{ toolCall: { id: 'one', name: 'execute_command', arguments: { command: 'node --check agent.js' } } }], sessionCost: { inputTokens: 10, outputTokens: 5 } } },
@@ -57,4 +76,13 @@ test('builds a locked-down loopback-only Docker invocation', () => {
   assert.ok(args.includes('no-new-privileges'));
   assert.ok(args.includes('127.0.0.1:40123:3210'));
   assert.ok(args.includes('DOTAGENTS_WORKSPACE_DIR=/config-workspace'));
+});
+
+test('can attach the DotAgents container to an isolated proxy network', () => {
+  const args = buildDotAgentsDockerArgs({
+    name: 'agentbattler-dotagents-test', hostPort: 40123,
+    home: '/tmp/home', configRoot: '/tmp/config', workspace: '/tmp/workspace',
+    network: 'agentbattler-cliproxy',
+  });
+  assert.deepEqual(args.slice(args.indexOf('--network'), args.indexOf('--network') + 2), ['--network', 'agentbattler-cliproxy']);
 });

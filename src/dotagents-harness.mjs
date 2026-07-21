@@ -16,10 +16,16 @@ function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, stateful = false }) {
+export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, stateful = false, openaiProxy = null }) {
   invariant(typeof model === 'string' && /^gpt-5\.6-(terra|sol|luna)$/.test(model), `Unsupported DotAgents benchmark model: ${model}`);
   invariant(typeof remoteApiKey === 'string' && remoteApiKey.length >= 32, 'DotAgents benchmark API key is missing');
   invariant(Number.isSafeInteger(remotePort) && remotePort > 0 && remotePort <= 65_535, 'Invalid DotAgents remote port');
+  if (openaiProxy) {
+    invariant(typeof openaiProxy.baseUrl === 'string' && /^http:\/\/[^/]+(?::\d+)?\/v1\/?$/.test(openaiProxy.baseUrl), 'DotAgents proxy base URL must be an HTTP /v1 endpoint');
+    invariant(typeof openaiProxy.apiKey === 'string' && openaiProxy.apiKey.length >= 32, 'DotAgents proxy API key is missing');
+  }
+
+  const providerId = openaiProxy ? 'openai' : 'chatgpt-web';
 
   const settings = {
     mainAgentMode: 'api',
@@ -33,11 +39,30 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
     whatsappEnabled: false,
   };
   const models = {
-    agentProviderId: 'chatgpt-web',
-    mcpToolsProviderId: 'chatgpt-web',
-    agentChatgptWebModel: model,
-    mcpToolsChatgptWebModel: model,
-    chatgptWebBaseUrl: 'https://chatgpt.com',
+    agentProviderId: providerId,
+    mcpToolsProviderId: providerId,
+    ...(openaiProxy ? {
+      agentOpenaiModel: model,
+      mcpToolsOpenaiModel: model,
+      openaiBaseUrl: openaiProxy.baseUrl.replace(/\/$/, ''),
+      openaiApiKey: openaiProxy.apiKey,
+      currentModelPresetId: 'agentbattler-cliproxy',
+      modelPresets: [{
+        id: 'agentbattler-cliproxy',
+        name: 'AgentBattler CLIProxyAPI',
+        baseUrl: openaiProxy.baseUrl.replace(/\/$/, ''),
+        apiKey: openaiProxy.apiKey,
+        isBuiltIn: false,
+        createdAt: 0,
+        updatedAt: 0,
+        agentModel: model,
+        mcpToolsModel: model,
+      }],
+    } : {
+      agentChatgptWebModel: model,
+      mcpToolsChatgptWebModel: model,
+      chatgptWebBaseUrl: 'https://chatgpt.com',
+    }),
     openaiReasoningEffort: 'high',
     codexTextVerbosity: 'medium',
   };
@@ -60,10 +85,16 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       enabledRuntimeTools: ['execute_command'],
     },
     modelConfig: {
-      agentProviderId: 'chatgpt-web',
-      mcpToolsProviderId: 'chatgpt-web',
-      agentChatgptWebModel: model,
-      mcpToolsChatgptWebModel: model,
+      agentProviderId: providerId,
+      mcpToolsProviderId: providerId,
+      ...(openaiProxy ? {
+        agentOpenaiModel: model,
+        mcpToolsOpenaiModel: model,
+        currentModelPresetId: 'agentbattler-cliproxy',
+      } : {
+        agentChatgptWebModel: model,
+        mcpToolsChatgptWebModel: model,
+      }),
     },
     skillsConfig: {
       allSkillsDisabledByDefault: true,
@@ -79,8 +110,10 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       [`agents/${DOTAGENTS_PROFILE_ID}/agent.md`]: profileMarkdown,
       [`agents/${DOTAGENTS_PROFILE_ID}/config.json`]: json(profile),
     },
+    legacyConfig: { ...settings, ...models, ...mcp },
     generationSettings: {
-      provider: 'chatgpt-web',
+      provider: openaiProxy ? 'openai-compatible' : 'chatgpt-web',
+      transport: openaiProxy ? 'cliproxyapi' : 'native',
       reasoningEffort: 'high',
       textVerbosity: 'medium',
       maxIterations: 12,
@@ -186,12 +219,13 @@ export function summarizeDotAgentsTrace(events, expectedModel) {
   };
 }
 
-export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPort, home, configRoot, workspace }) {
+export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPort, home, configRoot, workspace, network = null }) {
   invariant(typeof name === 'string' && /^[a-z0-9][a-z0-9_.-]+$/.test(name), 'Invalid DotAgents container name');
   invariant(Number.isSafeInteger(hostPort) && hostPort > 0 && hostPort <= 65_535, 'Invalid DotAgents host port');
   for (const [label, value] of Object.entries({ home, configRoot, workspace })) {
     invariant(typeof value === 'string' && path.isAbsolute(value), `${label} must be an absolute path`);
   }
+  if (network !== null) invariant(typeof network === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/.test(network), 'Invalid DotAgents Docker network');
   return [
     'run', '--rm', '--interactive',
     '--name', name,
@@ -205,6 +239,7 @@ export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPo
     '--tmpfs', '/tmp:rw,nosuid,nodev,size=512m',
     '--tmpfs', '/run:rw,nosuid,nodev,size=64m',
     '--publish', `127.0.0.1:${hostPort}:3210`,
+    ...(network ? ['--network', network] : []),
     '--env', 'HOME=/home/benchmark',
     '--env', 'XDG_CONFIG_HOME=/home/benchmark/.config',
     '--env', 'XDG_CACHE_HOME=/home/benchmark/.cache',

@@ -12,11 +12,29 @@ const CLAUDE_VERSION = process.env.AGENTBATTLER_CLAUDE_VERSION ?? '2.1.211';
 const REASONING = 'high';
 const ADAPTER_BINARY = process.env.AGENTBATTLER_CLAUDE_ADAPTER_BIN;
 const AUTH_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR ?? path.join(os.tmpdir(), 'agentbattler-claude-auth-broker');
+const CLIPROXY_BASE_URL = process.env.AGENTBATTLER_CLIPROXY_BASE_URL;
+const CLIPROXY_API_KEY = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
+const CLIPROXY_COMMIT = process.env.AGENTBATTLER_CLIPROXY_COMMIT;
+const CLIPROXY_IMAGE_ID = process.env.AGENTBATTLER_CLIPROXY_IMAGE_ID;
+const CLIPROXY_CONFIG_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CONFIG_SHA256;
+const CLIPROXY_RUNTIME_SHA256 = process.env.AGENTBATTLER_CLIPROXY_RUNTIME_SHA256;
 const AUTH_BROKER_LOCK_TIMEOUT_MS = 2 * 60 * 60_000;
 export const harnesses = ['claude-code'];
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
+
+function cliProxyConfig() {
+  const values = [CLIPROXY_BASE_URL, CLIPROXY_API_KEY, CLIPROXY_COMMIT, CLIPROXY_IMAGE_ID, CLIPROXY_CONFIG_SHA256, CLIPROXY_RUNTIME_SHA256];
+  if (values.every((value) => value === undefined)) return null;
+  invariant(values.every((value) => typeof value === 'string' && value.length > 0), 'Set all AGENTBATTLER_CLIPROXY_* variables for Claude proxy routing');
+  invariant(/^http:\/\/127\.0\.0\.1:\d+$/.test(CLIPROXY_BASE_URL), 'Claude CLIProxyAPI endpoint must use loopback HTTP');
+  invariant(CLIPROXY_API_KEY.length >= 32, 'CLIProxyAPI key is too short');
+  invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_COMMIT), 'CLIProxyAPI commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_CONFIG_SHA256), 'CLIProxyAPI config hash must be SHA-256');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_RUNTIME_SHA256), 'CLIProxyAPI runtime hash must be SHA-256');
+  return { baseUrl: CLIPROXY_BASE_URL, apiKey: CLIPROXY_API_KEY, provenance: { name: 'CLIProxyAPI', commit: CLIPROXY_COMMIT, imageId: CLIPROXY_IMAGE_ID, configSha256: CLIPROXY_CONFIG_SHA256, runtimeSha256: CLIPROXY_RUNTIME_SHA256 } };
+}
 
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -108,14 +126,14 @@ async function waitForHealth(url, childState) {
   throw new Error('Claude loopback gateway did not become healthy within 60 seconds');
 }
 
-function isolatedEnv(home, baseUrl) {
+function isolatedEnv(home, baseUrl, apiKey = 'local-gateway-only') {
   const keep = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL'];
   return {
     ...Object.fromEntries(keep.flatMap((key) => typeof process.env[key] === 'string' ? [[key, process.env[key]]] : [])),
     HOME: home,
     TMPDIR: path.join(home, 'tmp'),
     ANTHROPIC_BASE_URL: baseUrl,
-    ANTHROPIC_API_KEY: 'local-gateway-only',
+    ANTHROPIC_API_KEY: apiKey,
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
     DISABLE_TELEMETRY: '1',
     DISABLE_ERROR_REPORTING: '1',
@@ -204,6 +222,23 @@ async function prepareGateway(runDirectory) {
   return { home, adapterHome, baseUrl, env: isolatedEnv(home, baseUrl), child, state };
 }
 
+async function prepareCliProxy(runDirectory, proxy, expectedModel) {
+  const home = path.join(runDirectory, 'claude-home');
+  await Promise.all([home, path.join(home, 'tmp')].map((directory) => mkdir(directory, { recursive: true, mode: 0o700 })));
+  const response = await fetch(`${proxy.baseUrl}/v1/models`, {
+    // Ask for the canonical roster. CLIProxyAPI intentionally rewrites model
+    // IDs when /models is requested in Anthropic format, even though /messages
+    // accepts the canonical scheduled model ID.
+    headers: { Authorization: `Bearer ${proxy.apiKey}` },
+    signal: AbortSignal.timeout(10_000),
+  });
+  invariant(response.ok, `CLIProxyAPI model preflight failed (${response.status})`);
+  const payload = await response.json();
+  const models = Array.isArray(payload?.data) ? payload.data.map((entry) => entry?.id) : [];
+  invariant(models.includes(expectedModel), `CLIProxyAPI does not advertise ${expectedModel}`);
+  return { home, adapterHome: null, baseUrl: proxy.baseUrl, env: isolatedEnv(home, proxy.baseUrl, proxy.apiKey), child: null, state: { closed: true }, proxy };
+}
+
 async function stopGateway(gateway) {
   if (!gateway?.child || gateway.state.closed) return;
   gateway.child.kill('SIGTERM');
@@ -225,13 +260,14 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === 'claude-code', `Claude adapter received ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const workspace = path.join(runDirectory, 'workspace'); await mkdir(workspace, { recursive: true, mode: 0o700 });
-  const authBroker = await acquireAuthBroker();
+  const proxy = cliProxyConfig();
+  const authBroker = proxy ? null : await acquireAuthBroker();
   let gateway = null;
   const stages = []; const turns = []; const sessionIds = [];
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   const runStartedAt = new Date().toISOString(); let sessionId = null; let toolCalls = 0;
   try {
-    gateway = await prepareGateway(runDirectory);
+    gateway = proxy ? await prepareCliProxy(runDirectory, proxy, job.model) : await prepareGateway(runDirectory);
     for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
       const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`); const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
@@ -248,10 +284,12 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       turns.push({ index: index + 1, sessionId: telemetry.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry });
     }
     const holdout = await holdoutVerifier.verifyHoldout({ workspace });
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { transport: proxy ? proxy.provenance : { name: 'claude-adapter', mode: 'native-brokered-oauth' } } };
   } finally {
     await stopGateway(gateway);
-    await persistGatewayTokens(gateway);
-    await authBroker.release();
+    if (authBroker) {
+      await persistGatewayTokens(gateway);
+      await authBroker.release();
+    }
   }
 }

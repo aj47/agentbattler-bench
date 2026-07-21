@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import os from 'node:os';
@@ -33,12 +35,36 @@ async function availablePort() {
   return port;
 }
 
-function parseSse(content) {
-  return content.split(/\r?\n/).filter((line) => line.startsWith('data:')).flatMap((line) => {
-    const payload = line.slice(5).trim();
-    if (!payload || payload === '[DONE]') return [];
-    return [JSON.parse(payload)];
-  });
+function compactTraceEvent(event) {
+  // DotAgents can include the entire stateful conversation in the final `done`
+  // event. Keep the complete event on disk, but retain only the fields used by
+  // the verifier in memory. This prevents a long run from hitting V8's string
+  // limit while preserving the full trace artifact.
+  if (event?.type === 'progress') {
+    return {
+      type: 'progress',
+      data: {
+        modelInfo: event.data?.modelInfo,
+        steps: (event.data?.steps ?? []).filter((step) => step?.toolCall).map((step) => ({ toolCall: step.toolCall })),
+        sessionCost: event.data?.sessionCost,
+      },
+    };
+  }
+  if (event?.type === 'done') {
+    const conversationHistory = (event.data?.conversation_history ?? [])
+      .filter((message) => Array.isArray(message?.toolCalls) && message.toolCalls.length > 0)
+      .map((message) => ({ toolCalls: message.toolCalls }));
+    return {
+      type: 'done',
+      data: {
+        model: event.data?.model,
+        content: '',
+        conversation_id: event.data?.conversation_id,
+        conversation_history: conversationHistory,
+      },
+    };
+  }
+  return null;
 }
 
 async function waitForHealth(port, apiKey, childState) {
@@ -52,7 +78,7 @@ async function waitForHealth(port, apiKey, childState) {
   throw new Error('DotAgents container did not become healthy within 60 seconds');
 }
 
-async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs }) {
+async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, outputPath }) {
   const body = {
     model: `agent:${DOTAGENTS_PROFILE_ID}`,
     profile_id: DOTAGENTS_PROFILE_ID,
@@ -67,11 +93,42 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs }) {
     body: JSON.stringify(body),
     signal: Number.isSafeInteger(timeoutMs) && timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
   });
-  const raw = await response.text();
-  invariant(response.ok, `DotAgents request failed (${response.status}): ${raw.slice(0, 500)}`);
-  const events = parseSse(raw);
+  invariant(response.ok, `DotAgents request failed (${response.status})`);
+  invariant(response.body, 'DotAgents response has no streaming body');
+  const trace = createWriteStream(outputPath, { mode: 0o600 });
+  const events = [];
+  const decoder = new TextDecoder();
+  let pending = '';
+  const writeEvent = async (event) => {
+    const line = `${canonicalJson(event)}\n`;
+    if (!trace.write(line)) await new Promise((resolve, reject) => {
+      trace.once('drain', resolve);
+      trace.once('error', reject);
+    });
+    const compact = compactTraceEvent(event);
+    if (compact) events.push(compact);
+  };
+  const consumeLine = async (line) => {
+    if (!line.startsWith('data:')) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') return;
+    await writeEvent(JSON.parse(payload));
+  };
+  try {
+    for await (const chunk of response.body) {
+      pending += decoder.decode(chunk, { stream: true });
+      const lines = pending.split(/\r?\n/);
+      pending = lines.pop() ?? '';
+      for (const line of lines) await consumeLine(line);
+    }
+    pending += decoder.decode();
+    if (pending) await consumeLine(pending);
+  } finally {
+    trace.end();
+    await finished(trace).catch(() => {});
+  }
   invariant(events.some((event) => event?.type === 'done'), 'DotAgents stream ended without a done event');
-  return { events, raw };
+  return { events };
 }
 
 async function writeConfig(configRoot, config) {
@@ -138,8 +195,14 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   try {
     for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
-      const result = await streamTurn({ port: container.port, apiKey: container.apiKey, prompt: prompts[index], conversationId, timeoutMs: job.maxWallTimeMs });
-      await writeFile(path.join(runDirectory, `turn-${index + 1}.jsonl`), `${result.events.map((event) => canonicalJson(event)).join('\n')}\n`);
+      const result = await streamTurn({
+        port: container.port,
+        apiKey: container.apiKey,
+        prompt: prompts[index],
+        conversationId,
+        timeoutMs: job.maxWallTimeMs,
+        outputPath: path.join(runDirectory, `turn-${index + 1}.jsonl`),
+      });
       const telemetry = summarizeDotAgentsTrace(result.events, job.model);
       invariant(telemetry.conversationId, `DotAgents turn ${index + 1} emitted no conversation ID`);
       if (!conversationId) conversationId = telemetry.conversationId;

@@ -15,6 +15,9 @@ const AUTH_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR ?? path.
 const CLIPROXY_BASE_URL = process.env.AGENTBATTLER_CLIPROXY_BASE_URL;
 const CLIPROXY_API_KEY = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
 const CLIPROXY_COMMIT = process.env.AGENTBATTLER_CLIPROXY_COMMIT;
+const CLIPROXY_CATALOG_COMMIT = process.env.AGENTBATTLER_CLIPROXY_CATALOG_COMMIT;
+const CLIPROXY_MODELS_SHA256 = process.env.AGENTBATTLER_CLIPROXY_MODELS_SHA256;
+const CLIPROXY_CODEX_MODELS_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CODEX_MODELS_SHA256;
 const CLIPROXY_IMAGE_ID = process.env.AGENTBATTLER_CLIPROXY_IMAGE_ID;
 const CLIPROXY_CONFIG_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CONFIG_SHA256;
 const CLIPROXY_RUNTIME_SHA256 = process.env.AGENTBATTLER_CLIPROXY_RUNTIME_SHA256;
@@ -25,15 +28,17 @@ const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
 function cliProxyConfig() {
-  const values = [CLIPROXY_BASE_URL, CLIPROXY_API_KEY, CLIPROXY_COMMIT, CLIPROXY_IMAGE_ID, CLIPROXY_CONFIG_SHA256, CLIPROXY_RUNTIME_SHA256];
+  const values = [CLIPROXY_BASE_URL, CLIPROXY_API_KEY, CLIPROXY_COMMIT, CLIPROXY_CATALOG_COMMIT, CLIPROXY_MODELS_SHA256, CLIPROXY_CODEX_MODELS_SHA256, CLIPROXY_IMAGE_ID, CLIPROXY_CONFIG_SHA256, CLIPROXY_RUNTIME_SHA256];
   if (values.every((value) => value === undefined)) return null;
   invariant(values.every((value) => typeof value === 'string' && value.length > 0), 'Set all AGENTBATTLER_CLIPROXY_* variables for Claude proxy routing');
   invariant(/^http:\/\/127\.0\.0\.1:\d+$/.test(CLIPROXY_BASE_URL), 'Claude CLIProxyAPI endpoint must use loopback HTTP');
   invariant(CLIPROXY_API_KEY.length >= 32, 'CLIProxyAPI key is too short');
   invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_COMMIT), 'CLIProxyAPI commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_CATALOG_COMMIT), 'CLIProxyAPI catalog commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_MODELS_SHA256) && /^[0-9a-f]{64}$/.test(CLIPROXY_CODEX_MODELS_SHA256), 'CLIProxyAPI catalog hashes must be SHA-256');
   invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_CONFIG_SHA256), 'CLIProxyAPI config hash must be SHA-256');
   invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_RUNTIME_SHA256), 'CLIProxyAPI runtime hash must be SHA-256');
-  return { baseUrl: CLIPROXY_BASE_URL, apiKey: CLIPROXY_API_KEY, provenance: { name: 'CLIProxyAPI', commit: CLIPROXY_COMMIT, imageId: CLIPROXY_IMAGE_ID, configSha256: CLIPROXY_CONFIG_SHA256, runtimeSha256: CLIPROXY_RUNTIME_SHA256 } };
+  return { baseUrl: CLIPROXY_BASE_URL, apiKey: CLIPROXY_API_KEY, provenance: { name: 'CLIProxyAPI', commit: CLIPROXY_COMMIT, catalogCommit: CLIPROXY_CATALOG_COMMIT, modelsSha256: CLIPROXY_MODELS_SHA256, codexModelsSha256: CLIPROXY_CODEX_MODELS_SHA256, imageId: CLIPROXY_IMAGE_ID, configSha256: CLIPROXY_CONFIG_SHA256, runtimeSha256: CLIPROXY_RUNTIME_SHA256 } };
 }
 
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }

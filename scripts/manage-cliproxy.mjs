@@ -5,7 +5,10 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 
 const COMMIT = 'db82d65d1cc3be6dc9662ee2b9a3810ac948d377';
-const IMAGE = `agentbattler-cliproxy:${COMMIT.slice(0, 12)}`;
+const CATALOG_COMMIT = '8b32755e666bcb98a435aaf4728e7341ffb9507a';
+const MODELS_SHA256 = '395a9c2c2e0581f6663fd7a72dc44581f52b361464fc477e79744466c1f9b7c7';
+const CODEX_MODELS_SHA256 = '3a23d91d04eb35a5684597179b7aa5ba3acc9f52d277f04395a91af71cb67f4d';
+const IMAGE = `agentbattler-cliproxy:${COMMIT.slice(0, 12)}-models-${CATALOG_COMMIT.slice(0, 12)}`;
 const CONTAINER = 'agentbattler-cliproxy';
 const NETWORK = 'agentbattler-cliproxy';
 const PORT = 8317;
@@ -94,13 +97,16 @@ routing:
   await writeFile(configPath, config, { mode: 0o600 });
   const configSha256 = createHash('sha256').update(config).digest('hex');
   const imageId = (await docker(['image', 'inspect', IMAGE, '--format', '{{.Id}}'], { capture: true })).stdout;
-  const runtimeSha256 = createHash('sha256').update(JSON.stringify({ imageId, configSha256, serverArgs: SERVER_ARGS })).digest('hex');
+  const runtimeSha256 = createHash('sha256').update(JSON.stringify({ imageId, configSha256, serverArgs: SERVER_ARGS, catalogCommit: CATALOG_COMMIT, modelsSha256: MODELS_SHA256, codexModelsSha256: CODEX_MODELS_SHA256 })).digest('hex');
   const env = [
     `export AGENTBATTLER_CLIPROXY_BASE_URL='http://127.0.0.1:${PORT}'`,
     `export AGENTBATTLER_CLIPROXY_DOCKER_BASE_URL='http://${CONTAINER}:${PORT}/v1'`,
     `export AGENTBATTLER_CLIPROXY_API_KEY='${apiKey}'`,
     `export AGENTBATTLER_CLIPROXY_DOCKER_NETWORK='${NETWORK}'`,
     `export AGENTBATTLER_CLIPROXY_COMMIT='${COMMIT}'`,
+    `export AGENTBATTLER_CLIPROXY_CATALOG_COMMIT='${CATALOG_COMMIT}'`,
+    `export AGENTBATTLER_CLIPROXY_MODELS_SHA256='${MODELS_SHA256}'`,
+    `export AGENTBATTLER_CLIPROXY_CODEX_MODELS_SHA256='${CODEX_MODELS_SHA256}'`,
     `export AGENTBATTLER_CLIPROXY_IMAGE_ID='${imageId}'`,
     `export AGENTBATTLER_CLIPROXY_CONFIG_SHA256='${configSha256}'`,
     `export AGENTBATTLER_CLIPROXY_RUNTIME_SHA256='${runtimeSha256}'`,

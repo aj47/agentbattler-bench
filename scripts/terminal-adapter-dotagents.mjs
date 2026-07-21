@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { once } from 'node:events';
 import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -21,11 +22,30 @@ import {
 import { canonicalJson } from '../src/provenance.mjs';
 
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
+const CHATGPT_TOKEN_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR;
 const IMAGE = process.env.AGENTBATTLER_DOTAGENTS_IMAGE ?? DOTAGENTS_IMAGE;
 export const harnesses = ['dotagents-mono'];
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
+
+async function loadChatGptAuth() {
+  const auth = JSON.parse(await readFile(CODEX_AUTH, 'utf8'));
+  invariant(auth?.auth_mode === 'chatgpt' && auth.tokens?.access_token && auth.tokens?.refresh_token && auth.tokens?.account_id, 'Codex ChatGPT auth is unavailable for DotAgents');
+  if (!CHATGPT_TOKEN_BROKER_DIR) return auth;
+  const brokerPath = path.join(CHATGPT_TOKEN_BROKER_DIR, 'tokens-chatgpt.json');
+  try {
+    const [broker, authStat, brokerStat] = await Promise.all([
+      readFile(brokerPath, 'utf8').then(JSON.parse),
+      stat(CODEX_AUTH),
+      stat(brokerPath),
+    ]);
+    if (brokerStat.mtimeMs > authStat.mtimeMs && broker.access_token && broker.refresh_token) {
+      auth.tokens = { ...auth.tokens, access_token: broker.access_token, refresh_token: broker.refresh_token };
+    }
+  } catch { /* Fall back to the current Codex auth when no broker exists. */ }
+  return auth;
+}
 
 async function availablePort() {
   const server = createServer();
@@ -101,10 +121,7 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, out
   let pending = '';
   const writeEvent = async (event) => {
     const line = `${canonicalJson(event)}\n`;
-    if (!trace.write(line)) await new Promise((resolve, reject) => {
-      trace.once('drain', resolve);
-      trace.once('error', reject);
-    });
+    if (!trace.write(line)) await once(trace, 'drain');
     const compact = compactTraceEvent(event);
     if (compact) events.push(compact);
   };
@@ -141,8 +158,7 @@ async function writeConfig(configRoot, config) {
 }
 
 async function startContainer(runDirectory, job) {
-  const auth = JSON.parse(await readFile(CODEX_AUTH, 'utf8'));
-  invariant(auth?.auth_mode === 'chatgpt' && auth.tokens?.access_token && auth.tokens?.refresh_token && auth.tokens?.account_id, 'Codex ChatGPT auth is unavailable for DotAgents');
+  const auth = await loadChatGptAuth();
   const home = path.join(runDirectory, 'dotagents-home'); const configRoot = path.join(runDirectory, 'config-workspace'); const workspace = path.join(runDirectory, 'workspace');
   await Promise.all([home, configRoot, workspace].map((directory) => mkdir(directory, { recursive: true, mode: 0o700 })));
   await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });

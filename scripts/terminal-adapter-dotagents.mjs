@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
@@ -157,9 +157,26 @@ async function writeConfig(configRoot, config) {
   }
 }
 
+async function archivePreviousAttempt(runDirectory) {
+  const entries = await readdir(runDirectory).catch((error) => {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  });
+  const names = entries.filter((name) => (
+    ['dotagents-home', 'config-workspace', 'workspace', 'container-stdout.txt', 'container-stderr.txt'].includes(name)
+    || /^turn-\d+\.jsonl$/.test(name)
+  ));
+  if (names.length === 0) return;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const archive = path.join(runDirectory, 'attempts', `${stamp}-${randomBytes(4).toString('hex')}`);
+  await mkdir(archive, { recursive: true, mode: 0o700 });
+  for (const name of names) await rename(path.join(runDirectory, name), path.join(archive, name));
+}
+
 async function startContainer(runDirectory, job) {
   const auth = await loadChatGptAuth();
   const home = path.join(runDirectory, 'dotagents-home'); const configRoot = path.join(runDirectory, 'config-workspace'); const workspace = path.join(runDirectory, 'workspace');
+  await archivePreviousAttempt(runDirectory);
   await Promise.all([home, configRoot, workspace].map((directory) => mkdir(directory, { recursive: true, mode: 0o700 })));
   await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });
   await writeFile(path.join(home, '.codex', 'auth.json'), `${canonicalJson(auth, { space: 2 })}\n`, { mode: 0o600 });

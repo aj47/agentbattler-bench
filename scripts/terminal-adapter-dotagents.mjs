@@ -86,7 +86,13 @@ function compactTraceEvent(event) {
     return {
       type: 'progress',
       data: {
+        contextInfo: event.data?.contextInfo,
+        conversationId: event.data?.conversationId,
+        conversationState: event.data?.conversationState,
+        currentIteration: event.data?.currentIteration,
         modelInfo: event.data?.modelInfo,
+        runId: event.data?.runId,
+        sessionId: event.data?.sessionId,
         steps: (event.data?.steps ?? []).filter((step) => step?.toolCall).map((step) => ({ toolCall: step.toolCall })),
         sessionCost: event.data?.sessionCost,
       },
@@ -120,14 +126,30 @@ async function waitForHealth(port, apiKey, childState) {
   throw new Error('DotAgents container did not become healthy within 60 seconds');
 }
 
-async function verifyProxySettings(port, apiKey, job, proxy) {
-  if (!proxy) return;
+async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
+  const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const update = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      mcpMaxIterations: 12,
+      mcpUnlimitedIterations: false,
+      mcpMessageQueueEnabled: false,
+      mcpVerifyCompletionEnabled: true,
+      mcpFinalSummaryEnabled: false,
+    }),
+    signal: AbortSignal.timeout(5_000),
+  });
+  invariant(update.ok, `DotAgents sealed settings update failed (${update.status})`);
   const response = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers,
     signal: AbortSignal.timeout(5_000),
   });
   invariant(response.ok, `DotAgents settings preflight failed (${response.status})`);
   const settings = await response.json();
+  invariant(settings.mcpMaxIterations === 12, `DotAgents effective max iterations is ${settings.mcpMaxIterations ?? 'missing'}, not 12`);
+  invariant(settings.mcpUnlimitedIterations === false, 'DotAgents effective unlimited iterations is not disabled');
+  if (!proxy) return;
   invariant(settings.agentProviderId === 'openai', `DotAgents effective provider is ${settings.agentProviderId ?? 'missing'}, not openai`);
   invariant(settings.agentOpenaiModel === job.model, `DotAgents effective model is ${settings.agentOpenaiModel ?? 'missing'}, not ${job.model}`);
   invariant(settings.openaiBaseUrl === proxy.baseUrl.replace(/\/$/, ''), `DotAgents effective proxy URL is ${settings.openaiBaseUrl ?? 'missing'}`);
@@ -156,7 +178,11 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, out
   const decoder = new TextDecoder();
   let pending = '';
   const writeEvent = async (event) => {
-    const line = `${canonicalJson(event)}\n`;
+    // Progress events repeat the complete conversation and all prior steps.
+    // Persist their telemetry/tool-call projection while retaining the one
+    // complete terminal event. This keeps long-run traces useful and bounded.
+    const persisted = event?.type === 'progress' ? compactTraceEvent(event) : event;
+    const line = `${canonicalJson(persisted ?? event)}\n`;
     if (!trace.write(line)) await once(trace, 'drain');
     const compact = compactTraceEvent(event);
     if (compact) events.push(compact);
@@ -245,7 +271,7 @@ async function startContainer(runDirectory, job) {
   const container = { port, apiKey, workspace, child, name, state, stdout, stderr, proxy, generationSettings: generatedConfig.generationSettings };
   try {
     await waitForHealth(port, apiKey, state);
-    await verifyProxySettings(port, apiKey, job, proxy);
+    await applyAndVerifyRuntimeSettings(port, apiKey, job, proxy);
     return container;
   } catch (error) {
     await stopContainer(container);

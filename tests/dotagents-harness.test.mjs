@@ -18,6 +18,7 @@ test('creates an isolated DotAgents configuration for the requested model', () =
   assert.equal(models.openaiReasoningEffort, 'high');
   assert.deepEqual(mcp.mcpConfig, { mcpServers: {} });
   assert.equal(mcp.mcpParallelToolExecution, false);
+  assert.equal(mcp.mcpUnlimitedIterations, false);
   assert.deepEqual(profile.toolConfig.enabledRuntimeTools, ['execute_command']);
   assert.equal(profile.toolConfig.allServersDisabledByDefault, true);
   assert.equal(profile.skillsConfig.allSkillsDisabledByDefault, true);
@@ -27,6 +28,7 @@ test('can configure a stateful DotAgents benchmark profile', () => {
   const config = createDotAgentsConfig({ model: 'gpt-5.6-terra', remoteApiKey: 'a'.repeat(64), stateful: true });
   assert.match(config.files['agents/agentbattler-benchmark/agent.md'], /isStateful: true/);
   assert.equal(config.generationSettings.stateful, true);
+  assert.equal(config.generationSettings.unlimitedIterations, false);
 });
 
 test('can route DotAgents through a pinned OpenAI-compatible proxy', () => {

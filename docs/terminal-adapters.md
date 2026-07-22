@@ -17,8 +17,8 @@ export async function runTerminalJob({ challenge, job, challengeRoot, runDirecto
 For each job it must provide:
 
 - one fresh workspace and isolated harness state;
-- the exact eight prompts from the sealed challenge;
-- one continuing session across all eight prompts;
+- the exact prompts from the sealed challenge (fifteen for V4);
+- one continuing session across every prompt;
 - the scheduled model, harness version, reasoning effort, and generation identity;
 - per-turn verifier results and the final holdout result;
 - provider-reported token telemetry and wall-clock timing;
@@ -33,16 +33,32 @@ must prove session continuity.
 
 | Harness | Adapter | Status |
 | --- | --- | --- |
-| `codex-cli` | `scripts/terminal-adapter-codex.mjs` | Implemented and exercised on M4 |
-| `pi-coding-agent` | `scripts/terminal-adapter-pi.mjs` | Implemented; live session/network audit still pending |
-| `claude-code` | `scripts/terminal-adapter-claude.mjs` | Implemented with explicit CLI session IDs and loopback gateway; live audit pending |
-| `dotagents-mono` | `scripts/terminal-adapter-dotagents.mjs` | Implemented with a stateful container conversation; live API audit pending |
+| `codex-cli` | `scripts/terminal-adapter-harbor.mjs` for V4 | Harbor 0.20 Docker environment with native resume |
+| `pi-coding-agent` | `scripts/terminal-adapter-harbor.mjs` for V4 | Harbor 0.20 Docker environment with native resume |
+| `claude-code` | `scripts/terminal-adapter-harbor.mjs` for V4 | Harbor 0.20 Docker environment with native resume |
+| `dotagents-mono` | `scripts/terminal-adapter-dotagents.mjs` | Existing locked-down Docker adapter |
 
-`scripts/terminal-adapter-all.mjs` dispatches by scheduled harness so the full matrix
-can be run with one explicit adapter. Claude Code and DotAgents remain unpublished
-until their first live terminal smoke runs prove the session-continuity and isolation
-assertions on the target machine.
+`scripts/terminal-adapter-all.mjs` dispatches by challenge and harness. V4 sends Claude
+Code, Codex CLI, and Pi through Harbor while retaining DotAgents' isolated Docker path.
+V3 and earlier remain on the legacy adapters for reproducibility.
+
+The generated Harbor task uses fifteen ordered steps and `--resume-trajectory`. The agent
+container receives the prompts and persistent `/app` workspace but not `/tests`. After each
+turn, Harbor transfers only `/app` into a separate verifier container. Verifier source is
+root-only, and candidate processes run as UID/GID 1000. An M4 smoke exercised all fifteen
+steps: stages 2–15 used the resume path, the agent could not see `/tests`, and candidate
+attempts to read the holdout verifier failed. Harbor's Docker provider does not start a
+`no-network` separate verifier, so each verifier starts with public networking only long
+enough to receive its artifact, then drops all outbound traffic with an iptables policy
+before verifier or candidate code runs. No credentials are passed to the verifier.
 
 The exhaustive schedule already includes all declared harness/model combinations.
-Run the complete schedule with `npm run terminal:run -- --adapter scripts/terminal-adapter-all.mjs`.
+Build the package with `npm run terminal:harbor:build`, then run the V4 schedule with
+`npm run terminal:run:v4`.
 Use `--harness` to smoke-test one adapter subset before running the complete matrix.
+
+Codex defaults to the host's subscription `~/.codex/auth.json` through Harbor's explicit
+`CODEX_AUTH_JSON_PATH` setting. Claude Code and Pi default to the configured CLIProxy endpoint;
+set both `AGENTBATTLER_CLIPROXY_BASE_URL` and `AGENTBATTLER_CLIPROXY_API_KEY`. Override the
+comma-separated proxy roster with `AGENTBATTLER_CLIPROXY_HARNESSES` when needed. DotAgents
+continues to consume the same proxy settings in its existing adapter.

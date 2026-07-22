@@ -1,0 +1,1 @@
+Run the final scale and integrity audit. Using append-batch --file, support at least 2,000 valid events, 200 deterministic paged queries, export/import, compact --keep 100, replay, and audit without losing or duplicating records. Preserve all earlier contracts exactly. Do not use packages or network. Modify only candidate source files.

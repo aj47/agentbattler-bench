@@ -1,0 +1,1 @@
+Preserve all earlier behavior. Implement deterministic query filtering, exclusive --after-sequence pagination, and --limit. Results must be ordered by sequence then ID and never include more than the limit. Query task events in pages of two and prove that concatenating pages equals the full task result with no duplicates or omissions. Modify only candidate source files.

@@ -64,6 +64,29 @@ must not be regenerated during an existing run. The v1 evidence is retained only
 withdrawn diagnostic history because its verifier contradicted its prompt; it is not
 eligible for ratings.
 
+## Mini Ledger v4.1 isolation
+
+The first V4 result set is also withdrawn from ratings. Its native adapters isolated the
+harness home and candidate workspace but did not isolate the process from the parent Git
+checkout, allowing access to hidden verifier source. The evidence remains available so the
+failure and its effect can be audited.
+
+V4.1 packages the fifteen-turn task for Harbor 0.20.0. Claude Code, Codex CLI, and Pi run
+inside a fresh Docker environment with `/app` as the only persistent candidate artifact and
+native session resume between turns. Every stage is evaluated in a separate verifier image;
+the agent never receives its `/tests`, and verifier-spawned candidate processes are demoted
+to UID/GID 1000 while `/tests` is root-only. DotAgents continues through its locked-down
+Docker adapter, which mounts only its candidate workspace and isolated configuration.
+The agent environment has public egress for model API access. After Harbor transfers `/app`,
+the verifier container drops outbound traffic before verifier or candidate execution; this
+split policy is recorded in the sealed challenge instead of being described as globally offline.
+
+Because the verifier and candidate process policy are part of the canonical challenge, the
+V4.1 challenge hash differs from the withdrawn run. The normal schedule validator therefore
+rejects old results rather than silently mixing them into the replacement leaderboard.
+The challenge descriptor also binds Harbor 0.20.0 and a deterministic hash of the complete
+generated Harbor task tree, including per-step verifier images, firewall policy, and scripts.
+
 ## Mini Ledger v3
 
 `terminal-mini-ledger-v3` is the harder follow-on challenge. It keeps the same exhaustive

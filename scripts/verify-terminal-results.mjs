@@ -14,7 +14,9 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
-const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${challengeVersion}`);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? challengeVersion;
+if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
+const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const allowIncomplete = process.argv.includes('--allow-incomplete');
 
 function invariant(condition, message) {

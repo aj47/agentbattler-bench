@@ -20,6 +20,42 @@ function familyName(value: string) {
 }
 
 export function TerminalStudy({ lane }: { lane: TerminalChallengeLane }) {
+  if (lane.status === 'withdrawn') {
+    return (
+      <section className={`${styles.study} ${styles.withdrawn}`} id="terminal-study" aria-labelledby="terminal-study-title">
+        <div className={`shell ${styles.withdrawnShell}`}>
+          <div className={styles.status}>
+            <span className={styles.withdrawnMark} aria-hidden="true" />
+            <span>study withdrawn</span><span>/</span><span>isolation failure</span><span>/</span><span>Harbor rerun pending</span>
+          </div>
+          <div className={styles.withdrawnGrid}>
+            <div>
+              <p className={styles.kicker}>Mini Ledger v4 · benchmark correction</p>
+              <h1 id="terminal-study-title">The scores were<br /><em>not sealed.</em></h1>
+            </div>
+            <div className={styles.incidentCopy}>
+              <strong>We found the agents could read the parent repository—including hidden verifier source.</strong>
+              <p>That makes the original 60-run leaderboard invalid as a measure of model or harness ability. We have removed its ranking and findings, kept every result and trace as diagnostic evidence, and changed the challenge hash so those runs cannot validate against the replacement.</p>
+            </div>
+          </div>
+          <div className={styles.repairStrip}>
+            <div><span>01</span><strong>Fresh agent container</strong><p>Claude Code, Codex CLI, and Pi now run through Harbor 0.20 with only the persistent <code>/app</code> workspace.</p></div>
+            <div><span>02</span><strong>Separate verifier</strong><p>Only candidate artifacts cross into a new verifier container. Agents never receive <code>/tests</code>.</p></div>
+            <div><span>03</span><strong>Privilege boundary</strong><p>Candidate code runs as UID 1000 while verifier source remains root-only.</p></div>
+            <div><span>04</span><strong>Full rerun</strong><p>All harness × model × generation combinations will repopulate the leaderboard from zero.</p></div>
+          </div>
+          <div className={styles.withdrawnEvidence}>
+            <div><span>isolation smoke</span><strong>15 / 15 steps</strong><small>resume exercised on steps 2–15 · holdout reads denied</small></div>
+            <div className={styles.withdrawnLinks}>
+              <a href={`${BLOB}/benchmark/harbor/mini-ledger-v4`}>inspect Harbor task ↗</a>
+              <a href={`${BLOB}/docs/terminal-challenge.md`}>read correction ↗</a>
+              <a href={`${BLOB}/results/terminal-mini-ledger-v4`}>open withdrawn evidence ↗</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
   const runs = lane.combos.flatMap((combo) => combo.runs);
   const bestRun = runs.reduce((best, run) => run.scorePct > best.scorePct ? run : best);
   const bestCombo = lane.combos[0];

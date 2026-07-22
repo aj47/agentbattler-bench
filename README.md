@@ -6,13 +6,12 @@ Raw generation traces and tournament result bodies are not stored in Git history
 
 AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
 
-The completed long-horizon study is [`terminal-mini-ledger-v4`](results/terminal-mini-ledger-v4/README.md):
-60 valid runs covering Codex CLI, Claude Code, Pi, and DotAgents across Luna, Sol, and Terra.
-Every combination has five independent generations, every run has 15 sequential turns in one
-session and workspace, and every canonical result and compact semantic trace is published with
-checksums. The final averages range from 14.46 to 73.44; no run scored 100. See the
-[public study page](https://agentbattler.com/#terminal-study) for the leaderboard, findings, run-level
-drill-down, and evidence links.
+The previous [`terminal-mini-ledger-v4`](results/terminal-mini-ledger-v4/README.md) result set is
+withdrawn from ranking and retained as diagnostic evidence. An isolation audit found that native
+agent processes could read repository files, including the holdout verifier, so those scores do not
+measure a sealed benchmark. V4.1 reruns Claude Code, Codex CLI, and Pi in Harbor 0.20 containers
+with a separate verifier container; DotAgents retains its already container-isolated adapter. Old
+results cannot validate against the rebuilt challenge hash.
 
 The earlier `terminal-mini-ledger-v2` gives one
 isolated workspace and one continuous session eight staged maintenance turns. Its sealed
@@ -43,15 +42,16 @@ Run or verify the published v4 matrix with:
 
 ```sh
 npm run terminal:matrix:v4
+npm run terminal:harbor:build
 npm run terminal:run:v4
 npm run terminal:verify:v4
 npm run terminal:traces:v4
 ```
 
-The matrix is scheduled before any model run. The runner persists one result atomically
+V4 requires Docker plus `uv`; the runner pins Harbor 0.20.0. The matrix is scheduled before any model run. The runner persists one result atomically
 per scheduled `runKey`, skips completed work on restart, and records infrastructure-invalid
 adapter failures instead of turning them into agent scores. Each harness must be supplied
-through an explicit adapter; the Codex adapter above is the native M4 path. Missing runs
+through an explicit adapter; V4 dispatches the supported native CLIs through Harbor on the M4. Missing runs
 and infrastructure-invalid runs remain visible and never become silent losses or wins.
 See [docs/terminal-challenge.md](docs/terminal-challenge.md)
 and [benchmark/challenges/mini-ledger-v2.md](benchmark/challenges/mini-ledger-v2.md) for the

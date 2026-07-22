@@ -1,0 +1,250 @@
+schema_version = "1.4"
+multi_step_reward_strategy = "final"
+artifacts = [{ source = "/app", destination = "candidate" }]
+
+[task]
+name = "agentbattler/mini-ledger-v4"
+version = "4.1.0"
+description = "Fifteen-turn long-horizon deterministic ledger challenge"
+
+[metadata]
+benchmark = "AgentBattler"
+challenge = "mini-ledger-v4"
+harbor_version = "0.20.0"
+visible_points = 70
+holdout_points = 30
+
+[agent]
+timeout_sec = 1800.0
+network_mode = "public"
+
+[verifier]
+timeout_sec = 600.0
+environment_mode = "separate"
+
+[verifier.environment]
+# Harbor 0.20's Docker provider rejects no-network for separate verifier
+# environments. Filesystem isolation is enforced by the separate container;
+# the verifier has no credentials and makes no network requests.
+network_mode = "public"
+workdir = "/"
+cpus = 4
+memory_mb = 4096
+storage_mb = 4096
+
+[environment]
+network_mode = "public"
+workdir = "/app"
+cpus = 4
+memory_mb = 4096
+storage_mb = 8192
+
+[[steps]]
+name = "01-foundation"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "foundation"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "02-batch"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "batch"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "03-pagination"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "pagination"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "04-migration"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "migration"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "05-atomicity"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "atomicity"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "06-recovery"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "recovery"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "07-concurrency"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "concurrency"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "08-compaction"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "compaction"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "09-roundtrip"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "roundtrip"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "10-replay"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "replay"
+AGENTBATTLER_STAGE_POINTS = "3"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "11-audit"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "audit"
+AGENTBATTLER_STAGE_POINTS = "5"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "12-scale"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "scale"
+AGENTBATTLER_STAGE_POINTS = "5"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "13-stress-concurrency"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "stress-concurrency"
+AGENTBATTLER_STAGE_POINTS = "10"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "14-validation"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "validation"
+AGENTBATTLER_STAGE_POINTS = "10"
+AGENTBATTLER_FINAL_STEP = "0"
+
+[[steps]]
+name = "15-scale-stress"
+
+[steps.agent]
+timeout_sec = 1800.0
+
+[steps.verifier]
+timeout_sec = 600.0
+
+[steps.verifier.env]
+AGENTBATTLER_STAGE_ID = "scale-stress"
+AGENTBATTLER_STAGE_POINTS = "10"
+AGENTBATTLER_FINAL_STEP = "1"

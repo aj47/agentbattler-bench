@@ -1,15 +1,22 @@
-# Mini Ledger v4 — completed study
+# Mini Ledger v4 — withdrawn diagnostic study
+
+> **Withdrawn from ranking (2026-07-21).** An isolation audit found that the
+> native agent processes could read the parent Git checkout, including hidden
+> verifier source. The 60 runs, traces, and checksums remain published so the
+> failure can be investigated, but the scores below are not valid benchmark
+> results. V4.1 uses Harbor 0.20 separate verifier containers and a new challenge
+> hash; it will be rerun from zero.
 
 Mini Ledger v4 is a 15-turn, long-horizon terminal benchmark designed to exercise sustained
 software-engineering work in one session and workspace. The task grows a dependency-free Node.js
 event ledger through atomic batches, migration, crash recovery, process concurrency, checksummed
 compaction, replay, auditing, fault injection, and integrated scale stress.
 
-The completed matrix contains 60 valid runs: four harnesses × three model families × five
+The diagnostic matrix contains 60 completed runs: four harnesses × three model families × five
 independent generations. All jobs were sealed in `schedule.json` before execution. No run received
 human intervention, and infrastructure failures were retried rather than converted into model scores.
 
-## Final leaderboard
+## Withdrawn score table (not a leaderboard)
 
 | Rank | Harness × model | Mean | Five-run range | Mean duration |
 |---:|---|---:|---:|---:|
@@ -30,7 +37,7 @@ Scores use 70 points from 15 visible stages and 30 points from 11 holdout checks
 calculates each run independently; combo values above are arithmetic means of five runs. Runtime is
 wall-clock duration and is evidence, not part of the score.
 
-## Findings
+## Superseded observations
 
 - The benchmark has useful headroom: the best run scored 81.82 and no run reached 100.
 - Harness and model interact. Sol led in Claude Code but did not lead consistently in the other harnesses.
@@ -66,6 +73,7 @@ retained raw M4 data.
 
 ```sh
 npm run terminal:matrix:v4
+npm run terminal:harbor:build
 npm run terminal:run:v4
 npm run terminal:verify:v4
 npm run terminal:traces:v4

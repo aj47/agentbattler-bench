@@ -1,0 +1,463 @@
+{
+  "artifactId": "terminal-codex-cli-terra-04",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-00325d745d738844",
+  "durationMs": 1849484,
+  "endedAt": "2026-07-20T03:15:32.408Z",
+  "executionConcurrency": 2,
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "codex-cli",
+  "harnessVersion": "0.144.0",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ebd2faaee91d6b369946bf6234064e0d872c60bd0748b4f4879d2df9831b9a2f/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ebd2faaee91d6b369946bf6234064e0d872c60bd0748b4f4879d2df9831b9a2f/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ebd2faaee91d6b369946bf6234064e0d872c60bd0748b4f4879d2df9831b9a2f/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: {\"error\":\"nextSequence must be greater than every event sequence\"}",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "import failed: {\"error\":\"arguments must be --name value pairs\"}",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ebd2faaee91d6b369946bf6234064e0d872c60bd0748b4f4879d2df9831b9a2f/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock was not recoverable",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-terra",
+  "modelFamilyId": "terra",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "b8466165982b49de11ddfee4226658cd2e93aa70a605f8f020e0696456db75a3",
+  "runKey": "ebd2faaee91d6b369946bf6234064e0d872c60bd0748b4f4879d2df9831b9a2f",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+  "stages": [
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 49,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 41,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 25,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: {\"error\":\"arguments must be --name value pairs\"}",
+      "durationMs": 46,
+      "exitCode": 1,
+      "id": "migration",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 156,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 50,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "query did not return an array",
+      "durationMs": 703,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":\"nextSequence must be greater than every event sequence\"}",
+      "durationMs": 50,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "export failed: {\"error\":\"arguments must be --name value pairs\"}",
+      "durationMs": 48,
+      "exitCode": 1,
+      "id": "roundtrip",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 41,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":\"nextSequence must be greater than every event sequence\"}",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: {\"error\":\"arguments must be --name value pairs\"}",
+      "durationMs": 26,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 51,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T02:44:42.924Z",
+  "status": "completed",
+  "toolCalls": 87,
+  "turns": [
+    {
+      "durationMs": 200454,
+      "endedAt": "2026-07-20T02:48:03.378Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:44:42.924Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 73984,
+        "input_tokens": 105931,
+        "output_tokens": 9765,
+        "reasoning_output_tokens": 4364
+      }
+    },
+    {
+      "durationMs": 113813,
+      "endedAt": "2026-07-20T02:49:57.191Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:48:03.378Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 205568,
+        "input_tokens": 246883,
+        "output_tokens": 15000,
+        "reasoning_output_tokens": 7931
+      }
+    },
+    {
+      "durationMs": 63326,
+      "endedAt": "2026-07-20T02:51:00.517Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:49:57.191Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 345088,
+        "input_tokens": 391663,
+        "output_tokens": 17881,
+        "reasoning_output_tokens": 9024
+      }
+    },
+    {
+      "durationMs": 72464,
+      "endedAt": "2026-07-20T02:52:12.981Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:51:00.517Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 472064,
+        "input_tokens": 524111,
+        "output_tokens": 21359,
+        "reasoning_output_tokens": 10599
+      }
+    },
+    {
+      "durationMs": 78782,
+      "endedAt": "2026-07-20T02:53:31.763Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:52:12.981Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 579328,
+        "input_tokens": 636169,
+        "output_tokens": 24983,
+        "reasoning_output_tokens": 12944
+      }
+    },
+    {
+      "durationMs": 205545,
+      "endedAt": "2026-07-20T02:56:57.308Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:53:31.763Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 936192,
+        "input_tokens": 1006782,
+        "output_tokens": 34097,
+        "reasoning_output_tokens": 18787
+      }
+    },
+    {
+      "durationMs": 84918,
+      "endedAt": "2026-07-20T02:58:22.226Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:56:57.308Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 1141504,
+        "input_tokens": 1219447,
+        "output_tokens": 38049,
+        "reasoning_output_tokens": 20949
+      }
+    },
+    {
+      "durationMs": 142600,
+      "endedAt": "2026-07-20T03:00:44.826Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T02:58:22.226Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 1627904,
+        "input_tokens": 1719589,
+        "output_tokens": 43984,
+        "reasoning_output_tokens": 23657
+      }
+    },
+    {
+      "durationMs": 129497,
+      "endedAt": "2026-07-20T03:02:54.323Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:00:44.826Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 2041088,
+        "input_tokens": 2142278,
+        "output_tokens": 50042,
+        "reasoning_output_tokens": 26817
+      }
+    },
+    {
+      "durationMs": 157738,
+      "endedAt": "2026-07-20T03:05:32.061Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:02:54.323Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 2418688,
+        "input_tokens": 2530399,
+        "output_tokens": 57156,
+        "reasoning_output_tokens": 30885
+      }
+    },
+    {
+      "durationMs": 134269,
+      "endedAt": "2026-07-20T03:07:46.330Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:05:32.061Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 2928640,
+        "input_tokens": 3052508,
+        "output_tokens": 63400,
+        "reasoning_output_tokens": 33126
+      }
+    },
+    {
+      "durationMs": 48354,
+      "endedAt": "2026-07-20T03:08:34.684Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:07:46.330Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 3109888,
+        "input_tokens": 3236556,
+        "output_tokens": 65333,
+        "reasoning_output_tokens": 33926
+      }
+    },
+    {
+      "durationMs": 32238,
+      "endedAt": "2026-07-20T03:09:06.922Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:08:34.684Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 3295232,
+        "input_tokens": 3424416,
+        "output_tokens": 66848,
+        "reasoning_output_tokens": 34307
+      }
+    },
+    {
+      "durationMs": 158561,
+      "endedAt": "2026-07-20T03:11:45.483Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:09:06.922Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 3781888,
+        "input_tokens": 3921953,
+        "output_tokens": 73799,
+        "reasoning_output_tokens": 37015
+      }
+    },
+    {
+      "durationMs": 226259,
+      "endedAt": "2026-07-20T03:15:31.742Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "019f7d69-580b-73b2-8b5e-cdc15fa24082",
+      "signal": null,
+      "startedAt": "2026-07-20T03:11:45.483Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 4862720,
+        "input_tokens": 5026120,
+        "output_tokens": 80938,
+        "reasoning_output_tokens": 40060
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 27819776,
+    "inputTokens": 29184805,
+    "outputTokens": 662634,
+    "reasoningTokens": 344391
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

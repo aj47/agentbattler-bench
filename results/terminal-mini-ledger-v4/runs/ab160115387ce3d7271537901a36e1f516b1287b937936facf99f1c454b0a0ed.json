@@ -1,0 +1,467 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3"
+  },
+  "artifactId": "terminal-dotagents-mono-sol-02",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-593a20deca6ef770",
+  "durationMs": 5603592,
+  "endedAt": "2026-07-20T12:15:42.147Z",
+  "executionConcurrency": 2,
+  "generationIndex": 2,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "chatgpt-web",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "textVerbosity": "medium",
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "291fa6589bdc11bc24d9da1e03734fe47be3d2be454b85c2aa6497509f828881",
+  "runKey": "ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784544138562_bm1reikb8",
+  "stages": [
+    {
+      "diagnostic": "append failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 34,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 37,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 40,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 111,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "atomicity",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 32,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent append failed: 1",
+      "durationMs": 82,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 70,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 188,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 32,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 25,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ab160115387ce3d7271537901a36e1f516b1287b937936facf99f1c454b0a0ed/workspace/ledger.json'",
+      "durationMs": 44,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 63,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 190,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 65,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T10:42:18.555Z",
+  "status": "completed",
+  "toolCalls": 2634,
+  "turns": [
+    {
+      "durationMs": 368278,
+      "endedAt": "2026-07-20T10:48:26.833Z",
+      "index": 1,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:42:18.555Z",
+      "usage": {
+        "cacheReadTokens": 11776,
+        "cacheWriteTokens": 0,
+        "inputTokens": 200478,
+        "outputTokens": 18770,
+        "reasoningTokens": 8385,
+        "usd": 1.512498
+      }
+    },
+    {
+      "durationMs": 120045,
+      "endedAt": "2026-07-20T10:50:26.878Z",
+      "index": 2,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:48:26.833Z",
+      "usage": {
+        "cacheReadTokens": 14848,
+        "cacheWriteTokens": 0,
+        "inputTokens": 328806,
+        "outputTokens": 21979,
+        "reasoningTokens": 10569,
+        "usd": 2.236584
+      }
+    },
+    {
+      "durationMs": 41086,
+      "endedAt": "2026-07-20T10:51:07.964Z",
+      "index": 3,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:50:26.878Z",
+      "usage": {
+        "cacheReadTokens": 14848,
+        "cacheWriteTokens": 0,
+        "inputTokens": 410529,
+        "outputTokens": 23447,
+        "reasoningTokens": 11054,
+        "usd": 2.689239
+      }
+    },
+    {
+      "durationMs": 99124,
+      "endedAt": "2026-07-20T10:52:47.088Z",
+      "index": 4,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:51:07.964Z",
+      "usage": {
+        "cacheReadTokens": 19456,
+        "cacheWriteTokens": 0,
+        "inputTokens": 626751,
+        "outputTokens": 27738,
+        "reasoningTokens": 13399,
+        "usd": 3.8783430000000005
+      }
+    },
+    {
+      "durationMs": 254732,
+      "endedAt": "2026-07-20T10:57:01.820Z",
+      "index": 5,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:52:47.088Z",
+      "usage": {
+        "cacheReadTokens": 28672,
+        "cacheWriteTokens": 0,
+        "inputTokens": 992066,
+        "outputTokens": 37591,
+        "reasoningTokens": 20440,
+        "usd": 5.959036
+      }
+    },
+    {
+      "durationMs": 208697,
+      "endedAt": "2026-07-20T11:00:30.517Z",
+      "index": 6,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T10:57:01.820Z",
+      "usage": {
+        "cacheReadTokens": 34816,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1256072,
+        "outputTokens": 45211,
+        "reasoningTokens": 25133,
+        "usd": 7.480018
+      }
+    },
+    {
+      "durationMs": 877703,
+      "endedAt": "2026-07-20T11:15:08.220Z",
+      "index": 7,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:00:30.517Z",
+      "usage": {
+        "cacheReadTokens": 64000,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2243440,
+        "outputTokens": 71996,
+        "reasoningTokens": 43925,
+        "usd": 13.089079999999994
+      }
+    },
+    {
+      "durationMs": 960661,
+      "endedAt": "2026-07-20T11:31:08.881Z",
+      "index": 8,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:15:08.220Z",
+      "usage": {
+        "cacheReadTokens": 90112,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3627231,
+        "outputTokens": 106795,
+        "reasoningTokens": 70355,
+        "usd": 20.934500999999994
+      }
+    },
+    {
+      "durationMs": 495113,
+      "endedAt": "2026-07-20T11:39:23.994Z",
+      "index": 9,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:31:08.881Z",
+      "usage": {
+        "cacheReadTokens": 103936,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4703814,
+        "outputTokens": 123570,
+        "reasoningTokens": 81403,
+        "usd": 26.75845799999999
+      }
+    },
+    {
+      "durationMs": 647952,
+      "endedAt": "2026-07-20T11:50:11.946Z",
+      "index": 10,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:39:23.994Z",
+      "usage": {
+        "cacheReadTokens": 131584,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5950617,
+        "outputTokens": 148627,
+        "reasoningTokens": 98337,
+        "usd": 33.619767
+      }
+    },
+    {
+      "durationMs": 401962,
+      "endedAt": "2026-07-20T11:56:53.908Z",
+      "index": 11,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:50:11.946Z",
+      "usage": {
+        "cacheReadTokens": 148480,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6663821,
+        "outputTokens": 161514,
+        "reasoningTokens": 105036,
+        "usd": 37.496365000000004
+      }
+    },
+    {
+      "durationMs": 150172,
+      "endedAt": "2026-07-20T11:59:24.080Z",
+      "index": 12,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:56:53.908Z",
+      "usage": {
+        "cacheReadTokens": 148480,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6741626,
+        "outputTokens": 164504,
+        "reasoningTokens": 105840,
+        "usd": 37.97509000000001
+      }
+    },
+    {
+      "durationMs": 115714,
+      "endedAt": "2026-07-20T12:01:19.794Z",
+      "index": 13,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T11:59:24.080Z",
+      "usage": {
+        "cacheReadTokens": 151552,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6939557,
+        "outputTokens": 167650,
+        "reasoningTokens": 107197,
+        "usd": 39.045301000000016
+      }
+    },
+    {
+      "durationMs": 584622,
+      "endedAt": "2026-07-20T12:11:04.416Z",
+      "index": 14,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T12:01:19.794Z",
+      "usage": {
+        "cacheReadTokens": 174592,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7592120,
+        "outputTokens": 189284,
+        "reasoningTokens": 120776,
+        "usd": 42.853456
+      }
+    },
+    {
+      "durationMs": 277007,
+      "endedAt": "2026-07-20T12:15:41.423Z",
+      "index": 15,
+      "sessionId": "conv_1784544138562_bm1reikb8",
+      "startedAt": "2026-07-20T12:11:04.416Z",
+      "usage": {
+        "cacheReadTokens": 225792,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7961187,
+        "outputTokens": 198046,
+        "reasoningTokens": 124648,
+        "usd": 44.731251
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 1362944,
+    "inputTokens": 56238115,
+    "outputTokens": 1506722,
+    "reasoningTokens": 946497
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

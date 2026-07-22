@@ -1,0 +1,467 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3"
+  },
+  "artifactId": "terminal-dotagents-mono-sol-04",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-593a20deca6ef770",
+  "durationMs": 6257272,
+  "endedAt": "2026-07-20T14:00:05.230Z",
+  "executionConcurrency": 2,
+  "generationIndex": 4,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "chatgpt-web",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "textVerbosity": "medium",
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/cf5aaac009c92b4ba5b966f92b0707b66a85f420a3e28724fbe3b73b393977af/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/cf5aaac009c92b4ba5b966f92b0707b66a85f420a3e28724fbe3b73b393977af/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/cf5aaac009c92b4ba5b966f92b0707b66a85f420a3e28724fbe3b73b393977af/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: Error: ledger storage is incomplete; run recover",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "import failed: Error: ledger storage is incomplete; run recover",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/cf5aaac009c92b4ba5b966f92b0707b66a85f420a3e28724fbe3b73b393977af/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "fad13729f61f4fe53af431dee039c8a6a05eb70bbd9fd29c5bfcfccbe533a3be",
+  "runKey": "cf5aaac009c92b4ba5b966f92b0707b66a85f420a3e28724fbe3b73b393977af",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784549747964_2qcdqwpxo",
+  "stages": [
+    {
+      "diagnostic": "append failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 37,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 36,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 34,
+      "exitCode": 1,
+      "id": "migration",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 80,
+      "exitCode": 1,
+      "id": "atomicity",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 49,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent append failed: 1",
+      "durationMs": 62,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 35,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "export failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 42,
+      "exitCode": 1,
+      "id": "roundtrip",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 62,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 37,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 34,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 41,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: Error: ledger storage is incomplete; run recover",
+      "durationMs": 38,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 36,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T12:15:47.958Z",
+  "status": "completed",
+  "toolCalls": 3737,
+  "turns": [
+    {
+      "durationMs": 554960,
+      "endedAt": "2026-07-20T12:25:02.918Z",
+      "index": 1,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:15:47.958Z",
+      "usage": {
+        "cacheReadTokens": 41984,
+        "cacheWriteTokens": 0,
+        "inputTokens": 610108,
+        "outputTokens": 23937,
+        "reasoningTokens": 12274,
+        "usd": 3.5797220000000007
+      }
+    },
+    {
+      "durationMs": 130818,
+      "endedAt": "2026-07-20T12:27:13.736Z",
+      "index": 2,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:25:02.918Z",
+      "usage": {
+        "cacheReadTokens": 45056,
+        "cacheWriteTokens": 0,
+        "inputTokens": 713085,
+        "outputTokens": 26451,
+        "reasoningTokens": 13854,
+        "usd": 4.1562030000000005
+      }
+    },
+    {
+      "durationMs": 73337,
+      "endedAt": "2026-07-20T12:28:27.073Z",
+      "index": 3,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:27:13.736Z",
+      "usage": {
+        "cacheReadTokens": 45056,
+        "cacheWriteTokens": 0,
+        "inputTokens": 806996,
+        "outputTokens": 29450,
+        "reasoningTokens": 14902,
+        "usd": 4.715728
+      }
+    },
+    {
+      "durationMs": 169030,
+      "endedAt": "2026-07-20T12:31:16.103Z",
+      "index": 4,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:28:27.073Z",
+      "usage": {
+        "cacheReadTokens": 51200,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1029940,
+        "outputTokens": 35485,
+        "reasoningTokens": 17735,
+        "usd": 5.983850000000001
+      }
+    },
+    {
+      "durationMs": 656221,
+      "endedAt": "2026-07-20T12:42:12.324Z",
+      "index": 5,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:31:16.103Z",
+      "usage": {
+        "cacheReadTokens": 89600,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1988803,
+        "outputTokens": 57699,
+        "reasoningTokens": 31839,
+        "usd": 11.271785000000007
+      }
+    },
+    {
+      "durationMs": 483443,
+      "endedAt": "2026-07-20T12:50:15.767Z",
+      "index": 6,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:42:12.324Z",
+      "usage": {
+        "cacheReadTokens": 112640,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2740736,
+        "outputTokens": 75925,
+        "reasoningTokens": 43095,
+        "usd": 15.47455000000001
+      }
+    },
+    {
+      "durationMs": 901016,
+      "endedAt": "2026-07-20T13:05:16.783Z",
+      "index": 7,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T12:50:15.767Z",
+      "usage": {
+        "cacheReadTokens": 149504,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3684455,
+        "outputTokens": 108949,
+        "reasoningTokens": 66454,
+        "usd": 21.01797700000002
+      }
+    },
+    {
+      "durationMs": 496840,
+      "endedAt": "2026-07-20T13:13:33.623Z",
+      "index": 8,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:05:16.783Z",
+      "usage": {
+        "cacheReadTokens": 157184,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4200485,
+        "outputTokens": 128774,
+        "reasoningTokens": 78277,
+        "usd": 24.158317000000018
+      }
+    },
+    {
+      "durationMs": 621248,
+      "endedAt": "2026-07-20T13:23:54.871Z",
+      "index": 9,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:13:33.623Z",
+      "usage": {
+        "cacheReadTokens": 171008,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5104428,
+        "outputTokens": 152058,
+        "reasoningTokens": 91573,
+        "usd": 29.314344000000016
+      }
+    },
+    {
+      "durationMs": 581454,
+      "endedAt": "2026-07-20T13:33:36.325Z",
+      "index": 10,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:23:54.871Z",
+      "usage": {
+        "cacheReadTokens": 197120,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6091939,
+        "outputTokens": 171540,
+        "reasoningTokens": 105389,
+        "usd": 34.71885500000002
+      }
+    },
+    {
+      "durationMs": 270658,
+      "endedAt": "2026-07-20T13:38:06.983Z",
+      "index": 11,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:33:36.325Z",
+      "usage": {
+        "cacheReadTokens": 207872,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6603765,
+        "outputTokens": 182324,
+        "reasoningTokens": 111119,
+        "usd": 37.55312100000002
+      }
+    },
+    {
+      "durationMs": 132722,
+      "endedAt": "2026-07-20T13:40:19.705Z",
+      "index": 12,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:38:06.983Z",
+      "usage": {
+        "cacheReadTokens": 209408,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6855180,
+        "outputTokens": 186240,
+        "reasoningTokens": 112351,
+        "usd": 38.92076400000002
+      }
+    },
+    {
+      "durationMs": 79825,
+      "endedAt": "2026-07-20T13:41:39.530Z",
+      "index": 13,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:40:19.705Z",
+      "usage": {
+        "cacheReadTokens": 209408,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7005977,
+        "outputTokens": 188917,
+        "reasoningTokens": 113149,
+        "usd": 39.755059000000024
+      }
+    },
+    {
+      "durationMs": 625931,
+      "endedAt": "2026-07-20T13:52:05.461Z",
+      "index": 14,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:41:39.530Z",
+      "usage": {
+        "cacheReadTokens": 221696,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7443201,
+        "outputTokens": 207781,
+        "reasoningTokens": 125761,
+        "usd": 42.45180300000002
+      }
+    },
+    {
+      "durationMs": 479027,
+      "endedAt": "2026-07-20T14:00:04.488Z",
+      "index": 15,
+      "sessionId": "conv_1784549747964_2qcdqwpxo",
+      "startedAt": "2026-07-20T13:52:05.461Z",
+      "usage": {
+        "cacheReadTokens": 226304,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7720832,
+        "outputTokens": 217396,
+        "reasoningTokens": 129761,
+        "usd": 44.10767200000002
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 2135040,
+    "inputTokens": 62599930,
+    "outputTokens": 1792926,
+    "reasoningTokens": 1067533
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

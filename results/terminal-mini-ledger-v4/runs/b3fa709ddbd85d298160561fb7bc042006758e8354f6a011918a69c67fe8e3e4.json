@@ -1,0 +1,468 @@
+{
+  "artifactId": "terminal-pi-coding-agent-luna-01",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-5a806404a822d7c1",
+  "durationMs": 2318421,
+  "endedAt": "2026-07-20T14:38:48.922Z",
+  "executionConcurrency": 2,
+  "generationIndex": 1,
+  "generationSettings": {},
+  "harness": "pi-coding-agent",
+  "harnessVersion": "0.80.7",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": "audit failed: error: idempotency metadata does not match ledger for key mega-key-01",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "stale-lock-recovery",
+        "passed": true
+      }
+    ],
+    "passed": 6,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "nativeSession": {
+    "eventCount": 326,
+    "path": "<ephemeral-pi-session>",
+    "version": 3
+  },
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "99f9f5520cafaec45a9f3a589f4780eaae3a35d84e65efc22a391c07e8b19e45",
+  "runKey": "b3fa709ddbd85d298160561fb7bc042006758e8354f6a011918a69c67fe8e3e4",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 139,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 231,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append-batch failed: error: idempotency key already used with different content: batch-001",
+      "durationMs": 146,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 113,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 130,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 188,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 606,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 195,
+      "exitCode": 0,
+      "id": "compaction",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 181,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 38,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 39,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: error: idempotency key already used with different content: scale-2000",
+      "durationMs": 48,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 589,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 170,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: error: idempotency metadata does not match ledger for key mega-key-01",
+      "durationMs": 31792,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T14:00:10.501Z",
+  "status": "completed",
+  "toolCalls": 146,
+  "turns": [
+    {
+      "durationMs": 298917,
+      "endedAt": "2026-07-20T14:05:09.418Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:00:10.501Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 130560,
+        "inputTokens": 52471,
+        "outputTokens": 15648,
+        "totalTokens": 198679
+      }
+    },
+    {
+      "durationMs": 27444,
+      "endedAt": "2026-07-20T14:05:36.862Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:05:09.418Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 65024,
+        "inputTokens": 5195,
+        "outputTokens": 1079,
+        "totalTokens": 71298
+      }
+    },
+    {
+      "durationMs": 40145,
+      "endedAt": "2026-07-20T14:06:17.007Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:05:36.862Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 143360,
+        "inputTokens": 9776,
+        "outputTokens": 1722,
+        "totalTokens": 154858
+      }
+    },
+    {
+      "durationMs": 76665,
+      "endedAt": "2026-07-20T14:07:33.672Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:06:17.007Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 283648,
+        "inputTokens": 14758,
+        "outputTokens": 3294,
+        "totalTokens": 301700
+      }
+    },
+    {
+      "durationMs": 98804,
+      "endedAt": "2026-07-20T14:09:12.476Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:07:33.672Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 370176,
+        "inputTokens": 18225,
+        "outputTokens": 4547,
+        "totalTokens": 392948
+      }
+    },
+    {
+      "durationMs": 123865,
+      "endedAt": "2026-07-20T14:11:16.341Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:09:12.476Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 286208,
+        "inputTokens": 14381,
+        "outputTokens": 5417,
+        "totalTokens": 306006
+      }
+    },
+    {
+      "durationMs": 149573,
+      "endedAt": "2026-07-20T14:13:45.914Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:11:16.341Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 392192,
+        "inputTokens": 22329,
+        "outputTokens": 7181,
+        "totalTokens": 421702
+      }
+    },
+    {
+      "durationMs": 187779,
+      "endedAt": "2026-07-20T14:16:53.693Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:13:45.914Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 601088,
+        "inputTokens": 91404,
+        "outputTokens": 8534,
+        "totalTokens": 701026
+      }
+    },
+    {
+      "durationMs": 157796,
+      "endedAt": "2026-07-20T14:19:31.489Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:16:53.693Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 915968,
+        "inputTokens": 28895,
+        "outputTokens": 7470,
+        "totalTokens": 952333
+      }
+    },
+    {
+      "durationMs": 160524,
+      "endedAt": "2026-07-20T14:22:12.013Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:19:31.489Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 918016,
+        "inputTokens": 20005,
+        "outputTokens": 7922,
+        "totalTokens": 945943
+      }
+    },
+    {
+      "durationMs": 150849,
+      "endedAt": "2026-07-20T14:24:42.862Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:22:12.013Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 939008,
+        "inputTokens": 15117,
+        "outputTokens": 7235,
+        "totalTokens": 961360
+      }
+    },
+    {
+      "durationMs": 120481,
+      "endedAt": "2026-07-20T14:26:43.343Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:24:42.862Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1111552,
+        "inputTokens": 11993,
+        "outputTokens": 4972,
+        "totalTokens": 1128517
+      }
+    },
+    {
+      "durationMs": 217642,
+      "endedAt": "2026-07-20T14:30:20.985Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:26:43.343Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1637888,
+        "inputTokens": 21532,
+        "outputTokens": 7637,
+        "totalTokens": 1667057
+      }
+    },
+    {
+      "durationMs": 179910,
+      "endedAt": "2026-07-20T14:33:20.895Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:30:20.985Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1439744,
+        "inputTokens": 16802,
+        "outputTokens": 8690,
+        "totalTokens": 1465236
+      }
+    },
+    {
+      "durationMs": 263719,
+      "endedAt": "2026-07-20T14:37:44.614Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "019f7fd3-bdad-754a-b0a2-97f51b8190bd",
+      "signal": null,
+      "startedAt": "2026-07-20T14:33:20.895Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 2609152,
+        "inputTokens": 20880,
+        "outputTokens": 7418,
+        "totalTokens": 2637450
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 11843584,
+    "inputTokens": 363763,
+    "outputTokens": 98766,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

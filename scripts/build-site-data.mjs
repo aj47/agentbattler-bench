@@ -686,16 +686,87 @@ function publicMatch(game) {
 }
 
 async function loadTerminalChallengeLane() {
-  const root = 'results/terminal-mini-ledger-v2';
+  const root = 'results/terminal-mini-ledger-v4';
   try {
-    const [challenge, schedule, summary] = await Promise.all([
+    const [challenge, schedule, summary, traceManifest] = await Promise.all([
       readJson(`${root}/challenge.json`),
       readJson(`${root}/schedule.json`),
       readJson(`${root}/summary.json`),
+      readJson(`${root}/trace-manifest.json`).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error)),
     ]);
+    const scores = new Map(summary.scores.map((entry) => [entry.runKey, entry.score]));
+    const traces = new Map((traceManifest?.traces ?? []).map((entry) => [entry.runKey, entry]));
+    const runs = await Promise.all(schedule.jobs.map(async (job) => {
+      const run = await readJson(`${root}/runs/${job.runKey}.json`);
+      const score = scores.get(job.runKey);
+      invariant(score, `Missing terminal score for ${job.runKey}`);
+      const trace = traces.get(job.runKey);
+      return {
+        runKey: run.runKey,
+        artifactId: run.artifactId,
+        comboId: run.comboId,
+        generationIndex: run.generationIndex,
+        harness: run.harness,
+        harnessVersion: run.harnessVersion,
+        model: run.model,
+        modelFamilyId: run.modelFamilyId,
+        durationMs: run.durationMs,
+        endedAt: run.endedAt,
+        scorePct: score.scorePct,
+        visiblePoints: score.visiblePoints,
+        holdoutPoints: score.holdoutPoints,
+        passedStages: score.passedStages,
+        totalStages: score.totalStages,
+        holdoutPassed: score.holdoutPassed,
+        holdoutTotal: score.holdoutTotal,
+        usage: run.usage,
+        stages: run.stages.map((stage) => ({ id: stage.id ?? stage.stageId, passed: stage.passed === true })),
+        trace: trace ? {
+          path: trace.path,
+          bytes: trace.publishedBytes,
+          sha256: trace.publishedSha256,
+          sourceBytes: trace.sourceBytes,
+        } : null,
+      };
+    }));
+    const groups = new Map();
+    for (const run of runs) {
+      const group = groups.get(run.comboId) ?? [];
+      group.push(run);
+      groups.set(run.comboId, group);
+    }
+    const round = (value) => Math.round(value * 100) / 100;
+    const combos = [...groups.entries()].map(([comboId, comboRuns]) => {
+      const ordered = comboRuns.sort((left, right) => left.generationIndex - right.generationIndex);
+      const scores = ordered.map((run) => run.scorePct).sort((left, right) => left - right);
+      const midpoint = Math.floor(scores.length / 2);
+      const medianScore = scores.length % 2 ? scores[midpoint] : (scores[midpoint - 1] + scores[midpoint]) / 2;
+      return {
+        comboId,
+        harness: ordered[0].harness,
+        harnessDisplayName: HARNESS_NAMES[ordered[0].harness] ?? ordered[0].harness,
+        harnessVersion: ordered[0].harnessVersion,
+        model: ordered[0].model,
+        modelFamilyId: ordered[0].modelFamilyId,
+        averageScore: round(ordered.reduce((sum, run) => sum + run.scorePct, 0) / ordered.length),
+        medianScore: round(medianScore),
+        minimumScore: Math.min(...scores),
+        maximumScore: Math.max(...scores),
+        averageDurationMs: Math.round(ordered.reduce((sum, run) => sum + run.durationMs, 0) / ordered.length),
+        totalDurationMs: ordered.reduce((sum, run) => sum + run.durationMs, 0),
+        stagePassRates: challenge.stages.map((stage) => ({
+          id: stage.id,
+          title: stage.title,
+          passed: ordered.filter((run) => run.stages.find((entry) => entry.id === stage.id)?.passed).length,
+          total: ordered.length,
+        })),
+        runs: ordered,
+      };
+    }).sort((left, right) => right.averageScore - left.averageScore || left.comboId.localeCompare(right.comboId));
     return {
       id: challenge.id,
       title: challenge.title,
+      updatedAt: runs.map((run) => run.endedAt).sort().at(-1),
       challengeId: challenge.challengeId,
       challengeSha256: challenge.challengeSha256,
       scheduleId: schedule.scheduleId,
@@ -713,6 +784,18 @@ async function loadTerminalChallengeLane() {
       missingRuns: summary.missingRuns.length,
       invalidRuns: summary.invalidRuns.length,
       scoring: challenge.scoring,
+      protocol: challenge.protocol,
+      stages: challenge.stages,
+      combos,
+      tracePublication: traceManifest ? {
+        manifestSha256: traceManifest.manifestSha256,
+        runs: traceManifest.totals.runs,
+        turns: traceManifest.totals.turns,
+        sourceBytes: traceManifest.totals.sourceBytes,
+        publishedBytes: traceManifest.totals.publishedBytes,
+        omittedStreamingEvents: traceManifest.totals.omittedStreamingEvents,
+        redactions: traceManifest.totals.redactions,
+      } : null,
       standings: summary.elo?.standings ?? [],
       status: summary.completedRuns === summary.expectedRuns && summary.invalidRuns.length === 0 ? 'complete' : 'scheduled',
     };

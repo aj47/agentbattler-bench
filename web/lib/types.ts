@@ -261,6 +261,7 @@ export type SiteData = {
 export type TerminalChallengeLane = {
   id: string;
   title: string;
+  updatedAt: string;
   challengeId: string;
   challengeSha256: string;
   scheduleId: string;
@@ -289,6 +290,62 @@ export type TerminalChallengeLane = {
     visibleStagePoints: number;
     holdoutPoints: number;
     tieTolerancePoints: number;
+  };
+  protocol: {
+    humanIntervention: string;
+    maxWallTimeMs: number;
+    maxWorkspaceBytes: number;
+    network: string;
+    sameSession: boolean;
+    sameWorkspace: boolean;
+    turns: number;
+  };
+  stages: Array<{ id: string; order: number; points: number; title: string }>;
+  combos: Array<{
+    comboId: string;
+    harness: string;
+    harnessDisplayName: string;
+    harnessVersion: string;
+    model: string;
+    modelFamilyId: string;
+    averageScore: number;
+    medianScore: number;
+    minimumScore: number;
+    maximumScore: number;
+    averageDurationMs: number;
+    totalDurationMs: number;
+    stagePassRates: Array<{ id: string; title: string; passed: number; total: number }>;
+    runs: Array<{
+      runKey: string;
+      artifactId: string;
+      comboId: string;
+      generationIndex: number;
+      harness: string;
+      harnessVersion: string;
+      model: string;
+      modelFamilyId: string;
+      durationMs: number;
+      endedAt: string;
+      scorePct: number;
+      visiblePoints: number;
+      holdoutPoints: number;
+      passedStages: number;
+      totalStages: number;
+      holdoutPassed: number;
+      holdoutTotal: number;
+      usage: { cachedInputTokens?: number; inputTokens?: number; outputTokens?: number; reasoningTokens?: number };
+      stages: Array<{ id: string; passed: boolean }>;
+      trace: null | { path: string; bytes: number; sha256: string; sourceBytes: number };
+    }>;
+  }>;
+  tracePublication: null | {
+    manifestSha256: string;
+    runs: number;
+    turns: number;
+    sourceBytes: number;
+    publishedBytes: number;
+    omittedStreamingEvents: number;
+    redactions: number;
   };
   standings: Array<{ rank: number; comboId: string | null; scorePoints: number; rating: number }>;
   status: 'scheduled' | 'complete';

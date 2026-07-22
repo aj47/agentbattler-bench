@@ -64,7 +64,8 @@
     "terminal:run:v4:sample": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-codex.mjs --harness codex-cli --generation 1",
     "terminal:run:parallel": "AGENTBATTLER_TERMINAL_CONCURRENCY=4 node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs",
-    "terminal:verify:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/verify-terminal-results.mjs"
-    ,"terminal:verify:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/verify-terminal-results.mjs"
+    "terminal:verify:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/verify-terminal-results.mjs",
+    "terminal:verify:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/verify-terminal-results.mjs",
+    "terminal:traces:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/export-terminal-traces.mjs"
   }
 }

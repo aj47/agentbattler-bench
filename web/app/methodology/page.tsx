@@ -23,7 +23,8 @@ export default function MethodologyPage() {
           <a href="#contract">02 · agent contract</a>
           <a href="#verification">03 · verification</a>
           <a href="#snapshot">04 · current snapshot</a>
-          {siteData.terminalChallenge ? <a href="#terminal">05 · terminal lane</a> : null}
+          <a href="#glossary">05 · glossary</a>
+          {siteData.terminalChallenge ? <a href="#terminal">06 · terminal lane</a> : null}
         </aside>
         <div className="methodology-copy">
           <section id="pipeline">
@@ -61,9 +62,23 @@ export default function MethodologyPage() {
             <p className="method-note">Interpretation: the five independently generated artifacts per model and harness are the unit for generation variance. The primary leaderboard filters to same-model cross-harness games, integrates DotAgents head-to-head results into every affected combo, and reuses all compatible immutable games.</p>
             <p className="method-note">Limitation: schedule sizes are intentionally uneven—DotAgents has targeted placement while the established combos retain their broader same-model history—so the shared ranking is a pooled per-game score, not a balanced four-way round robin. These 60 artifacts have not been independently reproduced through the canonical Harbor submission contract. Claude Code used a third-party loopback Messages translation gateway to the ChatGPT Codex backend, so translation and tool-semantics differences are part of that harness condition. The results remain exploratory everywhere they appear.</p>
           </section>
+          <section id="glossary">
+            <span className="chapter-number">05</span><h2>Plain-language glossary</h2>
+            <p>These terms separate model generation from chess execution. Each definition is linked directly from the metric or claim it explains.</p>
+            <dl className="glossary-list">
+              <div id="harness"><dt>Harness</dt><dd>The software environment that asks a model to create an agent and records the generation process. Harness behavior is part of the condition being compared.</dd></div>
+              <div id="combination"><dt>Harness × model combination</dt><dd>One harness, harness version, model, reasoning setting, and generation configuration. “Combo” is used only as shorthand for this full configuration.</dd></div>
+              <div id="generated-engine"><dt>Generated engine</dt><dd>An executable chess program produced by one independent model generation. It is the artifact that plays chess; the language model does not play each game live.</dd></div>
+              <div id="generation-turn"><dt>Generation turn</dt><dd>One model interaction reported by the harness while creating an engine. It is not a chess move, ply, or game turn. Per-turn telemetry divides generation totals by these interactions.</dd></div>
+              <div id="pooled-score"><dt>Pooled score</dt><dd>The percentage of available chess points earned across all published games for the five engines in a combination: one point for a win, half for a draw, and zero for a loss. Schedule sizes can differ.</dd></div>
+              <div id="reasoning-effort"><dt>Reasoning effort</dt><dd>The reasoning level requested from each harness during generation. “High” records the declared setting; it does not claim identical internal computation or token use across harnesses.</dd></div>
+              <div id="telemetry"><dt>Telemetry coverage</dt><dd>How many generated engines have published generation measurements. Token and duration averages use only observed generation turns and do not estimate missing values.</dd></div>
+              <div id="verification-badge"><dt>Verification badge</dt><dd>A statement about which evidence checks were completed for this result. It is not an endorsement of general model quality.</dd></div>
+            </dl>
+          </section>
           {siteData.terminalChallenge ? (
             <section id="terminal">
-              <span className="chapter-number">05</span><h2>{siteData.terminalChallenge.title}</h2>
+              <span className="chapter-number">06</span><h2>{siteData.terminalChallenge.title}</h2>
               <p>The terminal lane is versioned separately from chess. Every declared harness/model/generation combination is scheduled before execution, with the prompt, verifier hashes, turn protocol, workspace rules, stage scores, and result hashes bound to the schedule.</p>
               <dl className="snapshot-list">
                 <div><dt>scheduled runs</dt><dd>{formatNumber(siteData.terminalChallenge.expectedRuns)}</dd></div>

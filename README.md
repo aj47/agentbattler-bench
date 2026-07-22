@@ -6,7 +6,15 @@ Raw generation traces and tournament result bodies are not stored in Git history
 
 AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
 
-The long-horizon terminal lane is separate from chess. `terminal-mini-ledger-v2` gives one
+The completed long-horizon study is [`terminal-mini-ledger-v4`](results/terminal-mini-ledger-v4/README.md):
+60 valid runs covering Codex CLI, Claude Code, Pi, and DotAgents across Luna, Sol, and Terra.
+Every combination has five independent generations, every run has 15 sequential turns in one
+session and workspace, and every canonical result and compact semantic trace is published with
+checksums. The final averages range from 14.46 to 73.44; no run scored 100. See the
+[public study page](https://agentbattler.com/#terminal-study) for the leaderboard, findings, run-level
+drill-down, and evidence links.
+
+The earlier `terminal-mini-ledger-v2` gives one
 isolated workspace and one continuous session eight staged maintenance turns. Its sealed
 schedule covers every declared harness × model × generation combination; it uses an
 objective 0–100 score and publishes the pairwise score comparisons used for provisional
@@ -30,6 +38,15 @@ npm run terminal:verify:v3 -- --allow-incomplete
 V3 adds interacting requirements for idempotency, migration, crash recovery, concurrency,
 checksummed compaction, replay, and a 2,000-event audit. Its scores are sealed separately
 from the v2 baseline until calibration is complete.
+
+Run or verify the published v4 matrix with:
+
+```sh
+npm run terminal:matrix:v4
+npm run terminal:run:v4
+npm run terminal:verify:v4
+npm run terminal:traces:v4
+```
 
 The matrix is scheduled before any model run. The runner persists one result atomically
 per scheduled `runKey`, skips completed work on restart, and records infrastructure-invalid

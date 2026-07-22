@@ -25,7 +25,7 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
         </div>
         <span className="provisional-label">controlled same-model score · {scheduleLabel}</span>
       </div>
-      <p className={styles.intro}>Each row is one harness and model combination, pooling its {artifactLabel}. Scores use same-model cross-harness games so model identity stays fixed; the dots keep generation variance visible.</p>
+      <p className={styles.intro}>Each row is one harness and model combination, pooling its {artifactLabel}. Scores use same-model cross-harness games so model identity stays fixed; the dots keep generation variance visible. <Link className={styles.methodLink} href="/methodology/#pooled-score">How pooled score works →</Link></p>
 
       <div className={styles.header} aria-hidden="true">
         <span>rank / entrant</span><span>pooled score</span><span>five-engine distribution</span><span>record</span>
@@ -77,7 +77,7 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
         })}
       </div>
       <div className={styles.legend}>
-        <span>{balancedSchedule ? 'Pooled score ranks entrants because every entrant plays the same-sized schedule.' : includesPlacement ? 'Pooled score ranks all entrants; DotAgents uses targeted placement while established combos also retain their immutable same-model games.' : 'Pooled score ranks entrants; schedule size is shown for each row.'}</span>
+        <span>{balancedSchedule ? 'Pooled score ranks entrants because every entrant plays the same-sized schedule.' : includesPlacement ? 'Pooled score ranks all entrants; DotAgents uses targeted placement while established combinations also retain their immutable same-model games.' : 'Pooled score ranks entrants; schedule size is shown for each row.'} <Link className={styles.methodLink} href="/methodology/#pooled-score">method →</Link></span>
         <span>Each dot opens one generated engine dossier.</span>
       </div>
     </section>

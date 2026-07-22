@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
+import { TerminalStudy } from '../components/TerminalStudy';
 import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
@@ -15,18 +16,19 @@ export default function HomePage() {
 
   return (
     <main>
+      {siteData.terminalChallenge ? <TerminalStudy lane={siteData.terminalChallenge} /> : null}
       <section className="hero shell">
         <div className="status-line">
           <span className="live-dot" />
-          <span>published evidence snapshot</span>
+          <span>companion chess benchmark</span>
           <span className="status-separator">/</span>
           <span>{formatDate(benchmark.updatedAt)}</span>
         </div>
         <div className="hero-grid">
           <div>
-            <p className="kicker">one prompt · three models · {hasPlacement ? 'four' : 'three'} harnesses · {formatNumber(benchmark.totals.matches)} games</p>
-            <h1>Same models.<br /><span>Different harnesses.</span></h1>
-            <p className="hero-copy">Compare all {harnessModelEntrants.length} harness and model combinations on the same controlled leaderboard. DotAgents joins through targeted same-model placement games while existing immutable results are reused instead of rerun.</p>
+            <p className="kicker">the battle lane · three models · {hasPlacement ? 'four' : 'three'} harnesses · {formatNumber(benchmark.totals.matches)} games</p>
+            <h2 className="chess-hero-title">Generated agents.<br /><span>Then battle them.</span></h2>
+            <p className="hero-copy">The original chess lane remains published alongside the terminal study: {harnessModelEntrants.length} harness and model combinations, immutable generated engines, and deterministic game replays.</p>
           </div>
           <div className="hero-aside" aria-label="Benchmark status">
             <span className="hero-aside-label">snapshot</span>
@@ -49,28 +51,12 @@ export default function HomePage() {
         <div className="shell notice-inner">
           <strong>Exploratory harness suite</strong>
           <p>All {benchmark.totals.agents} engines used the same prompt and requested high reasoning. The leaderboard compares same-model games across {benchmark.totals.harnesses} harnesses — {harnessSummary} — and shows each combo’s schedule size; independent Harbor reproduction is not claimed.</p>
-          <Link href="/methodology/#verification">verification levels →</Link>
+          <div className="notice-links"><Link href="/methodology/#reasoning-effort">reasoning setting →</Link><Link href="/methodology/#verification">verification levels →</Link></div>
         </div>
       </section>
 
       <div className="shell home-stack">
         <HarnessModelLeaderboard entrants={harnessModelEntrants} />
-
-        {siteData.terminalChallenge ? (
-          <section className="terminal-challenge-card" aria-labelledby="terminal-challenge-title">
-            <div>
-              <span className="eyebrow">long-horizon terminal lane</span>
-              <h2 id="terminal-challenge-title">{siteData.terminalChallenge.title}</h2>
-              <p>One continuous workspace and session across eight turns. The schedule covers every {siteData.terminalChallenge.matrix.harnesses.length} harnesses × {siteData.terminalChallenge.matrix.models.length} models × {siteData.terminalChallenge.matrix.generationsPerCombo} generations.</p>
-            </div>
-            <dl>
-              <div><dt>runs</dt><dd>{siteData.terminalChallenge.completedRuns}/{siteData.terminalChallenge.expectedRuns}</dd></div>
-              <div><dt>challenge</dt><dd>{siteData.terminalChallenge.challengeId.slice(0, 23)}</dd></div>
-              <div><dt>status</dt><dd>{siteData.terminalChallenge.status}</dd></div>
-            </dl>
-            <Link href="/methodology/#terminal">read the terminal protocol →</Link>
-          </section>
-        ) : null}
 
         <Leaderboard agents={fullLeagueAgents} title={`All ${fullLeagueAgents.length} full-league generated engines`} />
 

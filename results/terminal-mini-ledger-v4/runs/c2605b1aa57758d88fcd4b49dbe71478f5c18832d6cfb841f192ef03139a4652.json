@@ -1,0 +1,467 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3"
+  },
+  "artifactId": "terminal-dotagents-mono-sol-03",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-593a20deca6ef770",
+  "durationMs": 5647062,
+  "endedAt": "2026-07-20T13:19:48.502Z",
+  "executionConcurrency": 2,
+  "generationIndex": 3,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "chatgpt-web",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "textVerbosity": "medium",
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "cc32e38bc79f7f6377d6550feb58cdaaf9e03953d9aaee07e2acf28813637c94",
+  "runKey": "c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784547941445_zai3ul22d",
+  "stages": [
+    {
+      "diagnostic": "append failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 32,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 30,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 114,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 29,
+      "exitCode": 1,
+      "id": "atomicity",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 35,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent append failed: 1",
+      "durationMs": 190,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 74,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 233,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 79,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 86,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":{\"code\":\"NOT_INITIALIZED\",\"message\":\"ledger state does not exist at /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c2605b1aa57758d88fcd4b49dbe71478f5c18832d6cfb841f192ef03139a4652/workspace/ledger.json\"}}",
+      "durationMs": 53,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 112,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 188,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 114,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T11:45:41.440Z",
+  "status": "completed",
+  "toolCalls": 2275,
+  "turns": [
+    {
+      "durationMs": 331999,
+      "endedAt": "2026-07-20T11:51:13.439Z",
+      "index": 1,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T11:45:41.440Z",
+      "usage": {
+        "cacheReadTokens": 1536,
+        "cacheWriteTokens": 0,
+        "inputTokens": 85117,
+        "outputTokens": 14353,
+        "reasoningTokens": 6518,
+        "usd": 0.849263
+      }
+    },
+    {
+      "durationMs": 141768,
+      "endedAt": "2026-07-20T11:53:35.207Z",
+      "index": 2,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T11:51:13.439Z",
+      "usage": {
+        "cacheReadTokens": 3072,
+        "cacheWriteTokens": 0,
+        "inputTokens": 211418,
+        "outputTokens": 20003,
+        "reasoningTokens": 9522,
+        "usd": 1.643356
+      }
+    },
+    {
+      "durationMs": 98499,
+      "endedAt": "2026-07-20T11:55:13.706Z",
+      "index": 3,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T11:53:35.207Z",
+      "usage": {
+        "cacheReadTokens": 6144,
+        "cacheWriteTokens": 0,
+        "inputTokens": 406519,
+        "outputTokens": 23795,
+        "reasoningTokens": 11383,
+        "usd": 2.7187970000000004
+      }
+    },
+    {
+      "durationMs": 259712,
+      "endedAt": "2026-07-20T11:59:33.418Z",
+      "index": 4,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T11:55:13.706Z",
+      "usage": {
+        "cacheReadTokens": 12288,
+        "cacheWriteTokens": 0,
+        "inputTokens": 673194,
+        "outputTokens": 30631,
+        "reasoningTokens": 14355,
+        "usd": 4.229604
+      }
+    },
+    {
+      "durationMs": 280985,
+      "endedAt": "2026-07-20T12:04:14.403Z",
+      "index": 5,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T11:59:33.418Z",
+      "usage": {
+        "cacheReadTokens": 19968,
+        "cacheWriteTokens": 0,
+        "inputTokens": 899665,
+        "outputTokens": 38936,
+        "reasoningTokens": 18596,
+        "usd": 5.576549000000001
+      }
+    },
+    {
+      "durationMs": 418553,
+      "endedAt": "2026-07-20T12:11:12.956Z",
+      "index": 6,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:04:14.403Z",
+      "usage": {
+        "cacheReadTokens": 38400,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1489229,
+        "outputTokens": 54884,
+        "reasoningTokens": 27960,
+        "usd": 8.919865000000001
+      }
+    },
+    {
+      "durationMs": 641506,
+      "endedAt": "2026-07-20T12:21:54.462Z",
+      "index": 7,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:11:12.956Z",
+      "usage": {
+        "cacheReadTokens": 46080,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1810484,
+        "outputTokens": 72042,
+        "reasoningTokens": 40061,
+        "usd": 11.006319999999999
+      }
+    },
+    {
+      "durationMs": 798379,
+      "endedAt": "2026-07-20T12:35:12.841Z",
+      "index": 8,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:21:54.462Z",
+      "usage": {
+        "cacheReadTokens": 84480,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3889514,
+        "outputTokens": 106094,
+        "reasoningTokens": 63915,
+        "usd": 22.250230000000002
+      }
+    },
+    {
+      "durationMs": 262323,
+      "endedAt": "2026-07-20T12:39:35.164Z",
+      "index": 9,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:35:12.841Z",
+      "usage": {
+        "cacheReadTokens": 96768,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4665405,
+        "outputTokens": 117141,
+        "reasoningTokens": 68953,
+        "usd": 26.405799000000002
+      }
+    },
+    {
+      "durationMs": 552981,
+      "endedAt": "2026-07-20T12:48:48.145Z",
+      "index": 10,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:39:35.164Z",
+      "usage": {
+        "cacheReadTokens": 116736,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5771539,
+        "outputTokens": 135129,
+        "reasoningTokens": 79744,
+        "usd": 32.386253
+      }
+    },
+    {
+      "durationMs": 661703,
+      "endedAt": "2026-07-20T12:59:49.848Z",
+      "index": 11,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:48:48.145Z",
+      "usage": {
+        "cacheReadTokens": 141312,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6954520,
+        "outputTokens": 159373,
+        "reasoningTokens": 93161,
+        "usd": 38.917886
+      }
+    },
+    {
+      "durationMs": 134847,
+      "endedAt": "2026-07-20T13:02:04.695Z",
+      "index": 12,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T12:59:49.848Z",
+      "usage": {
+        "cacheReadTokens": 142848,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7078015,
+        "outputTokens": 162505,
+        "reasoningTokens": 94349,
+        "usd": 39.622409000000005
+      }
+    },
+    {
+      "durationMs": 71191,
+      "endedAt": "2026-07-20T13:03:15.886Z",
+      "index": 13,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T13:02:04.695Z",
+      "usage": {
+        "cacheReadTokens": 142848,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7158029,
+        "outputTokens": 164934,
+        "reasoningTokens": 94945,
+        "usd": 40.095349000000006
+      }
+    },
+    {
+      "durationMs": 348910,
+      "endedAt": "2026-07-20T13:09:04.796Z",
+      "index": 14,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T13:03:15.886Z",
+      "usage": {
+        "cacheReadTokens": 147456,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7446674,
+        "outputTokens": 173868,
+        "reasoningTokens": 99298,
+        "usd": 41.78585800000001
+      }
+    },
+    {
+      "durationMs": 642264,
+      "endedAt": "2026-07-20T13:19:47.060Z",
+      "index": 15,
+      "sessionId": "conv_1784547941445_zai3ul22d",
+      "startedAt": "2026-07-20T13:09:04.796Z",
+      "usage": {
+        "cacheReadTokens": 161280,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7893839,
+        "outputTokens": 190171,
+        "reasoningTokens": 109200,
+        "usd": 44.448565
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 1161216,
+    "inputTokens": 56433161,
+    "outputTokens": 1463859,
+    "reasoningTokens": 831960
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

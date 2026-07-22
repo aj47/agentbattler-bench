@@ -3,6 +3,7 @@ import type { Agent, SiteData } from './types';
 export type ComboAgentMetric = {
   id: string;
   displayName: string;
+  reasoningEffort: string;
   rank: number;
   scorePct: number;
   wins: number;
@@ -27,6 +28,7 @@ export type ComboRow = {
   familyId: string;
   familyDisplayName: string;
   model: string;
+  reasoningEffort: string;
   tone: 'codex' | 'pi' | 'claude' | 'dotagents';
   scorePct: number;
   wins: number;
@@ -69,6 +71,7 @@ function metricForAgent(agent: Agent): ComboAgentMetric {
   return {
     id: agent.id,
     displayName: agent.displayName,
+    reasoningEffort: agent.reasoningEffort,
     rank: agent.standing.rank,
     scorePct: agent.standing.games ? (agent.standing.points / agent.standing.games) * 100 : 0,
     wins: agent.standing.wins,
@@ -113,6 +116,7 @@ export function buildComboRows(data: SiteData): ComboRow[] {
 
       const family = harness.families.find((candidate) => candidate.id === familyId);
       const familyDisplayName = family?.displayName ?? agents[0].displayName.replace(/\s+#\d+$/, '');
+      const reasoningEfforts = [...new Set(agents.map((agent) => agent.reasoningEffort))];
       const games = agents.reduce((sum, agent) => sum + agent.games, 0);
       const wins = agents.reduce((sum, agent) => sum + agent.wins, 0);
       const draws = agents.reduce((sum, agent) => sum + agent.draws, 0);
@@ -138,6 +142,7 @@ export function buildComboRows(data: SiteData): ComboRow[] {
         familyId,
         familyDisplayName,
         model: family?.model ?? agents[0].displayName.split(' #')[0],
+        reasoningEffort: reasoningEfforts.length === 1 ? reasoningEfforts[0] : reasoningEfforts.join(' / '),
         tone: toneForHarness(harness.id),
         scorePct,
         wins,

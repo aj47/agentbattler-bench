@@ -1,0 +1,467 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3"
+  },
+  "artifactId": "terminal-dotagents-mono-sol-05",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-593a20deca6ef770",
+  "durationMs": 4549580,
+  "endedAt": "2026-07-20T14:35:43.900Z",
+  "executionConcurrency": 2,
+  "generationIndex": 5,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "chatgpt-web",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "textVerbosity": "medium",
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "replay-and-performance-holdout",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected query to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 6,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "866d13075db3191d8976a589f1bee349208cc88c725ae59938b29c1ebd112397",
+  "runKey": "787d44d6d5b0ee72d64b1aa96f7e02b699cbb51230a4427e8ac29b67198625ff",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784553594326_ojrh4jilz",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 147,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 206,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 227,
+      "exitCode": 0,
+      "id": "pagination",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 96,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 130,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 224,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 731,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 206,
+      "exitCode": 0,
+      "id": "compaction",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 180,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 27,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 27,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 272,
+      "exitCode": 0,
+      "id": "scale",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 966,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected query to fail",
+      "durationMs": 92,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 37848,
+      "exitCode": 0,
+      "id": "scale-stress",
+      "passed": true,
+      "regressions": 0
+    }
+  ],
+  "startedAt": "2026-07-20T13:19:54.320Z",
+  "status": "completed",
+  "toolCalls": 1901,
+  "turns": [
+    {
+      "durationMs": 840977,
+      "endedAt": "2026-07-20T13:33:55.297Z",
+      "index": 1,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:19:54.320Z",
+      "usage": {
+        "cacheReadTokens": 19456,
+        "cacheWriteTokens": 0,
+        "inputTokens": 145646,
+        "outputTokens": 17686,
+        "reasoningTokens": 9626,
+        "usd": 1.171258
+      }
+    },
+    {
+      "durationMs": 33311,
+      "endedAt": "2026-07-20T13:34:28.608Z",
+      "index": 2,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:33:55.297Z",
+      "usage": {
+        "cacheReadTokens": 20992,
+        "cacheWriteTokens": 0,
+        "inputTokens": 205210,
+        "outputTokens": 18919,
+        "reasoningTokens": 10270,
+        "usd": 1.499156
+      }
+    },
+    {
+      "durationMs": 43989,
+      "endedAt": "2026-07-20T13:35:12.597Z",
+      "index": 3,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:34:28.608Z",
+      "usage": {
+        "cacheReadTokens": 22528,
+        "cacheWriteTokens": 0,
+        "inputTokens": 270331,
+        "outputTokens": 20798,
+        "reasoningTokens": 10753,
+        "usd": 1.874219
+      }
+    },
+    {
+      "durationMs": 169451,
+      "endedAt": "2026-07-20T13:38:02.048Z",
+      "index": 4,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:35:12.597Z",
+      "usage": {
+        "cacheReadTokens": 33280,
+        "cacheWriteTokens": 0,
+        "inputTokens": 566339,
+        "outputTokens": 27406,
+        "reasoningTokens": 14108,
+        "usd": 3.5041150000000005
+      }
+    },
+    {
+      "durationMs": 425614,
+      "endedAt": "2026-07-20T13:45:07.662Z",
+      "index": 5,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:38:02.048Z",
+      "usage": {
+        "cacheReadTokens": 51712,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1117342,
+        "outputTokens": 42477,
+        "reasoningTokens": 24663,
+        "usd": 6.628316000000002
+      }
+    },
+    {
+      "durationMs": 324271,
+      "endedAt": "2026-07-20T13:50:31.933Z",
+      "index": 6,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:45:07.662Z",
+      "usage": {
+        "cacheReadTokens": 65536,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1567873,
+        "outputTokens": 52865,
+        "reasoningTokens": 30514,
+        "usd": 9.130403
+      }
+    },
+    {
+      "durationMs": 216150,
+      "endedAt": "2026-07-20T13:54:08.083Z",
+      "index": 7,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:50:31.933Z",
+      "usage": {
+        "cacheReadTokens": 73216,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1847908,
+        "outputTokens": 62058,
+        "reasoningTokens": 35689,
+        "usd": 10.771808
+      }
+    },
+    {
+      "durationMs": 577142,
+      "endedAt": "2026-07-20T14:03:45.225Z",
+      "index": 8,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T13:54:08.083Z",
+      "usage": {
+        "cacheReadTokens": 85504,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2590031,
+        "outputTokens": 83480,
+        "reasoningTokens": 50241,
+        "usd": 15.069787
+      }
+    },
+    {
+      "durationMs": 185933,
+      "endedAt": "2026-07-20T14:06:51.158Z",
+      "index": 9,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:03:45.225Z",
+      "usage": {
+        "cacheReadTokens": 88576,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3028873,
+        "outputTokens": 91752,
+        "reasoningTokens": 53219,
+        "usd": 17.498333
+      }
+    },
+    {
+      "durationMs": 298961,
+      "endedAt": "2026-07-20T14:11:50.119Z",
+      "index": 10,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:06:51.158Z",
+      "usage": {
+        "cacheReadTokens": 97792,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3844060,
+        "outputTokens": 104318,
+        "reasoningTokens": 60134,
+        "usd": 21.909776
+      }
+    },
+    {
+      "durationMs": 368163,
+      "endedAt": "2026-07-20T14:17:58.282Z",
+      "index": 11,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:11:50.119Z",
+      "usage": {
+        "cacheReadTokens": 111616,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5073746,
+        "outputTokens": 118354,
+        "reasoningTokens": 68561,
+        "usd": 28.417078000000004
+      }
+    },
+    {
+      "durationMs": 163244,
+      "endedAt": "2026-07-20T14:20:41.526Z",
+      "index": 12,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:17:58.282Z",
+      "usage": {
+        "cacheReadTokens": 114688,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5454204,
+        "outputTokens": 124175,
+        "reasoningTokens": 70759,
+        "usd": 30.480174
+      }
+    },
+    {
+      "durationMs": 322580,
+      "endedAt": "2026-07-20T14:26:04.106Z",
+      "index": 13,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:20:41.526Z",
+      "usage": {
+        "cacheReadTokens": 120832,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5784568,
+        "outputTokens": 136684,
+        "reasoningTokens": 79253,
+        "usd": 32.479616
+      }
+    },
+    {
+      "durationMs": 92892,
+      "endedAt": "2026-07-20T14:27:36.998Z",
+      "index": 14,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:26:04.106Z",
+      "usage": {
+        "cacheReadTokens": 122368,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5909020,
+        "outputTokens": 140252,
+        "reasoningTokens": 81703,
+        "usd": 33.20200400000001
+      }
+    },
+    {
+      "durationMs": 445985,
+      "endedAt": "2026-07-20T14:35:02.983Z",
+      "index": 15,
+      "sessionId": "conv_1784553594326_ojrh4jilz",
+      "startedAt": "2026-07-20T14:27:36.998Z",
+      "usage": {
+        "cacheReadTokens": 134656,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6269620,
+        "outputTokens": 154784,
+        "reasoningTokens": 88672,
+        "usd": 35.38566800000001
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 1162752,
+    "inputTokens": 43674771,
+    "outputTokens": 1196008,
+    "reasoningTokens": 688165
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

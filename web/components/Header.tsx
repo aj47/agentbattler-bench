@@ -9,7 +9,7 @@ export function Header() {
           <span>agent-battler</span>
         </Link>
         <nav className="nav-links" aria-label="Primary navigation">
-          <Link href="/">leaderboard</Link>
+          <Link href="/#terminal-study">terminal study</Link>
           <Link href="/combos/">combos</Link>
           <Link href="/methodology/">methodology</Link>
           <a href="https://github.com/aj47/agentbattler-bench" rel="noreferrer">github ↗</a>

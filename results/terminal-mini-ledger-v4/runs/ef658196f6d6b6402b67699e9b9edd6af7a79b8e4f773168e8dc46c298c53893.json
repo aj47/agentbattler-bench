@@ -1,0 +1,480 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3",
+    "transport": {
+      "catalogCommit": "8b32755e666bcb98a435aaf4728e7341ffb9507a",
+      "codexModelsSha256": "3a23d91d04eb35a5684597179b7aa5ba3acc9f52d277f04395a91af71cb67f4d",
+      "commit": "db82d65d1cc3be6dc9662ee2b9a3810ac948d377",
+      "configSha256": "d59cd641bf8b2f30e3ee2a65849751ca83a499cb764b741e1e6c0437f7e44cf2",
+      "imageId": "sha256:5fb24ea4ece13266a0672693d8d2365c2bb0f21001719fa1b6e8ea9ef1ee72d0",
+      "modelsSha256": "395a9c2c2e0581f6663fd7a72dc44581f52b361464fc477e79744466c1f9b7c7",
+      "name": "CLIProxyAPI",
+      "runtimeSha256": "f809f64f396359c11361ba44733e452022b337bea68e1727dfea92feaad56eb5"
+    }
+  },
+  "artifactId": "terminal-dotagents-mono-terra-05",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-f2c8aed5d84bb1c5",
+  "durationMs": 3342214,
+  "endedAt": "2026-07-22T00:17:28.865Z",
+  "executionConcurrency": 2,
+  "generationIndex": 5,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "openai-compatible",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "stateful": true,
+    "textVerbosity": "medium",
+    "transport": "cliproxyapi",
+    "unlimitedIterations": false,
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: ledger: state and WAL differ; run recover before mutating",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "import failed: ledger: unexpected argument: /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/baseline.json",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-terra",
+  "modelFamilyId": "terra",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "00a91f9b533a365a54ea5537b18bb255bdd0846b5882f63f3a197546802e425b",
+  "runKey": "ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784676106653_dbn0p86n2",
+  "stages": [
+    {
+      "diagnostic": "append failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 40,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 34,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: ledger: unexpected argument: /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/legacy.json",
+      "durationMs": 42,
+      "exitCode": 1,
+      "id": "migration",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 36,
+      "exitCode": 1,
+      "id": "atomicity",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 34,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent append failed: 1",
+      "durationMs": 48,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 36,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "export failed: ledger: unexpected argument: /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/roundtrip.json",
+      "durationMs": 39,
+      "exitCode": 1,
+      "id": "roundtrip",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 29,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 30,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: state and WAL differ; run recover before mutating",
+      "durationMs": 43,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 40,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: ledger: unexpected argument: /private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/ef658196f6d6b6402b67699e9b9edd6af7a79b8e4f773168e8dc46c298c53893/workspace/baseline.json",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 42,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-21T23:21:46.651Z",
+  "status": "completed",
+  "toolCalls": 1453,
+  "turns": [
+    {
+      "durationMs": 232577,
+      "endedAt": "2026-07-21T23:25:39.228Z",
+      "index": 1,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:21:46.651Z",
+      "usage": {
+        "cacheReadTokens": 24576,
+        "cacheWriteTokens": 0,
+        "inputTokens": 87550,
+        "outputTokens": 12209,
+        "reasoningTokens": 5823,
+        "usd": 0.34671399999999997
+      }
+    },
+    {
+      "durationMs": 28336,
+      "endedAt": "2026-07-21T23:26:07.564Z",
+      "index": 2,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:25:39.228Z",
+      "usage": {
+        "cacheReadTokens": 28672,
+        "cacheWriteTokens": 0,
+        "inputTokens": 165745,
+        "outputTokens": 13509,
+        "reasoningTokens": 6521,
+        "usd": 0.5524855
+      }
+    },
+    {
+      "durationMs": 36582,
+      "endedAt": "2026-07-21T23:26:44.146Z",
+      "index": 3,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:26:07.564Z",
+      "usage": {
+        "cacheReadTokens": 34816,
+        "cacheWriteTokens": 0,
+        "inputTokens": 248451,
+        "outputTokens": 15253,
+        "reasoningTokens": 7324,
+        "usd": 0.7715865000000001
+      }
+    },
+    {
+      "durationMs": 135874,
+      "endedAt": "2026-07-21T23:29:00.020Z",
+      "index": 4,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:26:44.146Z",
+      "usage": {
+        "cacheReadTokens": 45056,
+        "cacheWriteTokens": 0,
+        "inputTokens": 392370,
+        "outputTokens": 22284,
+        "reasoningTokens": 12276,
+        "usd": 1.2138090000000001
+      }
+    },
+    {
+      "durationMs": 165945,
+      "endedAt": "2026-07-21T23:31:45.965Z",
+      "index": 5,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:29:00.020Z",
+      "usage": {
+        "cacheReadTokens": 65536,
+        "cacheWriteTokens": 0,
+        "inputTokens": 704499,
+        "outputTokens": 28414,
+        "reasoningTokens": 16924,
+        "usd": 2.0400015000000007
+      }
+    },
+    {
+      "durationMs": 236794,
+      "endedAt": "2026-07-21T23:35:42.759Z",
+      "index": 6,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:31:45.965Z",
+      "usage": {
+        "cacheReadTokens": 86016,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1058211,
+        "outputTokens": 38318,
+        "reasoningTokens": 23708,
+        "usd": 3.0267615000000005
+      }
+    },
+    {
+      "durationMs": 333711,
+      "endedAt": "2026-07-21T23:41:16.470Z",
+      "index": 7,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:35:42.759Z",
+      "usage": {
+        "cacheReadTokens": 106496,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1465663,
+        "outputTokens": 53529,
+        "reasoningTokens": 34516,
+        "usd": 4.2274765
+      }
+    },
+    {
+      "durationMs": 529790,
+      "endedAt": "2026-07-21T23:50:06.260Z",
+      "index": 8,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:41:16.470Z",
+      "usage": {
+        "cacheReadTokens": 126976,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1965880,
+        "outputTokens": 77476,
+        "reasoningTokens": 54361,
+        "usd": 5.791143999999998
+      }
+    },
+    {
+      "durationMs": 296741,
+      "endedAt": "2026-07-21T23:55:03.001Z",
+      "index": 9,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:50:06.260Z",
+      "usage": {
+        "cacheReadTokens": 141312,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2422721,
+        "outputTokens": 90968,
+        "reasoningTokens": 59543,
+        "usd": 7.1033705
+      }
+    },
+    {
+      "durationMs": 265457,
+      "endedAt": "2026-07-21T23:59:28.458Z",
+      "index": 10,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:55:03.001Z",
+      "usage": {
+        "cacheReadTokens": 159744,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2972995,
+        "outputTokens": 102508,
+        "reasoningTokens": 67515,
+        "usd": 8.610683499999999
+      }
+    },
+    {
+      "durationMs": 267549,
+      "endedAt": "2026-07-22T00:03:56.007Z",
+      "index": 11,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-21T23:59:28.458Z",
+      "usage": {
+        "cacheReadTokens": 180224,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3518518,
+        "outputTokens": 112961,
+        "reasoningTokens": 75228,
+        "usd": 10.085206
+      }
+    },
+    {
+      "durationMs": 89908,
+      "endedAt": "2026-07-22T00:05:25.915Z",
+      "index": 12,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-22T00:03:56.007Z",
+      "usage": {
+        "cacheReadTokens": 182272,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3614250,
+        "outputTokens": 115260,
+        "reasoningTokens": 76531,
+        "usd": 10.354413000000001
+      }
+    },
+    {
+      "durationMs": 89779,
+      "endedAt": "2026-07-22T00:06:55.694Z",
+      "index": 13,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-22T00:05:25.915Z",
+      "usage": {
+        "cacheReadTokens": 184320,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3745477,
+        "outputTokens": 118096,
+        "reasoningTokens": 77604,
+        "usd": 10.720412500000002
+      }
+    },
+    {
+      "durationMs": 324921,
+      "endedAt": "2026-07-22T00:12:20.615Z",
+      "index": 14,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-22T00:06:55.694Z",
+      "usage": {
+        "cacheReadTokens": 200704,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4145379,
+        "outputTokens": 131356,
+        "reasoningTokens": 83797,
+        "usd": 11.882203500000001
+      }
+    },
+    {
+      "durationMs": 307814,
+      "endedAt": "2026-07-22T00:17:28.429Z",
+      "index": 15,
+      "sessionId": "conv_1784676106653_dbn0p86n2",
+      "startedAt": "2026-07-22T00:12:20.615Z",
+      "usage": {
+        "cacheReadTokens": 208896,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4301934,
+        "outputTokens": 139010,
+        "reasoningTokens": 86369,
+        "usd": 12.369969
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 1775616,
+    "inputTokens": 30809643,
+    "outputTokens": 1071151,
+    "reasoningTokens": 688040
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

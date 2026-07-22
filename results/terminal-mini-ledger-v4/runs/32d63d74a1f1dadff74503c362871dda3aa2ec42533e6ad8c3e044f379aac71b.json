@@ -1,0 +1,480 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3",
+    "transport": {
+      "catalogCommit": "8b32755e666bcb98a435aaf4728e7341ffb9507a",
+      "codexModelsSha256": "3a23d91d04eb35a5684597179b7aa5ba3acc9f52d277f04395a91af71cb67f4d",
+      "commit": "db82d65d1cc3be6dc9662ee2b9a3810ac948d377",
+      "configSha256": "d59cd641bf8b2f30e3ee2a65849751ca83a499cb764b741e1e6c0437f7e44cf2",
+      "imageId": "sha256:5fb24ea4ece13266a0672693d8d2365c2bb0f21001719fa1b6e8ea9ef1ee72d0",
+      "modelsSha256": "395a9c2c2e0581f6663fd7a72dc44581f52b361464fc477e79744466c1f9b7c7",
+      "name": "CLIProxyAPI",
+      "runtimeSha256": "f809f64f396359c11361ba44733e452022b337bea68e1727dfea92feaad56eb5"
+    }
+  },
+  "artifactId": "terminal-dotagents-mono-luna-05",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-580aa649ba8cabf2",
+  "durationMs": 3469119,
+  "endedAt": "2026-07-21T20:30:21.205Z",
+  "executionConcurrency": 3,
+  "generationIndex": 5,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "openai-compatible",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "stateful": true,
+    "textVerbosity": "medium",
+    "transport": "cliproxyapi",
+    "unlimitedIterations": false,
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "replay-and-performance-holdout",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "recover failed: ledger: could not acquire ledger lock",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock was not recoverable",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 6,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "ed052ab6c643dba2156affd29f3c5c24feced3960cd8cb97631d10e0d0faf375",
+  "runKey": "32d63d74a1f1dadff74503c362871dda3aa2ec42533e6ad8c3e044f379aac71b",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784662352087_h3adcweby",
+  "stages": [
+    {
+      "diagnostic": "append failed: ledger: duplicate event id: a1",
+      "durationMs": 40,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: duplicate event id: a1",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: duplicate event id: a1",
+      "durationMs": 50,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "import failed: ledger: unsupported schemaVersion: agentbattler.ledger.v1",
+      "durationMs": 28,
+      "exitCode": 1,
+      "id": "migration",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: duplicate event id: a1",
+      "durationMs": 24,
+      "exitCode": 1,
+      "id": "atomicity",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: ledger: duplicate event id: a1",
+      "durationMs": 32,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent appends lost updates or sequences",
+      "durationMs": 594,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 172,
+      "exitCode": 0,
+      "id": "compaction",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 172,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 35,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 263,
+      "exitCode": 0,
+      "id": "scale",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 489,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 129,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 34257,
+      "exitCode": 0,
+      "id": "scale-stress",
+      "passed": true,
+      "regressions": 0
+    }
+  ],
+  "startedAt": "2026-07-21T19:32:32.086Z",
+  "status": "completed",
+  "toolCalls": 2852,
+  "turns": [
+    {
+      "durationMs": 227474,
+      "endedAt": "2026-07-21T19:36:19.560Z",
+      "index": 1,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:32:32.086Z",
+      "usage": {
+        "cacheReadTokens": 41984,
+        "cacheWriteTokens": 0,
+        "inputTokens": 112159,
+        "outputTokens": 11770,
+        "reasoningTokens": 5839,
+        "usd": 0.1449934
+      }
+    },
+    {
+      "durationMs": 85312,
+      "endedAt": "2026-07-21T19:37:44.872Z",
+      "index": 2,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:36:19.560Z",
+      "usage": {
+        "cacheReadTokens": 57344,
+        "cacheWriteTokens": 0,
+        "inputTokens": 416350,
+        "outputTokens": 15431,
+        "reasoningTokens": 7754,
+        "usd": 0.4573264
+      }
+    },
+    {
+      "durationMs": 51458,
+      "endedAt": "2026-07-21T19:38:36.330Z",
+      "index": 3,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:37:44.872Z",
+      "usage": {
+        "cacheReadTokens": 61952,
+        "cacheWriteTokens": 0,
+        "inputTokens": 559392,
+        "outputTokens": 17593,
+        "reasoningTokens": 8946,
+        "usd": 0.6091932
+      }
+    },
+    {
+      "durationMs": 180470,
+      "endedAt": "2026-07-21T19:41:36.800Z",
+      "index": 4,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:38:36.330Z",
+      "usage": {
+        "cacheReadTokens": 77312,
+        "cacheWriteTokens": 0,
+        "inputTokens": 957527,
+        "outputTokens": 24480,
+        "reasoningTokens": 13380,
+        "usd": 1.0348262000000001
+      }
+    },
+    {
+      "durationMs": 210001,
+      "endedAt": "2026-07-21T19:45:06.801Z",
+      "index": 5,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:41:36.800Z",
+      "usage": {
+        "cacheReadTokens": 92672,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1533824,
+        "outputTokens": 32198,
+        "reasoningTokens": 18974,
+        "usd": 1.6436072000000004
+      }
+    },
+    {
+      "durationMs": 348921,
+      "endedAt": "2026-07-21T19:50:55.722Z",
+      "index": 6,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:45:06.801Z",
+      "usage": {
+        "cacheReadTokens": 108032,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2201460,
+        "outputTokens": 48448,
+        "reasoningTokens": 28122,
+        "usd": 2.3949192
+      }
+    },
+    {
+      "durationMs": 190145,
+      "endedAt": "2026-07-21T19:54:05.867Z",
+      "index": 7,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:50:55.722Z",
+      "usage": {
+        "cacheReadTokens": 123392,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2683214,
+        "outputTokens": 56201,
+        "reasoningTokens": 34168,
+        "usd": 2.909367200000001
+      }
+    },
+    {
+      "durationMs": 434572,
+      "endedAt": "2026-07-21T20:01:20.439Z",
+      "index": 8,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T19:54:05.867Z",
+      "usage": {
+        "cacheReadTokens": 138752,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3331707,
+        "outputTokens": 77160,
+        "reasoningTokens": 46535,
+        "usd": 3.669790200000002
+      }
+    },
+    {
+      "durationMs": 242056,
+      "endedAt": "2026-07-21T20:05:22.495Z",
+      "index": 9,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:01:20.439Z",
+      "usage": {
+        "cacheReadTokens": 152576,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4175776,
+        "outputTokens": 87622,
+        "reasoningTokens": 53674,
+        "usd": 4.5641896000000015
+      }
+    },
+    {
+      "durationMs": 302613,
+      "endedAt": "2026-07-21T20:10:25.108Z",
+      "index": 10,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:05:22.495Z",
+      "usage": {
+        "cacheReadTokens": 167936,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4949061,
+        "outputTokens": 101449,
+        "reasoningTokens": 61870,
+        "usd": 5.4066126000000025
+      }
+    },
+    {
+      "durationMs": 334637,
+      "endedAt": "2026-07-21T20:15:59.745Z",
+      "index": 11,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:10:25.108Z",
+      "usage": {
+        "cacheReadTokens": 184832,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5924473,
+        "outputTokens": 117055,
+        "reasoningTokens": 73330,
+        "usd": 6.460454200000003
+      }
+    },
+    {
+      "durationMs": 200517,
+      "endedAt": "2026-07-21T20:19:20.262Z",
+      "index": 12,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:15:59.745Z",
+      "usage": {
+        "cacheReadTokens": 195584,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6613921,
+        "outputTokens": 124469,
+        "reasoningTokens": 77621,
+        "usd": 7.184709400000003
+      }
+    },
+    {
+      "durationMs": 111021,
+      "endedAt": "2026-07-21T20:21:11.283Z",
+      "index": 13,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:19:20.262Z",
+      "usage": {
+        "cacheReadTokens": 201728,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6932890,
+        "outputTokens": 128220,
+        "reasoningTokens": 79289,
+        "usd": 7.520654800000002
+      }
+    },
+    {
+      "durationMs": 185179,
+      "endedAt": "2026-07-21T20:24:16.462Z",
+      "index": 14,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:21:11.283Z",
+      "usage": {
+        "cacheReadTokens": 217088,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7328375,
+        "outputTokens": 135195,
+        "reasoningTokens": 83079,
+        "usd": 7.944165800000001
+      }
+    },
+    {
+      "durationMs": 300506,
+      "endedAt": "2026-07-21T20:29:16.968Z",
+      "index": 15,
+      "sessionId": "conv_1784662352087_h3adcweby",
+      "startedAt": "2026-07-21T20:24:16.462Z",
+      "usage": {
+        "cacheReadTokens": 224768,
+        "cacheWriteTokens": 0,
+        "inputTokens": 7664570,
+        "outputTokens": 146656,
+        "reasoningTokens": 88336,
+        "usd": 8.342214800000002
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 2045952,
+    "inputTokens": 55384699,
+    "outputTokens": 1123947,
+    "reasoningTokens": 680917
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

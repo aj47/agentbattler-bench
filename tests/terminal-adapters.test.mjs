@@ -133,3 +133,37 @@ test('Harbor importer proves resume and does not double-count cumulative traces'
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Harbor importer uses native Pi JSONL for continuity and tool evidence', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-harbor-pi-import-'));
+  try {
+    const stageIds = Array.from({ length: 15 }, (_, index) => `stage-${index + 1}`);
+    const stepResults = [];
+    for (let index = 0; index < stageIds.length; index += 1) {
+      const stepName = `${String(index + 1).padStart(2, '0')}-${stageIds[index]}`;
+      const agent = path.join(root, 'steps', stepName, 'agent');
+      const verifier = path.join(root, 'steps', stepName, 'verifier');
+      await mkdir(agent, { recursive: true }); await mkdir(verifier, { recursive: true });
+      await writeFile(path.join(agent, 'pi.txt'), [
+        JSON.stringify({ type: 'session', id: 'one-pi-native-session' }),
+        JSON.stringify({ type: 'tool_execution_start', toolName: 'bash' }),
+        JSON.stringify({ type: 'agent_end' }),
+      ].join('\n'));
+      await writeFile(path.join(verifier, 'stage-result.json'), JSON.stringify({
+        stage: { id: stageIds[index], passed: true, regressions: 0, exitCode: 0, durationMs: 1 },
+        holdout: index === 14 ? { passed: 11, total: 11, cases: [] } : null,
+      }));
+      stepResults.push({ step_name: stepName, agent_result: { n_input_tokens: 10, n_output_tokens: 2 }, agent_execution: {}, verifier_result: { rewards: { reward: 1 } } });
+    }
+    const imported = await harbor.importHarborResult({
+      raw: { started_at: '2026-01-01T00:00:00Z', finished_at: '2026-01-01T00:01:00Z', step_results: stepResults },
+      trialRoot: root,
+      challenge: { stages: stageIds.map((id) => ({ id })), verifiers: { holdout: { cases: 11 } } },
+      job: { harness: 'pi-coding-agent', model: 'gpt-test', challengeStageIds: stageIds },
+      harnessVersion: '0.80.7',
+    });
+    assert.equal(imported.sessionId, 'one-pi-native-session');
+    assert.equal(imported.sameSessionProof, true);
+    assert.equal(imported.toolCalls, 15);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

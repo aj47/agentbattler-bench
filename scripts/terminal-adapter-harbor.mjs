@@ -126,9 +126,21 @@ async function detailedStage(trialRoot, step, fallbackId) {
   }
 }
 
+async function nativePiEvidence(trialRoot, stepName) {
+  const eventFile = path.join(trialRoot, 'steps', stepName, 'agent', 'pi.txt');
+  try {
+    const events = (await readFile(eventFile, 'utf8')).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    return {
+      sessionId: events.find((event) => event.type === 'session')?.id ?? null,
+      toolCalls: events.filter((event) => event.type === 'tool_execution_start').length,
+    };
+  } catch { return { sessionId: null, toolCalls: 0 }; }
+}
+
 async function sessionIdForStep(trialRoot, stepName) {
   const trajectory = path.join(trialRoot, 'steps', stepName, 'agent', 'trajectory.json');
-  try { return JSON.parse(await readFile(trajectory, 'utf8')).session_id ?? null; } catch { return null; }
+  try { return JSON.parse(await readFile(trajectory, 'utf8')).session_id ?? null; }
+  catch { return (await nativePiEvidence(trialRoot, stepName)).sessionId; }
 }
 
 function tokenCounts(context, trajectory) {
@@ -152,7 +164,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
   invariant(!raw.exception_info, `Harbor trial failed: ${raw.exception_info?.exception_message ?? 'unknown error'}`);
   const expectedStages = job.challengeStageIds ?? challenge.stages.map((stage) => stage.id);
   invariant(raw.step_results?.length === expectedStages.length, `Harbor returned ${raw.step_results?.length ?? 0}/${expectedStages.length} steps`);
-  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; let holdout = null;
+  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; let holdout = null; let nativeToolCalls = 0;
   for (let index = 0; index < raw.step_results.length; index += 1) {
     const step = raw.step_results[index];
     invariant(!step.exception_info, `Harbor step ${step.step_name} failed: ${step.exception_info?.exception_message ?? 'unknown error'}`);
@@ -160,6 +172,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
     const context = step.agent_result ?? {};
     const sessionId = await sessionIdForStep(trialRoot, step.step_name); sessionIds.push(sessionId);
+    nativeToolCalls += (await nativePiEvidence(trialRoot, step.step_name)).toolCalls;
     let trajectory = null;
     try {
       trajectory = JSON.parse(await readFile(path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json'), 'utf8'));
@@ -183,7 +196,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     }
   }
   const countToolCalls = (trajectory) => (trajectory?.steps ?? []).reduce((sum, item) => sum + (item.tool_calls?.length ?? 0), 0);
-  const toolCalls = cumulativeTrajectories ? countToolCalls(trajectories.at(-1)) : trajectories.reduce((sum, trajectory) => sum + countToolCalls(trajectory), 0);
+  const toolCalls = nativeToolCalls + (cumulativeTrajectories ? countToolCalls(trajectories.at(-1)) : trajectories.reduce((sum, trajectory) => sum + countToolCalls(trajectory), 0));
   return {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',

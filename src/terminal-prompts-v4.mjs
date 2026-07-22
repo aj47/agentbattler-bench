@@ -1,0 +1,8 @@
+import { MINI_LEDGER_V3_TURN_PROMPTS } from './terminal-prompts-v3.mjs';
+
+export const MINI_LEDGER_V4_TURN_PROMPTS = Object.freeze([
+  ...MINI_LEDGER_V3_TURN_PROMPTS,
+  `Preserve all earlier behavior. Harden the ledger against adversarial concurrency. Create eight batch files with 25 disjoint events each and launch eight concurrent append-batch processes. All 200 events must commit exactly once with contiguous sequences. Then launch eight concurrent batches containing the same idempotency key and identical content; exactly one may commit and every other process must return an explicit idempotent result or a non-zero conflict without mutation. Leave the ledger audited and deterministic. Modify only candidate source files.`,
+  `Preserve all earlier behavior. Complete a fault-injection and validation audit. Reject negative or zero limits, invalid keep values, malformed JSON, duplicate IDs inside one batch, duplicate IDs against existing state, unknown import schemas, and idempotency-key reuse with different content without changing the primary state. Recover safely from a stale lock and from a valid newer temporary state, but reject malformed temporary state. Prove that no command writes outside the workspace. Modify only candidate source files.`,
+  `Preserve all earlier behavior. Run the integrated stress protocol: append 10,000 events through concurrent batches, execute 1,000 deterministic paged queries, export and import into a fresh workspace, compact with keep 100, replay, and audit. Verify exact IDs, sequence continuity, event counts, checksums, and idempotency metadata before and after every transition. Do not trade correctness for speed. Modify only candidate source files.`,
+]);

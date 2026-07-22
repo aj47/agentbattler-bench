@@ -1,0 +1,493 @@
+{
+  "artifactId": "terminal-claude-code-luna-04",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-ac91d0249082fb00",
+  "durationMs": 1217009,
+  "endedAt": "2026-07-20T23:40:49.446Z",
+  "executionConcurrency": 2,
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "claude-code",
+  "harnessVersion": "2.1.211",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": "scale append/query lost records",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "concurrent batches lost events or sequence numbers",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: ledger: ledger tail is inconsistent with snapshot",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "paged stress query returned 13 events",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "863008c03393eaa7a7d89af98e25ab20d9cb2e54cd316ba4937ed31101fb178b",
+  "runKey": "4abdd6a35868ac635f4a916b899f985fc852c1322184291363b7910d113e61ba",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 120,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 168,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "pagination boundary or order failed",
+      "durationMs": 163,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 97,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 115,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 168,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 384,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: ledger snapshot and tail are inconsistent",
+      "durationMs": 41,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "export did not emit one JSON value: Unexpected end of JSON input",
+      "durationMs": 46,
+      "exitCode": 1,
+      "id": "roundtrip",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 42,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 38,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale append/query lost records",
+      "durationMs": 91,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent batches lost events or sequence numbers",
+      "durationMs": 358,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: ledger: ledger tail is inconsistent with snapshot",
+      "durationMs": 222,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "paged stress query returned 10013 events",
+      "durationMs": 22482,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T23:20:32.437Z",
+  "status": "completed",
+  "toolCalls": 101,
+  "turns": [
+    {
+      "durationMs": 135390,
+      "endedAt": "2026-07-20T23:22:48.339Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:20:32.949Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 39305,
+        "outputTokens": 6650,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 10
+      }
+    },
+    {
+      "durationMs": 50557,
+      "endedAt": "2026-07-20T23:23:38.896Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:22:48.339Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 38844,
+        "outputTokens": 2452,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 34101,
+      "endedAt": "2026-07-20T23:24:12.997Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:23:38.896Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 50445,
+        "outputTokens": 1542,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 44533,
+      "endedAt": "2026-07-20T23:24:57.530Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:24:12.997Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 48133,
+        "outputTokens": 2005,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 55790,
+      "endedAt": "2026-07-20T23:25:53.321Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:24:57.531Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 57367,
+        "outputTokens": 2683,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 46735,
+      "endedAt": "2026-07-20T23:26:40.056Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:25:53.321Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 63460,
+        "outputTokens": 2194,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 137632,
+      "endedAt": "2026-07-20T23:28:57.688Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:26:40.056Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 383453,
+        "outputTokens": 5987,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 17
+      }
+    },
+    {
+      "durationMs": 109682,
+      "endedAt": "2026-07-20T23:30:47.370Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:28:57.688Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 337167,
+        "outputTokens": 4759,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 11
+      }
+    },
+    {
+      "durationMs": 125326,
+      "endedAt": "2026-07-20T23:32:52.696Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:30:47.370Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 530671,
+        "outputTokens": 5382,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 13
+      }
+    },
+    {
+      "durationMs": 56826,
+      "endedAt": "2026-07-20T23:33:49.522Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:32:52.696Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 300337,
+        "outputTokens": 2404,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 6
+      }
+    },
+    {
+      "durationMs": 140665,
+      "endedAt": "2026-07-20T23:36:10.187Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:33:49.522Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 881098,
+        "outputTokens": 4962,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 16
+      }
+    },
+    {
+      "durationMs": 39306,
+      "endedAt": "2026-07-20T23:36:49.493Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:36:10.187Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 112478,
+        "outputTokens": 1682,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 1
+      }
+    },
+    {
+      "durationMs": 44356,
+      "endedAt": "2026-07-20T23:37:33.849Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:36:49.493Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 241299,
+        "outputTokens": 1742,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 59495,
+      "endedAt": "2026-07-20T23:38:33.344Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:37:33.849Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 322557,
+        "outputTokens": 2598,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 135141,
+      "endedAt": "2026-07-20T23:40:48.485Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+      "signal": null,
+      "startedAt": "2026-07-20T23:38:33.344Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 273446,
+        "outputTokens": 3902,
+        "reasoningTokens": 0,
+        "sessionId": "9060654a-80e6-49f2-82be-19c782d55478",
+        "toolCallCount": 3
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 0,
+    "inputTokens": 3680060,
+    "outputTokens": 50944,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

@@ -1,0 +1,468 @@
+{
+  "artifactId": "terminal-pi-coding-agent-luna-04",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-5a806404a822d7c1",
+  "durationMs": 2261141,
+  "endedAt": "2026-07-20T17:02:09.227Z",
+  "executionConcurrency": 2,
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "pi-coding-agent",
+  "harnessVersion": "0.80.7",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": "append-batch failed: error: duplicate event id: s-1",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "concurrent batches lost events or sequence numbers",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "paged stress query returned 10001 events",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "nativeSession": {
+    "eventCount": 325,
+    "path": "<ephemeral-pi-session>",
+    "version": 3
+  },
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "d05549b36618522032ea2f167023645d95ff413c55e71e5c4f28b55e0f67f21a",
+  "runKey": "a3d7f0e888dbb341d56b70d2f5d010b2072766da905dd156a60bdf3c43c77b15",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 134,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 217,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append-batch failed: error: idempotency key was used for different content: batch-001",
+      "durationMs": 131,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 101,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 172,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: error: duplicate event id: a1",
+      "durationMs": 41,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent appends lost updates or sequences",
+      "durationMs": 941,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "compaction did not create a bounded live tail and snapshot",
+      "durationMs": 190,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 196,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 36,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 39,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale append/query lost records",
+      "durationMs": 168,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent batches lost events or sequence numbers",
+      "durationMs": 739,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 207,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "paged stress query returned 10001 events",
+      "durationMs": 40227,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T16:24:28.086Z",
+  "status": "completed",
+  "toolCalls": 146,
+  "turns": [
+    {
+      "durationMs": 340602,
+      "endedAt": "2026-07-20T16:30:08.688Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:24:28.086Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 185856,
+        "inputTokens": 69442,
+        "outputTokens": 16036,
+        "totalTokens": 271334
+      }
+    },
+    {
+      "durationMs": 24307,
+      "endedAt": "2026-07-20T16:30:32.995Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:30:08.688Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 41472,
+        "inputTokens": 21883,
+        "outputTokens": 979,
+        "totalTokens": 64334
+      }
+    },
+    {
+      "durationMs": 56359,
+      "endedAt": "2026-07-20T16:31:29.354Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:30:32.995Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 177152,
+        "inputTokens": 11720,
+        "outputTokens": 2570,
+        "totalTokens": 191442
+      }
+    },
+    {
+      "durationMs": 93294,
+      "endedAt": "2026-07-20T16:33:02.648Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:31:29.354Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 223232,
+        "inputTokens": 21025,
+        "outputTokens": 4578,
+        "totalTokens": 248835
+      }
+    },
+    {
+      "durationMs": 135021,
+      "endedAt": "2026-07-20T16:35:17.669Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:33:02.648Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 318976,
+        "inputTokens": 20326,
+        "outputTokens": 6834,
+        "totalTokens": 346136
+      }
+    },
+    {
+      "durationMs": 182215,
+      "endedAt": "2026-07-20T16:38:19.884Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:35:17.669Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 448512,
+        "inputTokens": 16955,
+        "outputTokens": 9204,
+        "totalTokens": 474671
+      }
+    },
+    {
+      "durationMs": 145773,
+      "endedAt": "2026-07-20T16:40:45.657Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:38:19.884Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 602624,
+        "inputTokens": 14761,
+        "outputTokens": 7198,
+        "totalTokens": 624583
+      }
+    },
+    {
+      "durationMs": 255249,
+      "endedAt": "2026-07-20T16:45:00.906Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:40:45.657Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1374208,
+        "inputTokens": 30608,
+        "outputTokens": 12465,
+        "totalTokens": 1417281
+      }
+    },
+    {
+      "durationMs": 161764,
+      "endedAt": "2026-07-20T16:47:42.670Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:45:00.906Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1241600,
+        "inputTokens": 16429,
+        "outputTokens": 7780,
+        "totalTokens": 1265809
+      }
+    },
+    {
+      "durationMs": 194478,
+      "endedAt": "2026-07-20T16:50:57.148Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:47:42.670Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1201664,
+        "inputTokens": 17993,
+        "outputTokens": 9011,
+        "totalTokens": 1228668
+      }
+    },
+    {
+      "durationMs": 159754,
+      "endedAt": "2026-07-20T16:53:36.902Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:50:57.148Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 2202112,
+        "inputTokens": 25661,
+        "outputTokens": 6596,
+        "totalTokens": 2234369
+      }
+    },
+    {
+      "durationMs": 78256,
+      "endedAt": "2026-07-20T16:54:55.158Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:53:36.902Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 555520,
+        "inputTokens": 6960,
+        "outputTokens": 2917,
+        "totalTokens": 565397
+      }
+    },
+    {
+      "durationMs": 57954,
+      "endedAt": "2026-07-20T16:55:53.112Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:54:55.158Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 342528,
+        "inputTokens": 4574,
+        "outputTokens": 2763,
+        "totalTokens": 349865
+      }
+    },
+    {
+      "durationMs": 101188,
+      "endedAt": "2026-07-20T16:57:34.300Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:55:53.112Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 592384,
+        "inputTokens": 7650,
+        "outputTokens": 4798,
+        "totalTokens": 604832
+      }
+    },
+    {
+      "durationMs": 232911,
+      "endedAt": "2026-07-20T17:01:27.211Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "019f8057-d85b-7534-af11-0cd36d568e25",
+      "signal": null,
+      "startedAt": "2026-07-20T16:57:34.300Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1115648,
+        "inputTokens": 11131,
+        "outputTokens": 4485,
+        "totalTokens": 1131264
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 10623488,
+    "inputTokens": 297118,
+    "outputTokens": 98214,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

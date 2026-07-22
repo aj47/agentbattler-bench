@@ -62,7 +62,7 @@ async function stagePagination(workspace, ledgerPath) {
 }
 async function stageMigration(workspace, ledgerPath) {
   await prepare(workspace, ledgerPath); const file = path.join(workspace, 'legacy.json');
-  await writeFile(file, JSON.stringify({ schemaVersion: 'agentbattler.ledger.v1', events: [{ id: 'old-1', kind: 'task', payload: { old: true }, sequence: 10 }, { id: 'old-2', kind: 'note', payload: { old: true }, sequence: 11 }] }));
+  await writeFile(file, JSON.stringify({ schemaVersion: 'agentbattler.ledger.v1', events: [{ id: 'old-1', kind: 'task', payload: { old: true } }, { id: 'old-2', kind: 'note', payload: { old: true } }] }));
   await runLedger(workspace, ledgerPath, ['import', file]); const result = rows(await query(workspace, ledgerPath, 'task', 0, 10));
   invariant(result.length === 1 && result[0].id === 'old-1' && result[0].sequence === 1, 'legacy migration did not normalize sequences');
   await writeFile(file, JSON.stringify({ schemaVersion: 'unknown', events: [] })); await runLedger(workspace, ledgerPath, ['import', file], { expectFailure: true });
@@ -92,7 +92,7 @@ async function stageCompaction(workspace, ledgerPath) {
   invariant(Array.isArray(state.events) && state.events.length <= 3 && await exists(snapshotFile), 'compaction did not create a bounded live tail and snapshot'); await runLedger(workspace, ledgerPath, ['replay']); invariant((await query(workspace, ledgerPath, 'task', 0, 100)).length === 50, 'compaction changed logical records');
 }
 async function stageRoundTrip(workspace, ledgerPath) {
-  const exportPath = path.join(workspace, 'roundtrip.json'); await runLedger(workspace, ledgerPath, ['export', exportPath]); const fresh = path.join(workspace, 'fresh'); const freshLedger = path.join(fresh, 'ledger.mjs'); await rm(fresh, { recursive: true, force: true }); await mkdir(fresh, { recursive: true }); await copyFile(ledgerPath, freshLedger); await runLedger(fresh, freshLedger, ['import', exportPath]); invariant((await query(fresh, freshLedger, 'task', 0, 100)).length === (await query(workspace, ledgerPath, 'task', 0, 100)).length, 'round-trip lost logical records');
+  const exportPath = path.join(workspace, 'roundtrip.json'); await runLedger(workspace, ledgerPath, ['export', exportPath]); const fresh = path.join(workspace, 'fresh'); const freshLedger = path.join(fresh, 'ledger.mjs'); const freshExport = path.join(fresh, 'roundtrip.json'); await rm(fresh, { recursive: true, force: true }); await mkdir(fresh, { recursive: true }); await copyFile(ledgerPath, freshLedger); await copyFile(exportPath, freshExport); await runLedger(fresh, freshLedger, ['import', freshExport]); invariant((await query(fresh, freshLedger, 'task', 0, 100)).length === (await query(workspace, ledgerPath, 'task', 0, 100)).length, 'round-trip lost logical records');
 }
 async function stageReplay(workspace, ledgerPath) { const replay = (await runLedger(workspace, ledgerPath, ['replay'])).json; invariant(replay.verified === true || replay.ok === true, 'replay did not verify'); const audit = (await runLedger(workspace, ledgerPath, ['audit'])).json; invariant(audit.ok === true || audit.passed === true || audit.verified === true, 'audit did not pass'); }
 async function stageAudit(workspace, ledgerPath) { await stageReplay(workspace, ledgerPath); await runLedger(workspace, ledgerPath, ['append', '--id', 'bad', '--kind', 'task', '--payload', '{bad'], { expectFailure: true }); }

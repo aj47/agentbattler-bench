@@ -1,6 +1,7 @@
 .section { min-width: 0; }
 .body { min-width: 0; }
 .intro { max-width: 790px; margin: -10px 0 30px; color: var(--muted); font-size: 14px; }
+.methodLink { color: var(--accent); text-decoration: underline; text-decoration-color: #485d2d; text-underline-offset: 3px; }
 .header, .row { display: grid; grid-template-columns: 1.15fr .56fr 1.35fr .55fr; gap: 26px; align-items: center; }
 .header { min-height: 38px; padding: 0 18px; border-block: 1px solid var(--line); color: var(--dim); font: 500 9px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .row { position: relative; min-height: 126px; padding: 20px 18px; border-bottom: 1px solid var(--line); }
@@ -43,6 +44,7 @@
 .record { align-items: flex-end; gap: 7px; text-align: right; }
 .record strong { font: 600 14px/1 var(--mono); }
 .legend { display: flex; justify-content: space-between; gap: 20px; padding: 13px 18px 0; text-transform: uppercase; letter-spacing: .06em; }
+.legend .methodLink { white-space: nowrap; }
 
 @media (max-width: 820px) {
   .header { display: none; }

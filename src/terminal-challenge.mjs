@@ -31,6 +31,24 @@ export const MINI_LEDGER_V3_STAGES = Object.freeze([
   ['scale', 'Scale and performance', 10],
 ].map(([id, title, points], index) => Object.freeze({ id, order: index + 1, title, points })));
 
+export const MINI_LEDGER_V4_STAGES = Object.freeze([
+  ['foundation', 'Append/get foundation', 3],
+  ['batch', 'Atomic batches and idempotency', 3],
+  ['pagination', 'Deterministic pagination', 3],
+  ['migration', 'Legacy schema migration', 3],
+  ['atomicity', 'Crash-safe writes', 3],
+  ['recovery', 'Interrupted-write recovery', 3],
+  ['concurrency', 'Multi-process concurrency', 3],
+  ['compaction', 'Checksummed compaction', 3],
+  ['roundtrip', 'Export/import round trip', 3],
+  ['replay', 'Replay and integrity', 3],
+  ['audit', 'Full regression audit', 5],
+  ['scale', 'Scale and performance', 5],
+  ['stress-concurrency', 'Adversarial concurrent batches', 10],
+  ['validation', 'Fault injection and validation', 10],
+  ['scale-stress', 'Large integrated stress run', 10],
+].map(([id, title, points], index) => Object.freeze({ id, order: index + 1, title, points })));
+
 export const MINI_LEDGER_STAGE_IDS = Object.freeze(DEFAULT_STAGES.map((stage) => stage.id));
 
 function invariant(condition, message) {

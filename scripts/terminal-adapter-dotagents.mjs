@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { once } from 'node:events';
+import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import os from 'node:os';
@@ -19,11 +22,57 @@ import {
 import { canonicalJson } from '../src/provenance.mjs';
 
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
+const CHATGPT_TOKEN_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR;
 const IMAGE = process.env.AGENTBATTLER_DOTAGENTS_IMAGE ?? DOTAGENTS_IMAGE;
+const CLIPROXY_BASE_URL = process.env.AGENTBATTLER_CLIPROXY_DOCKER_BASE_URL;
+const CLIPROXY_API_KEY = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
+const CLIPROXY_NETWORK = process.env.AGENTBATTLER_CLIPROXY_DOCKER_NETWORK;
+const CLIPROXY_COMMIT = process.env.AGENTBATTLER_CLIPROXY_COMMIT;
+const CLIPROXY_CATALOG_COMMIT = process.env.AGENTBATTLER_CLIPROXY_CATALOG_COMMIT;
+const CLIPROXY_MODELS_SHA256 = process.env.AGENTBATTLER_CLIPROXY_MODELS_SHA256;
+const CLIPROXY_CODEX_MODELS_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CODEX_MODELS_SHA256;
+const CLIPROXY_IMAGE_ID = process.env.AGENTBATTLER_CLIPROXY_IMAGE_ID;
+const CLIPROXY_CONFIG_SHA256 = process.env.AGENTBATTLER_CLIPROXY_CONFIG_SHA256;
+const CLIPROXY_RUNTIME_SHA256 = process.env.AGENTBATTLER_CLIPROXY_RUNTIME_SHA256;
 export const harnesses = ['dotagents-mono'];
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
+
+function cliProxyConfig() {
+  const values = [CLIPROXY_BASE_URL, CLIPROXY_API_KEY, CLIPROXY_NETWORK, CLIPROXY_COMMIT, CLIPROXY_CATALOG_COMMIT, CLIPROXY_MODELS_SHA256, CLIPROXY_CODEX_MODELS_SHA256, CLIPROXY_IMAGE_ID, CLIPROXY_CONFIG_SHA256, CLIPROXY_RUNTIME_SHA256];
+  if (values.every((value) => value === undefined)) return null;
+  invariant(values.every((value) => typeof value === 'string' && value.length > 0), 'Set all AGENTBATTLER_CLIPROXY_* variables for DotAgents proxy routing');
+  invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_COMMIT), 'CLIProxyAPI commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{40}$/.test(CLIPROXY_CATALOG_COMMIT), 'CLIProxyAPI catalog commit must be a full Git SHA');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_MODELS_SHA256) && /^[0-9a-f]{64}$/.test(CLIPROXY_CODEX_MODELS_SHA256), 'CLIProxyAPI catalog hashes must be SHA-256');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_CONFIG_SHA256), 'CLIProxyAPI config hash must be SHA-256');
+  invariant(/^[0-9a-f]{64}$/.test(CLIPROXY_RUNTIME_SHA256), 'CLIProxyAPI runtime hash must be SHA-256');
+  return {
+    baseUrl: CLIPROXY_BASE_URL,
+    apiKey: CLIPROXY_API_KEY,
+    network: CLIPROXY_NETWORK,
+    provenance: { name: 'CLIProxyAPI', commit: CLIPROXY_COMMIT, catalogCommit: CLIPROXY_CATALOG_COMMIT, modelsSha256: CLIPROXY_MODELS_SHA256, codexModelsSha256: CLIPROXY_CODEX_MODELS_SHA256, imageId: CLIPROXY_IMAGE_ID, configSha256: CLIPROXY_CONFIG_SHA256, runtimeSha256: CLIPROXY_RUNTIME_SHA256 },
+  };
+}
+
+async function loadChatGptAuth() {
+  const auth = JSON.parse(await readFile(CODEX_AUTH, 'utf8'));
+  invariant(auth?.auth_mode === 'chatgpt' && auth.tokens?.access_token && auth.tokens?.refresh_token && auth.tokens?.account_id, 'Codex ChatGPT auth is unavailable for DotAgents');
+  if (!CHATGPT_TOKEN_BROKER_DIR) return auth;
+  const brokerPath = path.join(CHATGPT_TOKEN_BROKER_DIR, 'tokens-chatgpt.json');
+  try {
+    const [broker, authStat, brokerStat] = await Promise.all([
+      readFile(brokerPath, 'utf8').then(JSON.parse),
+      stat(CODEX_AUTH),
+      stat(brokerPath),
+    ]);
+    if (brokerStat.mtimeMs > authStat.mtimeMs && broker.access_token && broker.refresh_token) {
+      auth.tokens = { ...auth.tokens, access_token: broker.access_token, refresh_token: broker.refresh_token };
+    }
+  } catch { /* Fall back to the current Codex auth when no broker exists. */ }
+  return auth;
+}
 
 async function availablePort() {
   const server = createServer();
@@ -33,17 +82,47 @@ async function availablePort() {
   return port;
 }
 
-function parseSse(content) {
-  return content.split(/\r?\n/).filter((line) => line.startsWith('data:')).flatMap((line) => {
-    const payload = line.slice(5).trim();
-    if (!payload || payload === '[DONE]') return [];
-    return [JSON.parse(payload)];
-  });
+function compactTraceEvent(event) {
+  // DotAgents can include the entire stateful conversation in the final `done`
+  // event. Keep the complete event on disk, but retain only the fields used by
+  // the verifier in memory. This prevents a long run from hitting V8's string
+  // limit while preserving the full trace artifact.
+  if (event?.type === 'progress') {
+    return {
+      type: 'progress',
+      data: Object.fromEntries(Object.entries({
+        contextInfo: event.data?.contextInfo,
+        conversationId: event.data?.conversationId,
+        conversationState: event.data?.conversationState,
+        currentIteration: event.data?.currentIteration,
+        modelInfo: event.data?.modelInfo,
+        runId: event.data?.runId,
+        sessionId: event.data?.sessionId,
+        steps: (event.data?.steps ?? []).filter((step) => step?.toolCall).map((step) => ({ toolCall: step.toolCall })),
+        sessionCost: event.data?.sessionCost,
+      }).filter(([, value]) => value !== undefined)),
+    };
+  }
+  if (event?.type === 'done') {
+    const conversationHistory = (event.data?.conversation_history ?? [])
+      .filter((message) => Array.isArray(message?.toolCalls) && message.toolCalls.length > 0)
+      .map((message) => ({ toolCalls: message.toolCalls }));
+    return {
+      type: 'done',
+      data: {
+        model: event.data?.model,
+        content: '',
+        conversation_id: event.data?.conversation_id,
+        conversation_history: conversationHistory,
+      },
+    };
+  }
+  return null;
 }
 
 async function waitForHealth(port, apiKey, childState) {
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    if (childState.closed) throw new Error(`DotAgents container exited before health check (${childState.exitCode})`);
+    if (childState.closed) throw new Error(`DotAgents container exited before health check (${childState.error?.code ?? childState.exitCode ?? 'unknown'})`);
     try {
       if ((await fetch(`http://127.0.0.1:${port}/v1/operator/health`, { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(1_000) })).ok) return;
     } catch { /* wait for the container */ }
@@ -52,7 +131,37 @@ async function waitForHealth(port, apiKey, childState) {
   throw new Error('DotAgents container did not become healthy within 60 seconds');
 }
 
-async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs }) {
+async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
+  const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const update = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      mcpMaxIterations: 12,
+      mcpUnlimitedIterations: false,
+      mcpMessageQueueEnabled: false,
+      mcpVerifyCompletionEnabled: true,
+      mcpFinalSummaryEnabled: false,
+    }),
+    signal: AbortSignal.timeout(5_000),
+  });
+  invariant(update.ok, `DotAgents sealed settings update failed (${update.status})`);
+  const response = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
+    headers,
+    signal: AbortSignal.timeout(5_000),
+  });
+  invariant(response.ok, `DotAgents settings preflight failed (${response.status})`);
+  const settings = await response.json();
+  invariant(settings.mcpMaxIterations === 12, `DotAgents effective max iterations is ${settings.mcpMaxIterations ?? 'missing'}, not 12`);
+  invariant(settings.mcpUnlimitedIterations === false, 'DotAgents effective unlimited iterations is not disabled');
+  if (!proxy) return;
+  invariant(settings.agentProviderId === 'openai', `DotAgents effective provider is ${settings.agentProviderId ?? 'missing'}, not openai`);
+  invariant(settings.agentOpenaiModel === job.model, `DotAgents effective model is ${settings.agentOpenaiModel ?? 'missing'}, not ${job.model}`);
+  invariant(settings.openaiBaseUrl === proxy.baseUrl.replace(/\/$/, ''), `DotAgents effective proxy URL is ${settings.openaiBaseUrl ?? 'missing'}`);
+  invariant(typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0, 'DotAgents effective proxy API key is empty');
+}
+
+async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, outputPath }) {
   const body = {
     model: `agent:${DOTAGENTS_PROFILE_ID}`,
     profile_id: DOTAGENTS_PROFILE_ID,
@@ -67,11 +176,43 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs }) {
     body: JSON.stringify(body),
     signal: Number.isSafeInteger(timeoutMs) && timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
   });
-  const raw = await response.text();
-  invariant(response.ok, `DotAgents request failed (${response.status}): ${raw.slice(0, 500)}`);
-  const events = parseSse(raw);
+  invariant(response.ok, `DotAgents request failed (${response.status})`);
+  invariant(response.body, 'DotAgents response has no streaming body');
+  const trace = createWriteStream(outputPath, { mode: 0o600 });
+  const events = [];
+  const decoder = new TextDecoder();
+  let pending = '';
+  const writeEvent = async (event) => {
+    // Progress events repeat the complete conversation and all prior steps.
+    // Persist their telemetry/tool-call projection while retaining the one
+    // complete terminal event. This keeps long-run traces useful and bounded.
+    const persisted = event?.type === 'progress' ? compactTraceEvent(event) : event;
+    const line = `${canonicalJson(persisted ?? event)}\n`;
+    if (!trace.write(line)) await once(trace, 'drain');
+    const compact = compactTraceEvent(event);
+    if (compact) events.push(compact);
+  };
+  const consumeLine = async (line) => {
+    if (!line.startsWith('data:')) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') return;
+    await writeEvent(JSON.parse(payload));
+  };
+  try {
+    for await (const chunk of response.body) {
+      pending += decoder.decode(chunk, { stream: true });
+      const lines = pending.split(/\r?\n/);
+      pending = lines.pop() ?? '';
+      for (const line of lines) await consumeLine(line);
+    }
+    pending += decoder.decode();
+    if (pending) await consumeLine(pending);
+  } finally {
+    trace.end();
+    await finished(trace).catch(() => {});
+  }
   invariant(events.some((event) => event?.type === 'done'), 'DotAgents stream ended without a done event');
-  return { events, raw };
+  return { events };
 }
 
 async function writeConfig(configRoot, config) {
@@ -83,25 +224,59 @@ async function writeConfig(configRoot, config) {
   }
 }
 
+async function archivePreviousAttempt(runDirectory) {
+  const entries = await readdir(runDirectory).catch((error) => {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  });
+  const names = entries.filter((name) => (
+    ['dotagents-home', 'config-workspace', 'workspace', 'container-stdout.txt', 'container-stderr.txt'].includes(name)
+    || /^turn-\d+\.jsonl$/.test(name)
+  ));
+  if (names.length === 0) return;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const archive = path.join(runDirectory, 'attempts', `${stamp}-${randomBytes(4).toString('hex')}`);
+  await mkdir(archive, { recursive: true, mode: 0o700 });
+  for (const name of names) await rename(path.join(runDirectory, name), path.join(archive, name));
+}
+
 async function startContainer(runDirectory, job) {
-  const auth = JSON.parse(await readFile(CODEX_AUTH, 'utf8'));
-  invariant(auth?.auth_mode === 'chatgpt' && auth.tokens?.access_token && auth.tokens?.refresh_token && auth.tokens?.account_id, 'Codex ChatGPT auth is unavailable for DotAgents');
+  const proxy = cliProxyConfig();
+  const auth = proxy ? null : await loadChatGptAuth();
   const home = path.join(runDirectory, 'dotagents-home'); const configRoot = path.join(runDirectory, 'config-workspace'); const workspace = path.join(runDirectory, 'workspace');
+  await archivePreviousAttempt(runDirectory);
   await Promise.all([home, configRoot, workspace].map((directory) => mkdir(directory, { recursive: true, mode: 0o700 })));
-  await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });
-  await writeFile(path.join(home, '.codex', 'auth.json'), `${canonicalJson(auth, { space: 2 })}\n`, { mode: 0o600 });
-  await chmod(path.join(home, '.codex', 'auth.json'), 0o600);
+  if (auth) {
+    await mkdir(path.join(home, '.codex'), { recursive: true, mode: 0o700 });
+    await writeFile(path.join(home, '.codex', 'auth.json'), `${canonicalJson(auth, { space: 2 })}\n`, { mode: 0o600 });
+    await chmod(path.join(home, '.codex', 'auth.json'), 0o600);
+  }
   const apiKey = randomBytes(32).toString('hex'); const port = await availablePort();
-  await writeConfig(configRoot, createDotAgentsConfig({ model: job.model, remoteApiKey: apiKey, remotePort: 3210, stateful: true }));
+  const generatedConfig = createDotAgentsConfig({
+    model: job.model,
+    remoteApiKey: apiKey,
+    remotePort: 3210,
+    stateful: true,
+    openaiProxy: proxy ? { baseUrl: proxy.baseUrl, apiKey: proxy.apiKey } : null,
+  });
+  // DotAgents treats ~/.agents as its global persisted layer and the mounted
+  // workspace as an overlay. Seed both with the sealed config so provider
+  // credentials are available even during early main-process initialization.
+  await Promise.all([writeConfig(home, generatedConfig), writeConfig(configRoot, generatedConfig)]);
+  const legacyConfigPath = path.join(home, '.config', 'app.dotagents.agentbattler', 'config.json');
+  await mkdir(path.dirname(legacyConfigPath), { recursive: true, mode: 0o700 });
+  await writeFile(legacyConfigPath, `${canonicalJson(generatedConfig.legacyConfig, { space: 2 })}\n`, { mode: 0o600 });
   const name = `agentbattler-terminal-${job.runKey.slice(0, 12)}`.toLowerCase();
-  const args = buildDotAgentsDockerArgs({ image: IMAGE, name, hostPort: port, home, configRoot, workspace });
+  const args = buildDotAgentsDockerArgs({ image: IMAGE, name, hostPort: port, home, configRoot, workspace, network: proxy?.network ?? null });
   const child = spawn('docker', args, { cwd: runDirectory, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
   const stdout = []; const stderr = []; const state = { closed: false, exitCode: null };
   child.stdout.on('data', (chunk) => stdout.push(chunk)); child.stderr.on('data', (chunk) => stderr.push(chunk));
+  child.on('error', (error) => { state.closed = true; state.error = error; });
   child.on('close', (code) => { state.closed = true; state.exitCode = code; });
-  const container = { port, apiKey, workspace, child, name, state, stdout, stderr };
+  const container = { port, apiKey, workspace, child, name, state, stdout, stderr, proxy, generationSettings: generatedConfig.generationSettings };
   try {
     await waitForHealth(port, apiKey, state);
+    await applyAndVerifyRuntimeSettings(port, apiKey, job, proxy);
     return container;
   } catch (error) {
     await stopContainer(container);
@@ -137,8 +312,14 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   try {
     for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
-      const result = await streamTurn({ port: container.port, apiKey: container.apiKey, prompt: prompts[index], conversationId, timeoutMs: job.maxWallTimeMs });
-      await writeFile(path.join(runDirectory, `turn-${index + 1}.jsonl`), `${result.events.map((event) => canonicalJson(event)).join('\n')}\n`);
+      const result = await streamTurn({
+        port: container.port,
+        apiKey: container.apiKey,
+        prompt: prompts[index],
+        conversationId,
+        timeoutMs: job.maxWallTimeMs,
+        outputPath: path.join(runDirectory, `turn-${index + 1}.jsonl`),
+      });
       const telemetry = summarizeDotAgentsTrace(result.events, job.model);
       invariant(telemetry.conversationId, `DotAgents turn ${index + 1} emitted no conversation ID`);
       if (!conversationId) conversationId = telemetry.conversationId;
@@ -155,7 +336,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === 8 && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
   } finally {
     await stopContainer(container);
   }

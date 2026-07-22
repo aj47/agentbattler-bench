@@ -1,0 +1,467 @@
+{
+  "adapter": {
+    "commit": "8d4df16140e33083eba5dfae4878f22696afdfe9",
+    "image": "agentbattler-dotagents:8d4df16140e3"
+  },
+  "artifactId": "terminal-dotagents-mono-sol-01",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-593a20deca6ef770",
+  "durationMs": 4657235,
+  "endedAt": "2026-07-20T11:45:35.653Z",
+  "executionConcurrency": 2,
+  "generationIndex": 1,
+  "generationSettings": {
+    "completionVerification": true,
+    "externalMcpServers": 0,
+    "finalSummaryPass": false,
+    "maxIterations": 12,
+    "parallelToolExecution": false,
+    "provider": "chatgpt-web",
+    "reasoningEffort": "high",
+    "runtimeTools": [
+      "execute_command",
+      "mark_work_complete"
+    ],
+    "skillsEnabled": false,
+    "textVerbosity": "medium",
+    "verificationRetries": 1
+  },
+  "harness": "dotagents-mono",
+  "harnessVersion": "1.1.6",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": "append-batch failed: {\"error\":\"duplicate event id: s-1\"}",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "concurrent batches lost events or sequence numbers",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "paged stress query returned 10001 events",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "b82a8e71a64372da15efcce75f786d3733fc81bd4eb7be920208fb181cb6a7ec",
+  "runKey": "18e9f4f871241e01aa9e701399b66020fe7309bf9db836d8b4cf8882c9c2bc07",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "conv_1784543278424_i6836c5bp",
+  "stages": [
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 33,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 102,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 141,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate event id: a1\"}",
+      "durationMs": 31,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 812,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "compaction did not create a bounded live tail and snapshot",
+      "durationMs": 193,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 186,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 27,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 29,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale append/query lost records",
+      "durationMs": 97,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "concurrent batches lost events or sequence numbers",
+      "durationMs": 469,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 171,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "paged stress query returned 10001 events",
+      "durationMs": 27038,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T10:27:58.418Z",
+  "status": "completed",
+  "toolCalls": 2329,
+  "turns": [
+    {
+      "durationMs": 443209,
+      "endedAt": "2026-07-20T10:35:21.627Z",
+      "index": 1,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:27:58.418Z",
+      "usage": {
+        "cacheReadTokens": 7168,
+        "cacheWriteTokens": 0,
+        "inputTokens": 100582,
+        "outputTokens": 18253,
+        "reasoningTokens": 9815,
+        "usd": 1.018244
+      }
+    },
+    {
+      "durationMs": 196035,
+      "endedAt": "2026-07-20T10:38:37.662Z",
+      "index": 2,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:35:21.627Z",
+      "usage": {
+        "cacheReadTokens": 10240,
+        "cacheWriteTokens": 0,
+        "inputTokens": 243607,
+        "outputTokens": 24097,
+        "reasoningTokens": 14020,
+        "usd": 1.894865
+      }
+    },
+    {
+      "durationMs": 68197,
+      "endedAt": "2026-07-20T10:39:45.859Z",
+      "index": 3,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:38:37.662Z",
+      "usage": {
+        "cacheReadTokens": 14848,
+        "cacheWriteTokens": 0,
+        "inputTokens": 409182,
+        "outputTokens": 27060,
+        "reasoningTokens": 15370,
+        "usd": 2.7908939999999998
+      }
+    },
+    {
+      "durationMs": 155341,
+      "endedAt": "2026-07-20T10:42:21.200Z",
+      "index": 4,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:39:45.859Z",
+      "usage": {
+        "cacheReadTokens": 17920,
+        "cacheWriteTokens": 0,
+        "inputTokens": 632104,
+        "outputTokens": 32818,
+        "reasoningTokens": 18369,
+        "usd": 4.06442
+      }
+    },
+    {
+      "durationMs": 655590,
+      "endedAt": "2026-07-20T10:53:16.790Z",
+      "index": 5,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:42:21.200Z",
+      "usage": {
+        "cacheReadTokens": 34816,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1390839,
+        "outputTokens": 56530,
+        "reasoningTokens": 36911,
+        "usd": 8.493422999999996
+      }
+    },
+    {
+      "durationMs": 269919,
+      "endedAt": "2026-07-20T10:57:46.709Z",
+      "index": 6,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:53:16.790Z",
+      "usage": {
+        "cacheReadTokens": 44032,
+        "cacheWriteTokens": 0,
+        "inputTokens": 1885983,
+        "outputTokens": 68019,
+        "reasoningTokens": 43728,
+        "usd": 11.272340999999999
+      }
+    },
+    {
+      "durationMs": 247960,
+      "endedAt": "2026-07-20T11:01:54.669Z",
+      "index": 7,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T10:57:46.709Z",
+      "usage": {
+        "cacheReadTokens": 51712,
+        "cacheWriteTokens": 0,
+        "inputTokens": 2207531,
+        "outputTokens": 77468,
+        "reasoningTokens": 49635,
+        "usd": 13.128990999999997
+      }
+    },
+    {
+      "durationMs": 753078,
+      "endedAt": "2026-07-20T11:14:27.747Z",
+      "index": 8,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:01:54.669Z",
+      "usage": {
+        "cacheReadTokens": 88576,
+        "cacheWriteTokens": 0,
+        "inputTokens": 3728438,
+        "outputTokens": 106857,
+        "reasoningTokens": 68603,
+        "usd": 21.449307999999995
+      }
+    },
+    {
+      "durationMs": 400386,
+      "endedAt": "2026-07-20T11:21:08.133Z",
+      "index": 9,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:14:27.747Z",
+      "usage": {
+        "cacheReadTokens": 100864,
+        "cacheWriteTokens": 0,
+        "inputTokens": 4486330,
+        "outputTokens": 124983,
+        "reasoningTokens": 78586,
+        "usd": 25.727251999999996
+      }
+    },
+    {
+      "durationMs": 280434,
+      "endedAt": "2026-07-20T11:25:48.567Z",
+      "index": 10,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:21:08.133Z",
+      "usage": {
+        "cacheReadTokens": 110080,
+        "cacheWriteTokens": 0,
+        "inputTokens": 5141036,
+        "outputTokens": 136719,
+        "reasoningTokens": 84468,
+        "usd": 29.31139
+      }
+    },
+    {
+      "durationMs": 396012,
+      "endedAt": "2026-07-20T11:32:24.579Z",
+      "index": 11,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:25:48.567Z",
+      "usage": {
+        "cacheReadTokens": 119296,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6023113,
+        "outputTokens": 149674,
+        "reasoningTokens": 92268,
+        "usd": 34.06895299999999
+      }
+    },
+    {
+      "durationMs": 75474,
+      "endedAt": "2026-07-20T11:33:40.053Z",
+      "index": 12,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:32:24.579Z",
+      "usage": {
+        "cacheReadTokens": 119296,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6121369,
+        "outputTokens": 152301,
+        "reasoningTokens": 92835,
+        "usd": 34.639042999999994
+      }
+    },
+    {
+      "durationMs": 82488,
+      "endedAt": "2026-07-20T11:35:02.541Z",
+      "index": 13,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:33:40.053Z",
+      "usage": {
+        "cacheReadTokens": 119296,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6256923,
+        "outputTokens": 155603,
+        "reasoningTokens": 93743,
+        "usd": 35.415873
+      }
+    },
+    {
+      "durationMs": 289107,
+      "endedAt": "2026-07-20T11:39:51.648Z",
+      "index": 14,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:35:02.541Z",
+      "usage": {
+        "cacheReadTokens": 123904,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6620648,
+        "outputTokens": 167169,
+        "reasoningTokens": 100869,
+        "usd": 37.560742000000005
+      }
+    },
+    {
+      "durationMs": 310206,
+      "endedAt": "2026-07-20T11:45:01.854Z",
+      "index": 15,
+      "sessionId": "conv_1784543278424_i6836c5bp",
+      "startedAt": "2026-07-20T11:39:51.648Z",
+      "usage": {
+        "cacheReadTokens": 130048,
+        "cacheWriteTokens": 0,
+        "inputTokens": 6867912,
+        "outputTokens": 176497,
+        "reasoningTokens": 105273,
+        "usd": 39.049254000000005
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 1092096,
+    "inputTokens": 52115597,
+    "outputTokens": 1474048,
+    "reasoningTokens": 904493
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

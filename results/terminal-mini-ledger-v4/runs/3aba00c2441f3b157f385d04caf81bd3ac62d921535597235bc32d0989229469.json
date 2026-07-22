@@ -1,0 +1,493 @@
+{
+  "artifactId": "terminal-claude-code-luna-01",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-ac91d0249082fb00",
+  "durationMs": 1398276,
+  "endedAt": "2026-07-20T22:10:17.121Z",
+  "executionConcurrency": 2,
+  "generationIndex": 1,
+  "generationSettings": {},
+  "harness": "claude-code",
+  "harnessVersion": "2.1.211",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": "scale append/query lost records",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "concurrent batches lost events or sequence numbers",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "validation-and-fault-injection",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 6,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-luna",
+  "modelFamilyId": "luna",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "b41657ea0ce95a3d2e905ee5d7e35bca00a4750efe83bf9950b127486ab232e4",
+  "runKey": "3aba00c2441f3b157f385d04caf81bd3ac62d921535597235bc32d0989229469",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 150,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 192,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 210,
+      "exitCode": 0,
+      "id": "pagination",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "import did not emit one JSON value: Unexpected end of JSON input",
+      "durationMs": 57,
+      "exitCode": 1,
+      "id": "migration",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 131,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 186,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "concurrent append failed: 1",
+      "durationMs": 77,
+      "exitCode": 1,
+      "id": "concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: error: invalid event sequence or duplicate id",
+      "durationMs": 48,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "export did not emit one JSON value: Unexpected end of JSON input",
+      "durationMs": 47,
+      "exitCode": 1,
+      "id": "roundtrip",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 40,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 44,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 217,
+      "exitCode": 0,
+      "id": "scale",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 445,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 350,
+      "exitCode": 0,
+      "id": "validation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 23589,
+      "exitCode": 0,
+      "id": "scale-stress",
+      "passed": true,
+      "regressions": 0
+    }
+  ],
+  "startedAt": "2026-07-20T21:46:58.845Z",
+  "status": "completed",
+  "toolCalls": 131,
+  "turns": [
+    {
+      "durationMs": 114080,
+      "endedAt": "2026-07-20T21:48:53.434Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:46:59.354Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 51644,
+        "outputTokens": 5568,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 10
+      }
+    },
+    {
+      "durationMs": 33056,
+      "endedAt": "2026-07-20T21:49:26.490Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:48:53.434Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 43121,
+        "outputTokens": 1502,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 43931,
+      "endedAt": "2026-07-20T21:50:10.421Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:49:26.490Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 55872,
+        "outputTokens": 1466,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 46518,
+      "endedAt": "2026-07-20T21:50:56.939Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:50:10.421Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 52697,
+        "outputTokens": 2327,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 49711,
+      "endedAt": "2026-07-20T21:51:46.650Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:50:56.939Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 90436,
+        "outputTokens": 2303,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 5
+      }
+    },
+    {
+      "durationMs": 65706,
+      "endedAt": "2026-07-20T21:52:52.356Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:51:46.650Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 127033,
+        "outputTokens": 2991,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 6
+      }
+    },
+    {
+      "durationMs": 92348,
+      "endedAt": "2026-07-20T21:54:24.704Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:52:52.356Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 265835,
+        "outputTokens": 4096,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 11
+      }
+    },
+    {
+      "durationMs": 132905,
+      "endedAt": "2026-07-20T21:56:37.609Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:54:24.704Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 425448,
+        "outputTokens": 5654,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 14
+      }
+    },
+    {
+      "durationMs": 87762,
+      "endedAt": "2026-07-20T21:58:05.371Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:56:37.609Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 460825,
+        "outputTokens": 3666,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 12
+      }
+    },
+    {
+      "durationMs": 70835,
+      "endedAt": "2026-07-20T21:59:16.206Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:58:05.371Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 388957,
+        "outputTokens": 2996,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 8
+      }
+    },
+    {
+      "durationMs": 128601,
+      "endedAt": "2026-07-20T22:01:24.807Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T21:59:16.206Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 670878,
+        "outputTokens": 5383,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 13
+      }
+    },
+    {
+      "durationMs": 72335,
+      "endedAt": "2026-07-20T22:02:37.142Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T22:01:24.807Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 323971,
+        "outputTokens": 2991,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 5
+      }
+    },
+    {
+      "durationMs": 52861,
+      "endedAt": "2026-07-20T22:03:30.003Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T22:02:37.142Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 289332,
+        "outputTokens": 2162,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 165286,
+      "endedAt": "2026-07-20T22:06:15.289Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T22:03:30.003Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 1500883,
+        "outputTokens": 5945,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 22
+      }
+    },
+    {
+      "durationMs": 216893,
+      "endedAt": "2026-07-20T22:09:52.182Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+      "signal": null,
+      "startedAt": "2026-07-20T22:06:15.289Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 830627,
+        "outputTokens": 6684,
+        "reasoningTokens": 0,
+        "sessionId": "a5fc2be1-cd2f-4ad9-a9bc-9e4406d50dab",
+        "toolCallCount": 10
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 0,
+    "inputTokens": 5577559,
+    "outputTokens": 55734,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

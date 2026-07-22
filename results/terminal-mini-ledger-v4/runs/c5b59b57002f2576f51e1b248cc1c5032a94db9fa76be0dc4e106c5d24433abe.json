@@ -1,0 +1,463 @@
+{
+  "artifactId": "terminal-codex-cli-sol-02",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-b13379614ef6e0f4",
+  "durationMs": 3082220,
+  "endedAt": "2026-07-20T18:20:41.493Z",
+  "executionConcurrency": 2,
+  "generationIndex": 2,
+  "generationSettings": {},
+  "harness": "codex-cli",
+  "harnessVersion": "0.144.0",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c5b59b57002f2576f51e1b248cc1c5032a94db9fa76be0dc4e106c5d24433abe/workspace/ledger.json'",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": "collision setup failed",
+        "name": "idempotency-key-collision-rejected",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c5b59b57002f2576f51e1b248cc1c5032a94db9fa76be0dc4e106c5d24433abe/workspace/ledger.json'",
+        "name": "malformed-recovery-preserves-state",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c5b59b57002f2576f51e1b248cc1c5032a94db9fa76be0dc4e106c5d24433abe/workspace/ledger.json'",
+        "name": "snapshot-corruption-is-detected",
+        "passed": false
+      },
+      {
+        "diagnostic": "append-batch failed: {\"error\":\"logical ledger state event sequences must be strictly increasing\"}",
+        "name": "replay-and-performance-holdout",
+        "passed": false
+      },
+      {
+        "diagnostic": "stress batch failed: 1",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": "scale batch failed: 1",
+        "name": "scale-stress-and-replay",
+        "passed": false
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": "ENOENT: no such file or directory, open '/private/tmp/agentbattler-v4b-calibration/results/terminal-mini-ledger-v4/work/c5b59b57002f2576f51e1b248cc1c5032a94db9fa76be0dc4e106c5d24433abe/workspace/ledger.json'",
+        "name": "atomic-import-replacement",
+        "passed": false
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 0,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "5b08e5050e460ae38ac3e35aa1d414c231974a8b9dac2ec9f316a67df6fefff8",
+  "runKey": "c5b59b57002f2576f51e1b248cc1c5032a94db9fa76be0dc4e106c5d24433abe",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+  "stages": [
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate id \\\"a1\\\"\"}",
+      "durationMs": 51,
+      "exitCode": 1,
+      "id": "foundation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate id \\\"a1\\\"\"}",
+      "durationMs": 51,
+      "exitCode": 1,
+      "id": "batch",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate id \\\"a1\\\"\"}",
+      "durationMs": 54,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 156,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 209,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append failed: {\"error\":\"duplicate id \\\"a1\\\"\"}",
+      "durationMs": 63,
+      "exitCode": 1,
+      "id": "recovery",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 1040,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":\"logical ledger state event sequences must be strictly increasing\"}",
+      "durationMs": 57,
+      "exitCode": 1,
+      "id": "compaction",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 220,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 61,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 57,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "append-batch failed: {\"error\":\"logical ledger state event sequences must be strictly increasing\"}",
+      "durationMs": 65,
+      "exitCode": 1,
+      "id": "scale",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "stress batch failed: 1",
+      "durationMs": 56,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 215,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "scale batch failed: 1",
+      "durationMs": 62,
+      "exitCode": 1,
+      "id": "scale-stress",
+      "passed": false,
+      "regressions": 1
+    }
+  ],
+  "startedAt": "2026-07-20T17:29:19.273Z",
+  "status": "completed",
+  "toolCalls": 127,
+  "turns": [
+    {
+      "durationMs": 494656,
+      "endedAt": "2026-07-20T17:37:33.929Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:29:19.273Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 447232,
+        "input_tokens": 482356,
+        "output_tokens": 18146,
+        "reasoning_output_tokens": 7174
+      }
+    },
+    {
+      "durationMs": 76717,
+      "endedAt": "2026-07-20T17:38:50.646Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:37:33.929Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 635136,
+        "input_tokens": 678022,
+        "output_tokens": 20930,
+        "reasoning_output_tokens": 8757
+      }
+    },
+    {
+      "durationMs": 66603,
+      "endedAt": "2026-07-20T17:39:57.249Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:38:50.646Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 807936,
+        "input_tokens": 856708,
+        "output_tokens": 23089,
+        "reasoning_output_tokens": 9472
+      }
+    },
+    {
+      "durationMs": 121383,
+      "endedAt": "2026-07-20T17:41:58.632Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:39:57.249Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 1165056,
+        "input_tokens": 1225946,
+        "output_tokens": 27486,
+        "reasoning_output_tokens": 11521
+      }
+    },
+    {
+      "durationMs": 171167,
+      "endedAt": "2026-07-20T17:44:49.799Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:41:58.632Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 1631488,
+        "input_tokens": 1705862,
+        "output_tokens": 33226,
+        "reasoning_output_tokens": 14828
+      }
+    },
+    {
+      "durationMs": 234714,
+      "endedAt": "2026-07-20T17:48:44.513Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:44:49.799Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 2183680,
+        "input_tokens": 2325445,
+        "output_tokens": 40575,
+        "reasoning_output_tokens": 19404
+      }
+    },
+    {
+      "durationMs": 153598,
+      "endedAt": "2026-07-20T17:51:18.111Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:48:44.513Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 2741504,
+        "input_tokens": 2897268,
+        "output_tokens": 45627,
+        "reasoning_output_tokens": 21637
+      }
+    },
+    {
+      "durationMs": 288599,
+      "endedAt": "2026-07-20T17:56:06.710Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:51:18.111Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 3641600,
+        "input_tokens": 3821405,
+        "output_tokens": 56499,
+        "reasoning_output_tokens": 26858
+      }
+    },
+    {
+      "durationMs": 225717,
+      "endedAt": "2026-07-20T17:59:52.427Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:56:06.710Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 4994560,
+        "input_tokens": 5197136,
+        "output_tokens": 64292,
+        "reasoning_output_tokens": 30290
+      }
+    },
+    {
+      "durationMs": 216899,
+      "endedAt": "2026-07-20T18:03:29.326Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T17:59:52.427Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 5901568,
+        "input_tokens": 6121358,
+        "output_tokens": 72373,
+        "reasoning_output_tokens": 34465
+      }
+    },
+    {
+      "durationMs": 362840,
+      "endedAt": "2026-07-20T18:09:32.166Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T18:03:29.326Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 7284992,
+        "input_tokens": 7528850,
+        "output_tokens": 87690,
+        "reasoning_output_tokens": 38357
+      }
+    },
+    {
+      "durationMs": 158698,
+      "endedAt": "2026-07-20T18:12:10.864Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T18:09:32.166Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 8297728,
+        "input_tokens": 8552436,
+        "output_tokens": 92846,
+        "reasoning_output_tokens": 39829
+      }
+    },
+    {
+      "durationMs": 157064,
+      "endedAt": "2026-07-20T18:14:47.928Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T18:12:10.864Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 9363712,
+        "input_tokens": 9629315,
+        "output_tokens": 98135,
+        "reasoning_output_tokens": 41628
+      }
+    },
+    {
+      "durationMs": 125389,
+      "endedAt": "2026-07-20T18:16:53.317Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T18:14:47.928Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 10343936,
+        "input_tokens": 10621615,
+        "output_tokens": 103470,
+        "reasoning_output_tokens": 42847
+      }
+    },
+    {
+      "durationMs": 226671,
+      "endedAt": "2026-07-20T18:20:39.988Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "019f8093-3827-7a31-8241-ff0ee5c54303",
+      "signal": null,
+      "startedAt": "2026-07-20T18:16:53.317Z",
+      "timedOut": false,
+      "usage": {
+        "cached_input_tokens": 11677952,
+        "input_tokens": 11969939,
+        "output_tokens": 110042,
+        "reasoning_output_tokens": 44586
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 71118080,
+    "inputTokens": 73613661,
+    "outputTokens": 894426,
+    "reasoningTokens": 391653
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

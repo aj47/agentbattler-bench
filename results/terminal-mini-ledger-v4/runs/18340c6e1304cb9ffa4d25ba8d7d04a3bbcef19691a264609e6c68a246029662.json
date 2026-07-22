@@ -1,0 +1,505 @@
+{
+  "adapter": {
+    "transport": {
+      "catalogCommit": "8b32755e666bcb98a435aaf4728e7341ffb9507a",
+      "codexModelsSha256": "3a23d91d04eb35a5684597179b7aa5ba3acc9f52d277f04395a91af71cb67f4d",
+      "commit": "db82d65d1cc3be6dc9662ee2b9a3810ac948d377",
+      "configSha256": "d59cd641bf8b2f30e3ee2a65849751ca83a499cb764b741e1e6c0437f7e44cf2",
+      "imageId": "sha256:5fb24ea4ece13266a0672693d8d2365c2bb0f21001719fa1b6e8ea9ef1ee72d0",
+      "modelsSha256": "395a9c2c2e0581f6663fd7a72dc44581f52b361464fc477e79744466c1f9b7c7",
+      "name": "CLIProxyAPI",
+      "runtimeSha256": "f809f64f396359c11361ba44733e452022b337bea68e1727dfea92feaad56eb5"
+    }
+  },
+  "artifactId": "terminal-claude-code-sol-03",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-5cdc461d9e42cacc",
+  "durationMs": 2808114,
+  "endedAt": "2026-07-21T19:46:12.831Z",
+  "executionConcurrency": 1,
+  "generationIndex": 3,
+  "generationSettings": {},
+  "harness": "claude-code",
+  "harnessVersion": "2.1.211",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "replay-and-performance-holdout",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": "Expected compact to fail",
+        "name": "validation-and-fault-injection",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": "stale lock remained after recovery",
+        "name": "stale-lock-recovery",
+        "passed": false
+      }
+    ],
+    "passed": 6,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "624b96a64fa3417692795309f103010066bc67e6fc7c509392817bc6139c3ae7",
+  "runKey": "18340c6e1304cb9ffa4d25ba8d7d04a3bbcef19691a264609e6c68a246029662",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 195,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 273,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "pagination boundary or order failed",
+      "durationMs": 257,
+      "exitCode": 1,
+      "id": "pagination",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 128,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 174,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 243,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 946,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 242,
+      "exitCode": 0,
+      "id": "compaction",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 220,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 54,
+      "exitCode": 1,
+      "id": "replay",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "replay did not verify",
+      "durationMs": 49,
+      "exitCode": 1,
+      "id": "audit",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 314,
+      "exitCode": 0,
+      "id": "scale",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 842,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": "Expected compact to fail",
+      "durationMs": 203,
+      "exitCode": 1,
+      "id": "validation",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 33152,
+      "exitCode": 0,
+      "id": "scale-stress",
+      "passed": true,
+      "regressions": 0
+    }
+  ],
+  "startedAt": "2026-07-21T18:59:24.717Z",
+  "status": "completed",
+  "toolCalls": 126,
+  "turns": [
+    {
+      "durationMs": 334532,
+      "endedAt": "2026-07-21T19:04:59.265Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T18:59:24.733Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 89600,
+        "inputTokens": 21819,
+        "outputTokens": 13401,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 12
+      }
+    },
+    {
+      "durationMs": 39328,
+      "endedAt": "2026-07-21T19:05:38.593Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:04:59.265Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 46592,
+        "inputTokens": 4078,
+        "outputTokens": 1067,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 64053,
+      "endedAt": "2026-07-21T19:06:42.646Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:05:38.593Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 69632,
+        "inputTokens": 4871,
+        "outputTokens": 1739,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 101072,
+      "endedAt": "2026-07-21T19:08:23.718Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:06:42.646Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 104960,
+        "inputTokens": 7428,
+        "outputTokens": 3624,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 199453,
+      "endedAt": "2026-07-21T19:11:43.171Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:08:23.718Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 379392,
+        "inputTokens": 18655,
+        "outputTokens": 6447,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 14
+      }
+    },
+    {
+      "durationMs": 198295,
+      "endedAt": "2026-07-21T19:15:01.466Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:11:43.171Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 409600,
+        "inputTokens": 17955,
+        "outputTokens": 8443,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 13
+      }
+    },
+    {
+      "durationMs": 168482,
+      "endedAt": "2026-07-21T19:17:49.948Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:15:01.466Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 296960,
+        "inputTokens": 10326,
+        "outputTokens": 6880,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 6
+      }
+    },
+    {
+      "durationMs": 327538,
+      "endedAt": "2026-07-21T19:23:17.486Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:17:49.948Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1478656,
+        "inputTokens": 28992,
+        "outputTokens": 10898,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 24
+      }
+    },
+    {
+      "durationMs": 181627,
+      "endedAt": "2026-07-21T19:26:19.113Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:23:17.486Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 736256,
+        "inputTokens": 15053,
+        "outputTokens": 5578,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 10
+      }
+    },
+    {
+      "durationMs": 232411,
+      "endedAt": "2026-07-21T19:30:11.524Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:26:19.113Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 755200,
+        "inputTokens": 15562,
+        "outputTokens": 8678,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 8
+      }
+    },
+    {
+      "durationMs": 167162,
+      "endedAt": "2026-07-21T19:32:58.686Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:30:11.524Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 463360,
+        "inputTokens": 10098,
+        "outputTokens": 6508,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 5
+      }
+    },
+    {
+      "durationMs": 111735,
+      "endedAt": "2026-07-21T19:34:50.421Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:32:58.686Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 292352,
+        "inputTokens": 6975,
+        "outputTokens": 4025,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 3
+      }
+    },
+    {
+      "durationMs": 120960,
+      "endedAt": "2026-07-21T19:36:51.381Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:34:50.421Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 407552,
+        "inputTokens": 7220,
+        "outputTokens": 4182,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 4
+      }
+    },
+    {
+      "durationMs": 276186,
+      "endedAt": "2026-07-21T19:41:27.567Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:36:51.381Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 1210880,
+        "inputTokens": 14253,
+        "outputTokens": 7443,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 13
+      }
+    },
+    {
+      "durationMs": 249703,
+      "endedAt": "2026-07-21T19:45:37.270Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+      "signal": null,
+      "startedAt": "2026-07-21T19:41:27.567Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 351744,
+        "inputTokens": 8244,
+        "outputTokens": 6212,
+        "reasoningTokens": 0,
+        "sessionId": "7c185edd-1471-47dd-971e-6464396926c2",
+        "toolCallCount": 3
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 7092736,
+    "inputTokens": 191529,
+    "outputTokens": 95125,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

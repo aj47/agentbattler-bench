@@ -54,13 +54,18 @@
     "replay:harness-suite": "node bin/agentbattler.mjs replay results/harness-suite/matches/result.json",
     "terminal:matrix": "node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/build-terminal-schedule.mjs",
+    "terminal:matrix:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",
-    "terminal:run:all": "node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs",
+    "terminal:run:all": "node scripts/run-terminal-matrix-all.mjs",
     "terminal:run:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs",
     "terminal:run:v3:sample": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-codex.mjs --harness codex-cli --generation 1",
+    "terminal:run:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/run-terminal-matrix-all.mjs",
+    "terminal:run:v4:sample": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-codex.mjs --harness codex-cli --generation 1",
     "terminal:run:parallel": "AGENTBATTLER_TERMINAL_CONCURRENCY=4 node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs",
-    "terminal:verify:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/verify-terminal-results.mjs"
+    "terminal:verify:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/verify-terminal-results.mjs",
+    "terminal:verify:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/verify-terminal-results.mjs",
+    "terminal:traces:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 node scripts/export-terminal-traces.mjs"
   }
 }

@@ -1,0 +1,493 @@
+{
+  "artifactId": "terminal-claude-code-sol-04",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "challengeSha256": "7aeb889b180841e2b32bde1c769954260ed00d72189fd8f4055d9c5336df0e82",
+  "comboId": "combo-5cdc461d9e42cacc",
+  "durationMs": 1683267,
+  "endedAt": "2026-07-20T21:17:51.416Z",
+  "executionConcurrency": 2,
+  "generationIndex": 4,
+  "generationSettings": {},
+  "harness": "claude-code",
+  "harnessVersion": "2.1.211",
+  "holdout": {
+    "cases": [
+      {
+        "diagnostic": "invalid holdout batch succeeded",
+        "name": "failed-batch-is-atomic",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "idempotency-key-collision-rejected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "malformed-recovery-preserves-state",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "snapshot-corruption-is-detected",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "replay-and-performance-holdout",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "concurrent-stress-batches",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "validation-and-fault-injection",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "scale-stress-and-replay",
+        "passed": true
+      },
+      {
+        "diagnostic": "same idempotency key did not commit exactly once",
+        "name": "same-id-race",
+        "passed": false
+      },
+      {
+        "diagnostic": null,
+        "name": "atomic-import-replacement",
+        "passed": true
+      },
+      {
+        "diagnostic": null,
+        "name": "stale-lock-recovery",
+        "passed": true
+      }
+    ],
+    "passed": 8,
+    "total": 11
+  },
+  "humanIntervention": "none",
+  "maxWallTimeMs": 1200000,
+  "model": "gpt-5.6-sol",
+  "modelFamilyId": "sol",
+  "reasoningEffort": "high",
+  "repeat": 1,
+  "resultSha256": "15c35feca5593cd759818c5cea16ee0868ec7dc37cfe6a8ac41f454a461f2d1c",
+  "runKey": "cb244e551af827a92955047e54f71a45ead88869fd87fd756dc35095370ff906",
+  "sameSessionProof": true,
+  "schemaVersion": "agentbattler.terminal-run.v1",
+  "seed": 1,
+  "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+  "stages": [
+    {
+      "diagnostic": null,
+      "durationMs": 136,
+      "exitCode": 0,
+      "id": "foundation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 188,
+      "exitCode": 0,
+      "id": "batch",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 214,
+      "exitCode": 0,
+      "id": "pagination",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 105,
+      "exitCode": 0,
+      "id": "migration",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 137,
+      "exitCode": 0,
+      "id": "atomicity",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 197,
+      "exitCode": 0,
+      "id": "recovery",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 627,
+      "exitCode": 0,
+      "id": "concurrency",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 189,
+      "exitCode": 0,
+      "id": "compaction",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 172,
+      "exitCode": 0,
+      "id": "roundtrip",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 67,
+      "exitCode": 0,
+      "id": "replay",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 94,
+      "exitCode": 0,
+      "id": "audit",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 235,
+      "exitCode": 0,
+      "id": "scale",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": "same idempotency key did not commit exactly once",
+      "durationMs": 505,
+      "exitCode": 1,
+      "id": "stress-concurrency",
+      "passed": false,
+      "regressions": 1
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 30463,
+      "exitCode": 0,
+      "id": "validation",
+      "passed": true,
+      "regressions": 0
+    },
+    {
+      "diagnostic": null,
+      "durationMs": 24944,
+      "exitCode": 0,
+      "id": "scale-stress",
+      "passed": true,
+      "regressions": 0
+    }
+  ],
+  "startedAt": "2026-07-20T20:49:48.149Z",
+  "status": "completed",
+  "toolCalls": 98,
+  "turns": [
+    {
+      "durationMs": 189506,
+      "endedAt": "2026-07-20T20:52:58.164Z",
+      "exitCode": 0,
+      "index": 1,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:49:48.658Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 104156,
+        "outputTokens": 9254,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 17
+      }
+    },
+    {
+      "durationMs": 14909,
+      "endedAt": "2026-07-20T20:53:13.073Z",
+      "exitCode": 0,
+      "index": 2,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:52:58.164Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 25373,
+        "outputTokens": 673,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 1
+      }
+    },
+    {
+      "durationMs": 54746,
+      "endedAt": "2026-07-20T20:54:07.819Z",
+      "exitCode": 0,
+      "index": 3,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:53:13.073Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 85654,
+        "outputTokens": 2447,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 5
+      }
+    },
+    {
+      "durationMs": 36338,
+      "endedAt": "2026-07-20T20:54:44.157Z",
+      "exitCode": 0,
+      "index": 4,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:54:07.819Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 49604,
+        "outputTokens": 1768,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 2
+      }
+    },
+    {
+      "durationMs": 180216,
+      "endedAt": "2026-07-20T20:57:44.373Z",
+      "exitCode": 0,
+      "index": 5,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:54:44.157Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 344182,
+        "outputTokens": 7366,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 15
+      }
+    },
+    {
+      "durationMs": 46323,
+      "endedAt": "2026-07-20T20:58:30.696Z",
+      "exitCode": 0,
+      "index": 6,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:57:44.373Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 88807,
+        "outputTokens": 2253,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 2
+      }
+    },
+    {
+      "durationMs": 176439,
+      "endedAt": "2026-07-20T21:01:27.135Z",
+      "exitCode": 0,
+      "index": 7,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T20:58:30.696Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 369497,
+        "outputTokens": 6292,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 10
+      }
+    },
+    {
+      "durationMs": 70614,
+      "endedAt": "2026-07-20T21:02:37.749Z",
+      "exitCode": 0,
+      "index": 8,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:01:27.135Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 273621,
+        "outputTokens": 3037,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 7
+      }
+    },
+    {
+      "durationMs": 116926,
+      "endedAt": "2026-07-20T21:04:34.675Z",
+      "exitCode": 0,
+      "index": 9,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:02:37.749Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 265688,
+        "outputTokens": 5333,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 5
+      }
+    },
+    {
+      "durationMs": 105595,
+      "endedAt": "2026-07-20T21:06:20.270Z",
+      "exitCode": 0,
+      "index": 10,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:04:34.675Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 300503,
+        "outputTokens": 4536,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 6
+      }
+    },
+    {
+      "durationMs": 115168,
+      "endedAt": "2026-07-20T21:08:15.438Z",
+      "exitCode": 0,
+      "index": 11,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:06:20.270Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 273539,
+        "outputTokens": 5105,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 6
+      }
+    },
+    {
+      "durationMs": 70116,
+      "endedAt": "2026-07-20T21:09:25.554Z",
+      "exitCode": 0,
+      "index": 12,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:08:15.438Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 178403,
+        "outputTokens": 3182,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 2
+      }
+    },
+    {
+      "durationMs": 63166,
+      "endedAt": "2026-07-20T21:10:28.720Z",
+      "exitCode": 0,
+      "index": 13,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:09:25.554Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 188081,
+        "outputTokens": 3074,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 2
+      }
+    },
+    {
+      "durationMs": 192751,
+      "endedAt": "2026-07-20T21:13:41.471Z",
+      "exitCode": 0,
+      "index": 14,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:10:28.720Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 811830,
+        "outputTokens": 6834,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 15
+      }
+    },
+    {
+      "durationMs": 163178,
+      "endedAt": "2026-07-20T21:16:24.649Z",
+      "exitCode": 0,
+      "index": 15,
+      "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+      "signal": null,
+      "startedAt": "2026-07-20T21:13:41.471Z",
+      "timedOut": false,
+      "usage": {
+        "cachedInputTokens": 0,
+        "inputTokens": 296530,
+        "outputTokens": 4864,
+        "reasoningTokens": 0,
+        "sessionId": "65590be6-e09e-4fd0-9dc3-1277514a12f9",
+        "toolCallCount": 3
+      }
+    }
+  ],
+  "usage": {
+    "cachedInputTokens": 0,
+    "inputTokens": 3655468,
+    "outputTokens": 66018,
+    "reasoningTokens": 0
+  },
+  "validity": "valid",
+  "workspace": {
+    "path": "<ephemeral-run-workspace>"
+  }
+}

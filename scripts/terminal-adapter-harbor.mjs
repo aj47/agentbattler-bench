@@ -130,17 +130,27 @@ async function nativePiEvidence(trialRoot, stepName) {
   const eventFile = path.join(trialRoot, 'steps', stepName, 'agent', 'pi.txt');
   try {
     const events = (await readFile(eventFile, 'utf8')).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
+    for (const event of events) {
+      if (event.type !== 'message_end' || event.message?.role !== 'assistant') continue;
+      const sample = event.message.usage ?? {};
+      usage.inputTokens += Number(sample.input ?? 0) + Number(sample.cacheRead ?? 0);
+      usage.cachedInputTokens += Number(sample.cacheRead ?? 0);
+      usage.outputTokens += Number(sample.output ?? 0);
+      usage.reasoningTokens += Number(sample.reasoning ?? 0);
+    }
     return {
       sessionId: events.find((event) => event.type === 'session')?.id ?? null,
       toolCalls: events.filter((event) => event.type === 'tool_execution_start').length,
+      usage,
     };
-  } catch { return { sessionId: null, toolCalls: 0 }; }
+  } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 } }; }
 }
 
-async function sessionIdForStep(trialRoot, stepName) {
+async function sessionIdForStep(trialRoot, stepName, nativeSessionId = null) {
   const trajectory = path.join(trialRoot, 'steps', stepName, 'agent', 'trajectory.json');
   try { return JSON.parse(await readFile(trajectory, 'utf8')).session_id ?? null; }
-  catch { return (await nativePiEvidence(trialRoot, stepName)).sessionId; }
+  catch { return nativeSessionId; }
 }
 
 function tokenCounts(context, trajectory) {
@@ -171,14 +181,15 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     const detail = await detailedStage(trialRoot, step, expectedStages[index]);
     stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
     const context = step.agent_result ?? {};
-    const sessionId = await sessionIdForStep(trialRoot, step.step_name); sessionIds.push(sessionId);
-    nativeToolCalls += (await nativePiEvidence(trialRoot, step.step_name)).toolCalls;
+    const nativeEvidence = await nativePiEvidence(trialRoot, step.step_name);
+    const sessionId = await sessionIdForStep(trialRoot, step.step_name, nativeEvidence.sessionId); sessionIds.push(sessionId);
+    nativeToolCalls += nativeEvidence.toolCalls;
     let trajectory = null;
     try {
       trajectory = JSON.parse(await readFile(path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json'), 'utf8'));
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     trajectories.push(trajectory);
-    const turnUsage = tokenCounts(context, trajectory); usageSamples.push(turnUsage);
+    const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
     turns.push({ index: index + 1, sessionId, exitCode: 0, signal: null, timedOut: false, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');

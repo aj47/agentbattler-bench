@@ -57,6 +57,7 @@ test('generated Harbor V4 task uses fifteen steps and a separate verifier', asyn
   const verifierScript = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'tests', 'test.sh'), 'utf8');
   const verifierCompose = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'tests', 'docker-compose.yaml'), 'utf8');
   assert.match(verifierScript, /iptables -P OUTPUT DROP/);
+  assert.match(verifierScript, /chown -hR 1000:1000 \/app/);
   assert.match(verifierCompose, /NET_ADMIN/);
   const firstPrompt = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'instruction.md'), 'utf8');
   assert.doesNotMatch(firstPrompt, /holdout-verifier|benchmark\/challenges/);
@@ -147,6 +148,7 @@ test('Harbor importer uses native Pi JSONL for continuity and tool evidence', as
       await writeFile(path.join(agent, 'pi.txt'), [
         JSON.stringify({ type: 'session', id: 'one-pi-native-session' }),
         JSON.stringify({ type: 'tool_execution_start', toolName: 'bash' }),
+        JSON.stringify({ type: 'message_end', message: { role: 'assistant', usage: { input: 10, cacheRead: 5, output: 2, reasoning: 1 } } }),
         JSON.stringify({ type: 'agent_end' }),
       ].join('\n'));
       await writeFile(path.join(verifier, 'stage-result.json'), JSON.stringify({
@@ -165,5 +167,6 @@ test('Harbor importer uses native Pi JSONL for continuity and tool evidence', as
     assert.equal(imported.sessionId, 'one-pi-native-session');
     assert.equal(imported.sameSessionProof, true);
     assert.equal(imported.toolCalls, 15);
+    assert.deepEqual(imported.usage, { inputTokens: 225, cachedInputTokens: 75, outputTokens: 30, reasoningTokens: 15 });
   } finally { await rm(root, { recursive: true, force: true }); }
 });

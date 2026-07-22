@@ -170,7 +170,7 @@ WORKDIR /
 `);
   // Harbor re-materializes declared artifacts at their original source path,
   // so the candidate arrives at /app in the separate verifier container.
-  await writeFile(path.join(tests, 'test.sh'), '#!/bin/sh\nset -eu\niptables -P OUTPUT DROP\nnode /tests/run-stage.mjs\n', { mode: 0o755 });
+  await writeFile(path.join(tests, 'test.sh'), '#!/bin/sh\nset -eu\niptables -P OUTPUT DROP\nchown -hR 1000:1000 /app\nchmod -R u+rwX /app\nnode /tests/run-stage.mjs\n', { mode: 0o755 });
   await writeFile(path.join(tests, 'run-stage.mjs'), runner, { mode: 0o700 });
   await cp(path.join(root, 'benchmark', 'challenges', 'candidate-process.mjs'), path.join(tests, 'candidate-process.mjs'));
   for (const version of ['v3', 'v4']) {

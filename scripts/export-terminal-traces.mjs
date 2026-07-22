@@ -13,12 +13,15 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!/^v\d+$/.test(version)) throw new Error('Challenge version must look like v4');
-const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${version}`);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? version;
+if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('Result tag must look like v4-harbor');
+const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const workRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_WORK_ROOT ?? path.join(resultRoot, 'work'));
 const outputRoot = path.join(resultRoot, 'traces');
 
 const SECRET_KEY = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|oauth|credential|secret)/i;
 const SECRET_VALUE = /(?:Bearer\s+[A-Za-z0-9._~+\/-]{16,}|\bsk-[A-Za-z0-9_-]{16,}|\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/g;
+const SECRET_ASSIGNMENT = /\b([A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIAL)[A-Z0-9_]*)=[^\s,;]+/gi;
 let redactionCount = 0;
 
 function sanitize(value, key = '') {
@@ -29,7 +32,11 @@ function sanitize(value, key = '') {
   if (typeof value === 'string') {
     const normalized = value
       .replaceAll('/private/tmp/agentbattler-v4b-calibration', '$BENCH_ROOT')
-      .replace(/\/Users\/aj(?:joobandi)?(?=\/|\b)/g, '$HOME');
+      .replace(/\/Users\/aj(?:joobandi)?(?=\/|\b)/g, '$HOME')
+      .replace(SECRET_ASSIGNMENT, (_match, name) => {
+        redactionCount += 1;
+        return `${name}=[REDACTED]`;
+      });
     return normalized.replace(SECRET_VALUE, () => {
       redactionCount += 1;
       return '[REDACTED]';
@@ -109,7 +116,104 @@ function commonPrefixLength(left, right) {
   return index;
 }
 
+async function harborTrialRoot(run) {
+  const trials = path.join(workRoot, run.runKey, 'harbor-trials');
+  const prefix = `agentbattler-${run.runKey.slice(0, 16)}`;
+  const entries = await readdir(trials, { withFileTypes: true });
+  const match = entries.find((entry) => entry.isDirectory() && entry.name.startsWith(prefix));
+  if (!match) throw new Error(`Missing Harbor trial for ${run.artifactId}`);
+  return path.join(trials, match.name);
+}
+
+async function sourceMetadata(root, file) {
+  const fileStat = await stat(file);
+  return { file: path.relative(root, file), bytes: fileStat.size, lines: null, sha256: await fileSha256(file) };
+}
+
+async function exportHarborRun(run) {
+  const destination = path.join(outputRoot, `${run.artifactId}.jsonl.gz`);
+  const gzip = createGzip({ level: 9 });
+  const output = createWriteStream(destination, { mode: 0o644 });
+  gzip.pipe(output);
+  const trialRoot = await harborTrialRoot(run);
+  const sourceFiles = [];
+  let previousSteps = [];
+
+  await writeLine(gzip, {
+    type: 'trace_header',
+    schemaVersion: 'agentbattler.terminal-semantic-trace.v1',
+    artifactId: run.artifactId,
+    runKey: run.runKey,
+    harness: run.harness,
+    harnessVersion: run.harnessVersion,
+    model: run.model,
+    generationIndex: run.generationIndex,
+    transformation: 'Harbor ATIF trajectories are cumulative for resumed native sessions; each turn retains the new semantic step delta plus final metrics, timing, verifier diagnostics, and raw trial metadata.',
+  });
+
+  const resultFile = path.join(trialRoot, 'result.json');
+  const harborResult = await readJson(resultFile);
+  sourceFiles.push(await sourceMetadata(trialRoot, resultFile));
+  await writeLine(gzip, { type: 'harbor_trial', result: harborResult });
+
+  for (let index = 0; index < harborResult.step_results.length; index += 1) {
+    const step = harborResult.step_results[index];
+    const turn = index + 1;
+    await writeLine(gzip, { type: 'turn_boundary', turn, stepName: step.step_name });
+    const trajectoryFile = path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json');
+    const trajectory = await readJson(trajectoryFile);
+    sourceFiles.push({ turn, ...(await sourceMetadata(trialRoot, trajectoryFile)) });
+    const steps = trajectory.steps ?? [];
+    const prefix = commonPrefixLength(previousSteps, steps);
+    const replacement = prefix !== previousSteps.length;
+    await writeLine(gzip, {
+      type: 'atif_trajectory_delta',
+      turn,
+      sessionId: trajectory.session_id,
+      historyMode: replacement ? 'replacement' : 'append',
+      historyBaseLength: replacement ? 0 : prefix,
+      agent: trajectory.agent,
+      steps: replacement ? steps : steps.slice(prefix),
+      finalMetrics: trajectory.final_metrics,
+      extra: trajectory.extra ?? null,
+    });
+    previousSteps = steps;
+
+    const detailFile = path.join(trialRoot, 'steps', step.step_name, 'verifier', 'stage-result.json');
+    const detail = await readJson(detailFile);
+    sourceFiles.push({ turn, ...(await sourceMetadata(trialRoot, detailFile)) });
+    await writeLine(gzip, { type: 'verifier_result', turn, ...detail });
+
+    const verifierOutput = path.join(trialRoot, 'steps', step.step_name, 'verifier', 'test-stdout.txt');
+    try {
+      const text = await readFile(verifierOutput, 'utf8');
+      sourceFiles.push({ turn, ...(await sourceMetadata(trialRoot, verifierOutput)) });
+      if (text.trim()) await writeLine(gzip, { type: 'verifier_stdout', turn, text });
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+
+  await writeLine(gzip, { type: 'trace_footer', omittedStreamingEvents: 0, sourceFiles });
+  gzip.end();
+  await finished(output);
+  return {
+    artifactId: run.artifactId,
+    runKey: run.runKey,
+    harness: run.harness,
+    model: run.model,
+    generationIndex: run.generationIndex,
+    path: path.relative(ROOT, destination),
+    publishedBytes: (await stat(destination)).size,
+    publishedSha256: await fileSha256(destination),
+    sourceBytes: sourceFiles.reduce((sum, file) => sum + file.bytes, 0),
+    sourceFiles,
+    omittedStreamingEvents: 0,
+  };
+}
+
 async function exportRun(run) {
+  if (run.adapter?.name === 'harbor') return exportHarborRun(run);
   const destination = path.join(outputRoot, `${run.artifactId}.jsonl.gz`);
   const gzip = createGzip({ level: 9 });
   const output = createWriteStream(destination, { mode: 0o644 });

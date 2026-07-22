@@ -797,7 +797,9 @@ async function loadTerminalChallengeLane() {
         redactions: traceManifest.totals.redactions,
       } : null,
       standings: summary.elo?.standings ?? [],
-      status: summary.completedRuns === summary.expectedRuns && summary.invalidRuns.length === 0 ? 'complete' : 'scheduled',
+      // The original V4 native runs could see repository verifier source. Keep
+      // the evidence available, but never present its scores as a leaderboard.
+      status: 'withdrawn',
     };
   } catch (error) {
     if (error?.code === 'ENOENT') return null;

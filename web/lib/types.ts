@@ -348,7 +348,7 @@ export type TerminalChallengeLane = {
     redactions: number;
   };
   standings: Array<{ rank: number; comboId: string | null; scorePoints: number; rating: number }>;
-  status: 'scheduled' | 'complete';
+  status: 'scheduled' | 'complete' | 'withdrawn';
 };
 
 export type HarnessRecord = {

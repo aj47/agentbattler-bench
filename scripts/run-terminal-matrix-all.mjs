@@ -6,18 +6,19 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runner = path.join(ROOT, 'scripts/run-terminal-matrix.mjs');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
+const v4Adapter = version === 'v4' ? 'scripts/terminal-adapter-all.mjs' : null;
 const passes = Number.parseInt(process.env.AGENTBATTLER_TERMINAL_RETRY_PASSES ?? '3', 10);
 if (!Number.isSafeInteger(passes) || passes < 1) throw new Error('AGENTBATTLER_TERMINAL_RETRY_PASSES must be a positive integer');
 
 const jobs = [
-  { harness: 'codex-cli', adapter: 'scripts/terminal-adapter-codex.mjs', concurrency: process.env.AGENTBATTLER_CODEX_CONCURRENCY ?? '2' },
-  { harness: 'pi-coding-agent', adapter: 'scripts/terminal-adapter-pi.mjs', concurrency: process.env.AGENTBATTLER_PI_CONCURRENCY ?? '2' },
+  { harness: 'codex-cli', adapter: v4Adapter ?? 'scripts/terminal-adapter-codex.mjs', concurrency: process.env.AGENTBATTLER_CODEX_CONCURRENCY ?? '2' },
+  { harness: 'pi-coding-agent', adapter: v4Adapter ?? 'scripts/terminal-adapter-pi.mjs', concurrency: process.env.AGENTBATTLER_PI_CONCURRENCY ?? '2' },
   // DotAgents is deliberately single-filed: the container is memory-heavy and
   // its stateful trace can be very large even when the trace is streamed.
-  { harness: 'dotagents-mono', adapter: 'scripts/terminal-adapter-dotagents.mjs', concurrency: process.env.AGENTBATTLER_DOTAGENTS_CONCURRENCY ?? '1' },
+  { harness: 'dotagents-mono', adapter: v4Adapter ?? 'scripts/terminal-adapter-dotagents.mjs', concurrency: process.env.AGENTBATTLER_DOTAGENTS_CONCURRENCY ?? '1' },
   // Claude's ChatGPT OAuth refresh token is single-use and is brokered for the
   // lifetime of a gateway, so Claude jobs must be serialized.
-  { harness: 'claude-code', adapter: 'scripts/terminal-adapter-claude.mjs', concurrency: process.env.AGENTBATTLER_CLAUDE_CONCURRENCY ?? '1' },
+  { harness: 'claude-code', adapter: v4Adapter ?? 'scripts/terminal-adapter-claude.mjs', concurrency: process.env.AGENTBATTLER_CLAUDE_CONCURRENCY ?? '1' },
 ];
 
 function run(command, args, env) {

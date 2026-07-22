@@ -79,6 +79,8 @@ export function createMiniLedgerChallenge({
   turns = stages.length,
   holdoutCases = 5,
   scoring = null,
+  network = 'disabled',
+  execution = null,
 } = {}) {
   nonEmpty(promptSha256, 'promptSha256');
   nonEmpty(publicVerifierSha256, 'publicVerifierSha256');
@@ -121,7 +123,7 @@ export function createMiniLedgerChallenge({
       sameSession: true,
       maxWallTimeMs,
       maxWorkspaceBytes: 50 * 1024 * 1024,
-      network: 'disabled',
+      network,
       humanIntervention: 'invalidates-run',
     },
     stages: normalizedStages,
@@ -133,6 +135,7 @@ export function createMiniLedgerChallenge({
       publish: ['challenge', 'schedule', 'manifests', 'run-results', 'pairwise-comparisons', 'checksums'],
       redact: ['credentials', 'hostPaths', 'privateTraces', 'unrelatedFiles'],
     },
+    ...(execution ? { execution } : {}),
   });
 }
 

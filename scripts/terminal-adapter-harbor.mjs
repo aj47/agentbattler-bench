@@ -8,11 +8,13 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 
 const HARBOR_VERSION = '0.20.0';
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TASK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'benchmark', 'harbor', 'mini-ledger-v4');
+const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
 const HARBOR_BY_HARNESS = Object.freeze({
   'claude-code': { agent: 'claude-code', version: '2.1.211', kwargs: ['reasoning_effort=high'] },
   'codex-cli': { agent: 'codex', version: '0.144.0', kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
-  'pi-coding-agent': { agent: 'pi', version: '0.80.7', kwargs: ['thinking=high'] },
+  'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: '0.80.7', kwargs: [] },
 });
 
 export const harnesses = Object.freeze(Object.keys(HARBOR_BY_HARNESS));
@@ -55,7 +57,7 @@ function run(command, args, { cwd, env, stdoutPath, stderrPath, timeoutMs }) {
 }
 
 function proxyAgentEnv(harness) {
-  const proxyHarnesses = new Set((process.env.AGENTBATTLER_CLIPROXY_HARNESSES ?? 'claude-code,pi-coding-agent').split(',').map((value) => value.trim()).filter(Boolean));
+  const proxyHarnesses = new Set((process.env.AGENTBATTLER_CLIPROXY_HARNESSES ?? 'claude-code').split(',').map((value) => value.trim()).filter(Boolean));
   if (!proxyHarnesses.has(harness)) return [];
   const base = process.env.AGENTBATTLER_CLIPROXY_BASE_URL;
   const key = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
@@ -69,7 +71,7 @@ function proxyAgentEnv(harness) {
 }
 
 function harborModel(harness, model) {
-  return harness === 'pi-coding-agent' && !model.includes('/') ? `openai/${model}` : model;
+  return harness === 'pi-coding-agent' && !model.includes('/') ? `openai-codex/${model}` : model;
 }
 
 export function buildHarborArgs({ job, trialsDir, trialName }) {
@@ -81,6 +83,9 @@ export function buildHarborArgs({ job, trialsDir, trialName }) {
     // Do not use CODEX_FORCE_AUTH_JSON=true here. Harbor 0.20.0 registers
     // agent-env values as secrets, and redacting the generic value "true"
     // corrupts ordinary JSON booleans in results and trajectories.
+    args.push('--agent-env', `CODEX_AUTH_JSON_PATH=${path.join(homedir(), '.codex', 'auth.json')}`);
+  }
+  if (job.harness === 'pi-coding-agent' && proxyEnv.length === 0) {
     args.push('--agent-env', `CODEX_AUTH_JSON_PATH=${path.join(homedir(), '.codex', 'auth.json')}`);
   }
   for (const value of proxyEnv) args.push('--agent-env', value);
@@ -196,6 +201,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(challenge.id === 'terminal-mini-ledger-v4', `Harbor adapter only supports terminal-mini-ledger-v4, received ${challenge.id}`);
   invariant(challenge.execution?.substrate === 'harbor' && challenge.execution?.version === HARBOR_VERSION, 'Challenge does not bind the expected Harbor execution substrate');
   invariant(challenge.execution?.adapters?.harbor?.sha256 === await sha256File(fileURLToPath(import.meta.url)), 'Harbor adapter source does not match the sealed challenge');
+  if (job.harness === 'pi-coding-agent') invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
   taskFingerprintPromise ??= taskFingerprint();
   invariant((await taskFingerprintPromise) === challenge.execution.taskSha256, 'Generated Harbor task does not match the sealed challenge hash');
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
@@ -203,7 +209,8 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const trialsDir = path.join(runDirectory, 'harbor-trials'); await rm(trialsDir, { recursive: true, force: true }); await mkdir(trialsDir, { recursive: true });
   const trialName = `agentbattler-${job.runKey.slice(0, 16)}`;
   const args = buildHarborArgs({ job, trialsDir, trialName });
-  const result = await run('uvx', args, { cwd: path.resolve(TASK_ROOT, '../../..'), env: process.env, stdoutPath: path.join(runDirectory, 'harbor.stdout'), stderrPath: path.join(runDirectory, 'harbor.stderr'), timeoutMs: Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0 ? job.maxWallTimeMs * 16 : null });
+  const pythonPath = [REPO_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
+  const result = await run('uvx', args, { cwd: REPO_ROOT, env: { ...process.env, PYTHONPATH: pythonPath }, stdoutPath: path.join(runDirectory, 'harbor.stdout'), stderrPath: path.join(runDirectory, 'harbor.stderr'), timeoutMs: Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0 ? job.maxWallTimeMs * 16 : null });
   invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Harbor trial failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'}): ${result.stderr.slice(-1000)}`);
   const resultPath = await findResult(path.join(trialsDir, trialName)); const raw = JSON.parse(await readFile(resultPath, 'utf8'));
   return importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });

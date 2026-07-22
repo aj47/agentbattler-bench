@@ -58,7 +58,9 @@ Build the package with `npm run terminal:harbor:build`, then run the V4 schedule
 Use `--harness` to smoke-test one adapter subset before running the complete matrix.
 
 Codex defaults to the host's subscription `~/.codex/auth.json` through Harbor's explicit
-`CODEX_AUTH_JSON_PATH` setting. Claude Code and Pi default to the configured CLIProxy endpoint;
+`CODEX_AUTH_JSON_PATH` setting. Pi derives an ephemeral `openai-codex` credential from the same
+subscription file inside its agent container, outside the transferred candidate artifact. Claude
+Code defaults to the configured CLIProxy endpoint;
 set both `AGENTBATTLER_CLIPROXY_BASE_URL` and `AGENTBATTLER_CLIPROXY_API_KEY`. Override the
 comma-separated proxy roster with `AGENTBATTLER_CLIPROXY_HARNESSES` when needed. DotAgents
 continues to consume the same proxy settings in its existing adapter.

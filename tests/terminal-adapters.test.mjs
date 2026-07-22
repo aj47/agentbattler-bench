@@ -31,6 +31,23 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
   assert.ok(!args.includes('CODEX_FORCE_AUTH_JSON=true'));
 });
 
+test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', async () => {
+  const args = harbor.buildHarborArgs({
+    job: { harness: 'pi-coding-agent', model: 'gpt-5.6-sol', maxWallTimeMs: 1_800_000 },
+    trialsDir: '/tmp/trials',
+    trialName: 'pi-check',
+  });
+  assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.pi_agent:AgentBattlerPi');
+  assert.equal(args[args.indexOf('--model') + 1], 'openai-codex/gpt-5.6-sol');
+  assert.ok(args.includes('version=0.80.7'));
+  assert.ok(args.some((value) => value.endsWith('/.codex/auth.json') && value.startsWith('CODEX_AUTH_JSON_PATH=')));
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_agent.py'), 'utf8');
+  assert.match(source, /@earendil-works\/pi-coding-agent/);
+  assert.match(source, /--session/);
+  assert.match(source, /--continue/);
+  assert.match(source, /upload_file/);
+});
+
 test('generated Harbor V4 task uses fifteen steps and a separate verifier', async () => {
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v4');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');

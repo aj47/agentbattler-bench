@@ -49,6 +49,7 @@ const harborTaskSha256 = challengeVersion === 'v4'
 const executionAdapters = challengeVersion === 'v4' ? {
   dispatcher: { path: 'scripts/terminal-adapter-all.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-all.mjs')) },
   harbor: { path: 'scripts/terminal-adapter-harbor.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-harbor.mjs')) },
+  piHarbor: { path: 'benchmark/harbor/pi_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/pi_agent.py')) },
   dotagents: { path: 'scripts/terminal-adapter-dotagents.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-dotagents.mjs')) },
 } : null;
 

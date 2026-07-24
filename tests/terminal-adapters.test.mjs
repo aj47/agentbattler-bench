@@ -48,6 +48,24 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /upload_file/);
 });
 
+test('Harbor Claude terminates the native CLI after a terminal result event', async () => {
+  const args = harbor.buildHarborArgs({
+    job: { harness: 'claude-code', model: 'gpt-5.6-sol', maxWallTimeMs: 1_800_000 },
+    trialsDir: '/tmp/trials',
+    trialName: 'claude-check',
+  });
+  assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.claude_agent:AgentBattlerClaude');
+  assert.equal(args[args.indexOf('--model') + 1], 'gpt-5.6-sol');
+  assert.ok(args.includes('version=2.1.211'));
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_agent.py'), 'utf8');
+  assert.match(source, /claude-agentbattler-real/);
+  assert.match(source, /event\.type === "result"/);
+  assert.match(source, /kill -TERM -- "-\$agent_pid"/);
+  assert.match(source, /result\.is_error !== true/);
+  assert.match(source, /trap 'exit 143' TERM/);
+  assert.match(source, /wait "\$agent_pid" 2>\/dev\/null \|\| true/);
+});
+
 test('generated Harbor V4 task uses fifteen steps and a separate verifier', async () => {
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v4');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
@@ -111,6 +129,7 @@ test('Harbor importer proves resume and does not double-count cumulative traces'
       }));
       stepResults.push({
         step_name: stepName,
+        exception_info: index === 7 ? { exception_type: 'AgentTimeoutError', exception_message: 'Agent execution timed out after 1200.0 seconds' } : null,
         agent_result: { n_input_tokens: (index + 1) * 100, n_cache_tokens: (index + 1) * 10, n_output_tokens: (index + 1) * 20 },
         agent_execution: { started_at: `2026-01-01T00:00:${String(index).padStart(2, '0')}Z`, finished_at: `2026-01-01T00:00:${String(index + 1).padStart(2, '0')}Z` },
         verifier_result: { rewards: { reward: 1 } },
@@ -128,8 +147,20 @@ test('Harbor importer proves resume and does not double-count cumulative traces'
     assert.deepEqual(imported.usage, { inputTokens: 1500, cachedInputTokens: 150, outputTokens: 300, reasoningTokens: 75 });
     assert.deepEqual(imported.turns[0].usage, { inputTokens: 100, cachedInputTokens: 10, outputTokens: 20, reasoningTokens: 5 });
     assert.deepEqual(imported.turns[14].usage, { inputTokens: 100, cachedInputTokens: 10, outputTokens: 20, reasoningTokens: 5 });
+    assert.equal(imported.turns[7].timedOut, true);
+    assert.equal(imported.turns[7].exitCode, null);
+    assert.equal(imported.adapter.timedOutTurns, 1);
     assert.equal(imported.toolCalls, 15);
     assert.equal(imported.holdout.passed, 9);
+    const broken = structuredClone(stepResults);
+    broken[7].exception_info = { exception_type: 'EnvironmentError', exception_message: 'container disappeared' };
+    await assert.rejects(harbor.importHarborResult({
+      raw: { started_at: '2026-01-01T00:00:00Z', finished_at: '2026-01-01T00:01:00Z', trial_uri: 'file:///trial', step_results: broken },
+      trialRoot: root,
+      challenge: { stages: stageIds.map((id) => ({ id })), verifiers: { holdout: { cases: 11 } } },
+      job: { harness: 'codex-cli', model: 'gpt-test', challengeStageIds: stageIds },
+      harnessVersion: '0.test',
+    }), /Harbor step 08-stage-8 failed: container disappeared/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

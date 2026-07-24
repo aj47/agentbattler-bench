@@ -11,8 +11,9 @@ const HARBOR_VERSION = '0.20.0';
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TASK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'benchmark', 'harbor', 'mini-ledger-v4');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
+const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_agent.py');
 const HARBOR_BY_HARNESS = Object.freeze({
-  'claude-code': { agent: 'claude-code', version: '2.1.211', kwargs: ['reasoning_effort=high'] },
+  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: '2.1.211', kwargs: ['reasoning_effort=high'] },
   'codex-cli': { agent: 'codex', version: '0.144.0', kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
   'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: '0.80.7', kwargs: [] },
 });
@@ -177,7 +178,8 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
   const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; let holdout = null; let nativeToolCalls = 0;
   for (let index = 0; index < raw.step_results.length; index += 1) {
     const step = raw.step_results[index];
-    invariant(!step.exception_info, `Harbor step ${step.step_name} failed: ${step.exception_info?.exception_message ?? 'unknown error'}`);
+    const timedOut = step.exception_info?.exception_type === 'AgentTimeoutError';
+    invariant(!step.exception_info || timedOut, `Harbor step ${step.step_name} failed: ${step.exception_info?.exception_message ?? 'unknown error'}`);
     const detail = await detailedStage(trialRoot, step, expectedStages[index]);
     stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
     const context = step.agent_result ?? {};
@@ -190,7 +192,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     trajectories.push(trajectory);
     const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
-    turns.push({ index: index + 1, sessionId, exitCode: 0, signal: null, timedOut: false, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage });
+    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');
   const observedSessions = sessionIds.filter(Boolean);
@@ -217,7 +219,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     durationMs: Math.max(0, Date.parse(raw.finished_at) - Date.parse(raw.started_at)),
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
-    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, trialUri: raw.trial_uri },
+    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri },
   };
 }
 

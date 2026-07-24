@@ -15,14 +15,12 @@ if [[ ! -x "$real" ]]; then
   exit 127
 fi
 
-stream="$(mktemp "$HOME/.claude-agentbattler-stream.XXXXXX")"
-fifo="$(mktemp -u "$HOME/.claude-agentbattler-fifo.XXXXXX")"
-input="$(mktemp "$HOME/.claude-agentbattler-input.XXXXXX")"
-mkfifo "$fifo"
-cat >"$input"
-
 agent_pid=""
 tee_pid=""
+stream=""
+fifo=""
+input=""
+active="$HOME/.claude-agentbattler-active.pid"
 
 terminate_agent() {
   [[ -n "$agent_pid" ]] || return 0
@@ -39,12 +37,49 @@ cleanup() {
     kill -TERM "$tee_pid" 2>/dev/null || true
     wait "$tee_pid" 2>/dev/null || true
   fi
-  rm -f "$stream" "$fifo" "$input"
+  [[ -z "$stream" ]] || rm -f "$stream"
+  [[ -z "$fifo" ]] || rm -f "$fifo"
+  [[ -z "$input" ]] || rm -f "$input"
+  current=""
+  if IFS= read -r current <"$active" 2>/dev/null && [[ "$current" == "$$" ]]; then
+    rm -f "$active"
+  fi
 }
 trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# Docker exec cancellation does not reliably signal the process inside the
+# container. Serialize turns with an in-container lease so every new turn
+# terminates a predecessor that outlived Harbor's wall-time boundary.
+previous=""
+if IFS= read -r previous <"$active" 2>/dev/null && [[ "$previous" =~ ^[0-9]+$ ]] && [[ "$previous" != "$$" ]] && kill -0 "$previous" 2>/dev/null; then
+  pkill -TERM -P "$previous" 2>/dev/null || true
+  kill -TERM "$previous" 2>/dev/null || true
+  for _ in {1..20}; do
+    kill -0 "$previous" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$previous" 2>/dev/null; then
+    pkill -KILL -P "$previous" 2>/dev/null || true
+    kill -KILL "$previous" 2>/dev/null || true
+  fi
+fi
+# The lease owner may have been killed before its trap ran.
+pkill -TERM -f "^$real( |$)" 2>/dev/null || true
+for _ in {1..20}; do
+  pgrep -f "^$real( |$)" >/dev/null 2>&1 || break
+  sleep 0.1
+done
+pkill -KILL -f "^$real( |$)" 2>/dev/null || true
+printf '%s\n' "$$" >"$active"
+
+stream="$(mktemp "$HOME/.claude-agentbattler-stream.XXXXXX")"
+fifo="$(mktemp -u "$HOME/.claude-agentbattler-fifo.XXXXXX")"
+input="$(mktemp "$HOME/.claude-agentbattler-input.XXXXXX")"
+mkfifo "$fifo"
+cat >"$input"
 
 if command -v setsid >/dev/null 2>&1; then
   setsid "$real" "$@" <"$input" >"$fifo" 2>&1 &

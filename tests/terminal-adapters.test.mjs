@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -64,6 +65,67 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /result\.is_error !== true/);
   assert.match(source, /trap 'exit 143' TERM/);
   assert.match(source, /wait "\$agent_pid" 2>\/dev\/null \|\| true/);
+  assert.match(source, /\.claude-agentbattler-active\.pid/);
+  assert.match(source, /kill -TERM "\$previous"/);
+  assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
+});
+
+test('Harbor Claude lease terminates a predecessor before the next turn', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-claude-lease-'));
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_agent.py'), 'utf8');
+  const wrapperSource = source.match(/^_WRAPPER = r"""([\s\S]*?)^"""$/m)?.[1];
+  assert.ok(wrapperSource, 'Claude wrapper source was not found');
+  const wrapper = path.join(root, 'claude');
+  const real = path.join(root, '.local', 'bin', 'claude-agentbattler-real');
+  const waitFor = async (condition, message) => {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (await condition()) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error(message);
+  };
+  const exited = (child) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error('Claude wrapper did not exit'));
+    }, 10_000);
+    child.once('error', reject);
+    child.once('close', (code, signal) => {
+      clearTimeout(timer);
+      resolve({ code, signal });
+    });
+  });
+  try {
+    await mkdir(path.dirname(real), { recursive: true });
+    await writeFile(wrapper, wrapperSource);
+    await writeFile(real, `#!/usr/bin/env bash
+if [[ ! -f "$HOME/first.pid" ]]; then
+  echo $$ > "$HOME/first.pid"
+  sleep 300
+else
+  echo $$ > "$HOME/second.pid"
+  echo '{"type":"result","is_error":false}'
+  sleep 300
+fi
+`);
+    await chmod(wrapper, 0o755); await chmod(real, 0o755);
+    const env = { ...process.env, HOME: root };
+    const first = spawn(wrapper, ['--fake'], { env, stdio: ['pipe', 'ignore', 'pipe'] });
+    first.stdin.end();
+    await waitFor(async () => {
+      try { await readFile(path.join(root, 'first.pid')); return true; } catch { return false; }
+    }, 'first Claude process did not start');
+    const firstExit = exited(first);
+    const second = spawn(wrapper, ['--fake'], { env, stdio: ['pipe', 'ignore', 'pipe'] });
+    second.stdin.end();
+    const secondResult = await exited(second);
+    assert.equal(secondResult.code, 0);
+    await firstExit;
+    const firstPid = Number.parseInt(await readFile(path.join(root, 'first.pid'), 'utf8'), 10);
+    assert.throws(() => process.kill(firstPid, 0), /ESRCH/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('generated Harbor V4 task uses fifteen steps and a separate verifier', async () => {

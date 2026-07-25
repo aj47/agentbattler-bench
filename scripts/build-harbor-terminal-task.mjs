@@ -21,7 +21,7 @@ artifacts = [{ source = "/app", destination = "candidate" }]
 
 [task]
 name = "agentbattler/mini-ledger-v4"
-version = "4.1.0"
+version = "4.2.0"
 description = "Fifteen-turn long-horizon deterministic ledger challenge"
 
 [metadata]
@@ -30,9 +30,9 @@ challenge = "mini-ledger-v4"
 harbor_version = "0.20.0"
 visible_points = 70
 holdout_points = 30
+agent_time_policy = "self-terminating"
 
 [agent]
-timeout_sec = 1800.0
 network_mode = "public"
 
 [verifier]
@@ -60,7 +60,6 @@ ${stages.map(([name, points], index) => `[[steps]]
 name = "${String(index + 1).padStart(2, '0')}-${name}"
 
 [steps.agent]
-timeout_sec = 1800.0
 
 [steps.verifier]
 timeout_sec = 600.0

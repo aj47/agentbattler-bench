@@ -64,7 +64,7 @@ must not be regenerated during an existing run. The v1 evidence is retained only
 withdrawn diagnostic history because its verifier contradicted its prompt; it is not
 eligible for ratings.
 
-## Mini Ledger v4.1 isolation
+## Mini Ledger v4.1 isolation and v4.2 timing amendment
 
 The first V4 result set is also withdrawn from ratings. Its native adapters isolated the
 harness home and candidate workspace but did not isolate the process from the parent Git
@@ -80,6 +80,12 @@ Docker adapter, which mounts only its candidate workspace and isolated configura
 The agent environment has public egress for model API access. After Harbor transfers `/app`,
 the verifier container drops outbound traffic before verifier or candidate execution; this
 split policy is recorded in the sealed challenge instead of being described as globally offline.
+
+V4.2 uses an unbounded per-turn wall-time policy: an agent runs until its harness emits a
+terminal result or exits. This amendment followed observation that only Claude Code reached
+the former 20-minute cap. Earlier completed runs that did not reach the cap remain published
+as comparable reference evidence, while the challenge hash records the amended policy and
+new official runs use that hash. Wall-clock duration continues to be measured and reported.
 
 Because the verifier and candidate process policy are part of the canonical challenge, the
 V4.1 challenge hash differs from the withdrawn run. The normal schedule validator therefore

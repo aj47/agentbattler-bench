@@ -134,6 +134,9 @@ test('generated Harbor V4 task uses fifteen steps and a separate verifier', asyn
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
   assert.match(config, /environment_mode = "separate"/);
   assert.match(config, /artifacts = \[\{ source = "\/app"/);
+  assert.match(config, /agent_time_policy = "self-terminating"/);
+  assert.doesNotMatch(config, /\[agent\]\ntimeout_sec/);
+  assert.doesNotMatch(config, /\[steps\.agent\]\ntimeout_sec/);
   const verifierScript = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'tests', 'test.sh'), 'utf8');
   const verifierCompose = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'tests', 'docker-compose.yaml'), 'utf8');
   assert.match(verifierScript, /iptables -P OUTPUT DROP/);

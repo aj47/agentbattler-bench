@@ -24,7 +24,7 @@ const harborTaskRoot = path.join(ROOT, 'benchmark/harbor/mini-ledger-v4');
 const manifestPath = path.resolve(ROOT, process.env.AGENTBATTLER_TERMINAL_MANIFEST ?? 'agents/harness-suite/manifest.json');
 const requestedMaxWallTime = process.env.AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS;
 const maxWallTimeMs = requestedMaxWallTime === undefined
-  ? undefined
+  ? challengeVersion === 'v4' ? null : undefined
   : requestedMaxWallTime === '0'
     ? null
     : Number.parseInt(requestedMaxWallTime, 10);

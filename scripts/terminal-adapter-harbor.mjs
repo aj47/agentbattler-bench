@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, appendFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 
 const HARBOR_VERSION = '0.20.0';
+const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
+const RESOURCE_SAMPLE_INTERVAL_MS = 5_000;
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TASK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'benchmark', 'harbor', 'mini-ledger-v4');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
@@ -57,6 +59,112 @@ function run(command, args, { cwd, env, stdoutPath, stderrPath, timeoutMs }) {
   });
 }
 
+function capture(command, args) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+    const stdout = []; const stderr = [];
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      finish({ exitCode: null, stdout: Buffer.concat(stdout).toString('utf8'), stderr: 'diagnostic command timed out' });
+    }, 10_000);
+    timer.unref();
+    child.stdout.on('data', (chunk) => stdout.push(chunk));
+    child.stderr.on('data', (chunk) => stderr.push(chunk));
+    child.on('error', (error) => finish({ exitCode: null, stdout: '', stderr: String(error) }));
+    child.on('close', (exitCode) => finish({
+      exitCode,
+      stdout: Buffer.concat(stdout).toString('utf8'),
+      stderr: Buffer.concat(stderr).toString('utf8'),
+    }));
+  });
+}
+
+function parseMemoryEvents(value) {
+  return Object.fromEntries(value.trim().split(/\r?\n/).filter(Boolean).map((line) => {
+    const [name, count] = line.trim().split(/\s+/, 2);
+    return [name, Number(count)];
+  }));
+}
+
+function parseJson(value) {
+  try { return JSON.parse(value); } catch { return null; }
+}
+
+async function resourceSample(project) {
+  const listed = await capture('docker', ['ps', '-a', '--filter', `label=com.docker.compose.project=${project}`, '--format', '{{.ID}}']);
+  const containerIds = listed.exitCode === 0 ? listed.stdout.trim().split(/\s+/).filter(Boolean) : [];
+  const containers = [];
+  for (const id of containerIds) {
+    const [inspect, stats, cgroup, processCount] = await Promise.all([
+      capture('docker', ['inspect', '--format', '{{json .State}}', id]),
+      capture('docker', ['stats', '--no-stream', '--format', '{{json .}}', id]),
+      capture('docker', ['exec', id, 'sh', '-c', 'cat /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.events']),
+      capture('docker', ['exec', id, 'sh', '-c', 'ps -e | wc -l']),
+    ]);
+    const cgroupLines = cgroup.stdout.trim().split(/\r?\n/);
+    containers.push({
+      id,
+      state: inspect.exitCode === 0 ? parseJson(inspect.stdout) : null,
+      stats: stats.exitCode === 0 ? parseJson(stats.stdout) : null,
+      cgroup: cgroup.exitCode === 0 && cgroupLines.length >= 4 ? {
+        memoryCurrentBytes: Number(cgroupLines[0]),
+        memoryPeakBytes: Number(cgroupLines[1]),
+        memoryMaxBytes: cgroupLines[2] === 'max' ? null : Number(cgroupLines[2]),
+        memoryEvents: parseMemoryEvents(cgroupLines.slice(3).join('\n')),
+      } : null,
+      processCount: processCount.exitCode === 0 ? Number(processCount.stdout.trim()) : null,
+    });
+  }
+  return { capturedAt: new Date().toISOString(), project, containers, discoveryError: listed.exitCode === 0 ? null : listed.stderr.slice(-500) };
+}
+
+function startResourceMonitor({ trialName, runDirectory }) {
+  const project = `${trialName}__env`;
+  const samplesPath = path.join(runDirectory, 'harbor-resource-samples.jsonl');
+  const summaryPath = path.join(runDirectory, 'harbor-resource-summary.json');
+  let stopped = false;
+  let sampling = false;
+  const summary = { schemaVersion: 'agentbattler.harbor-resources.v1', project, sampleIntervalMs: RESOURCE_SAMPLE_INTERVAL_MS, samples: 0, maxMemoryCurrentBytes: 0, maxMemoryPeakBytes: 0, maxProcessCount: 0, oomEvents: 0, oomKillEvents: 0, errors: [] };
+  const sample = async () => {
+    if (sampling) return;
+    sampling = true;
+    try {
+      const observed = await resourceSample(project);
+      await appendFile(samplesPath, `${JSON.stringify(observed)}\n`);
+      summary.samples += 1;
+      for (const container of observed.containers) {
+        summary.maxMemoryCurrentBytes = Math.max(summary.maxMemoryCurrentBytes, Number(container.cgroup?.memoryCurrentBytes ?? 0));
+        summary.maxMemoryPeakBytes = Math.max(summary.maxMemoryPeakBytes, Number(container.cgroup?.memoryPeakBytes ?? 0));
+        summary.maxProcessCount = Math.max(summary.maxProcessCount, Number(container.processCount ?? 0));
+        summary.oomEvents = Math.max(summary.oomEvents, Number(container.cgroup?.memoryEvents?.oom ?? 0));
+        summary.oomKillEvents = Math.max(summary.oomKillEvents, Number(container.cgroup?.memoryEvents?.oom_kill ?? 0));
+      }
+      if (observed.discoveryError && summary.errors.length < 20) summary.errors.push(observed.discoveryError);
+    } catch (error) {
+      if (summary.errors.length < 20) summary.errors.push(String(error?.stack ?? error).slice(0, 1000));
+    } finally { sampling = false; }
+  };
+  void sample();
+  const timer = setInterval(() => { void sample(); }, RESOURCE_SAMPLE_INTERVAL_MS);
+  timer.unref();
+  return async () => {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(timer);
+    while (sampling) await new Promise((resolve) => setTimeout(resolve, 50));
+    await sample();
+    summary.finishedAt = new Date().toISOString();
+    await writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`);
+  };
+}
+
 function proxyAgentEnv(harness) {
   const proxyHarnesses = new Set((process.env.AGENTBATTLER_CLIPROXY_HARNESSES ?? 'claude-code').split(',').map((value) => value.trim()).filter(Boolean));
   if (!proxyHarnesses.has(harness)) return [];
@@ -90,6 +198,7 @@ export function buildHarborArgs({ job, trialsDir, trialName }) {
     args.push('--agent-env', `CODEX_AUTH_JSON_PATH=${path.join(homedir(), '.codex', 'auth.json')}`);
   }
   for (const value of proxyEnv) args.push('--agent-env', value);
+  if (job.harness === 'claude-code') args.push('--agent-env', `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=${CLAUDE_MAX_TOOL_USE_CONCURRENCY}`);
   if (Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0) args.push('--agent-timeout', String(job.maxWallTimeMs / 1000));
   return args;
 }
@@ -219,7 +328,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     durationMs: Math.max(0, Date.parse(raw.finished_at) - Date.parse(raw.started_at)),
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
-    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri },
+    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY) } : null },
   };
 }
 
@@ -236,7 +345,11 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const trialName = `agentbattler-${job.runKey.slice(0, 16)}`;
   const args = buildHarborArgs({ job, trialsDir, trialName });
   const pythonPath = [REPO_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
-  const result = await run('uvx', args, { cwd: REPO_ROOT, env: { ...process.env, PYTHONPATH: pythonPath }, stdoutPath: path.join(runDirectory, 'harbor.stdout'), stderrPath: path.join(runDirectory, 'harbor.stderr'), timeoutMs: Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0 ? job.maxWallTimeMs * 16 : null });
+  const stopResourceMonitor = startResourceMonitor({ trialName, runDirectory });
+  let result;
+  try {
+    result = await run('uvx', args, { cwd: REPO_ROOT, env: { ...process.env, PYTHONPATH: pythonPath }, stdoutPath: path.join(runDirectory, 'harbor.stdout'), stderrPath: path.join(runDirectory, 'harbor.stderr'), timeoutMs: Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0 ? job.maxWallTimeMs * 16 : null });
+  } finally { await stopResourceMonitor(); }
   invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Harbor trial failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'}): ${result.stderr.slice(-1000)}`);
   const resultPath = await findResult(path.join(trialsDir, trialName)); const raw = JSON.parse(await readFile(resultPath, 'utf8'));
   return importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });

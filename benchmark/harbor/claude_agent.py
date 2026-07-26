@@ -21,6 +21,7 @@ stream=""
 fifo=""
 input=""
 active="$HOME/.claude-agentbattler-active.pid"
+mkdir -p "$(dirname "$active")"
 
 terminate_agent() {
   [[ -n "$agent_pid" ]] || return 0

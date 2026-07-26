@@ -42,6 +42,14 @@ must prove session continuity.
 Code, Codex CLI, and Pi through Harbor while retaining DotAgents' isolated Docker path.
 V3 and earlier remain on the legacy adapters for reproducibility.
 
+V4 Harbor runs write `harbor-resource-samples.jsonl` and
+`harbor-resource-summary.json` beside the trial logs. These diagnostics sample container
+memory, cgroup OOM counters, process count, and Docker state without changing scoring.
+Claude Code is limited to four concurrent tool uses with
+`CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=4` so native background-agent fan-out remains inside
+the declared 4 CPU / 4 GiB resource envelope. The applied limit is also recorded in the
+canonical run adapter metadata.
+
 The generated Harbor task uses fifteen ordered steps and `--resume-trajectory`. The agent
 container receives the prompts and persistent `/app` workspace but not `/tests`. After each
 turn, Harbor transfers only `/app` into a separate verifier container. Verifier source is

@@ -58,6 +58,7 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.claude_agent:AgentBattlerClaude');
   assert.equal(args[args.indexOf('--model') + 1], 'gpt-5.6-sol');
   assert.ok(args.includes('version=2.1.211'));
+  assert.ok(args.includes('CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=4'));
   const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_agent.py'), 'utf8');
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
@@ -66,6 +67,7 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /trap 'exit 143' TERM/);
   assert.match(source, /wait "\$agent_pid" 2>\/dev\/null \|\| true/);
   assert.match(source, /\.claude-agentbattler-active\.pid/);
+  assert.match(source, /mkdir -p "\$\(dirname "\$active"\)"/);
   assert.match(source, /kill -TERM "\$previous"/);
   assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
 });

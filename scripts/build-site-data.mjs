@@ -688,12 +688,17 @@ function publicMatch(game) {
 async function loadTerminalChallengeLane() {
   const root = 'results/terminal-mini-ledger-v4';
   try {
-    const [challenge, schedule, summary, traceManifest] = await Promise.all([
+    const [challenge, schedule, summary, traceManifest, integrityAudit] = await Promise.all([
       readJson(`${root}/challenge.json`),
       readJson(`${root}/schedule.json`),
       readJson(`${root}/summary.json`),
       readJson(`${root}/trace-manifest.json`).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error)),
+      readJson('benchmark/incidents/mini-ledger-v4-isolation.json'),
     ]);
+    invariant(integrityAudit.challengeId === challenge.challengeId, 'Terminal isolation audit challenge mismatch');
+    invariant(integrityAudit.scope.publishedRuns === schedule.jobs.length, 'Terminal isolation audit run count mismatch');
+    const classifications = new Map(integrityAudit.classifications.map((entry) => [entry.runKey, entry]));
+    invariant(classifications.size === integrityAudit.scope.observedVerifierAccessRuns, 'Terminal isolation audit classification count mismatch');
     const scores = new Map(summary.scores.map((entry) => [entry.runKey, entry.score]));
     const traces = new Map((traceManifest?.traces ?? []).map((entry) => [entry.runKey, entry]));
     const runs = await Promise.all(schedule.jobs.map(async (job) => {
@@ -727,6 +732,15 @@ async function loadTerminalChallengeLane() {
           sha256: trace.publishedSha256,
           sourceBytes: trace.sourceBytes,
         } : null,
+        integrity: classifications.has(run.runKey) ? {
+          status: 'observed-verifier-access',
+          access: classifications.get(run.runKey).access,
+          observedPaths: classifications.get(run.runKey).observedPaths,
+        } : {
+          status: 'no-verifier-access-observed',
+          access: null,
+          observedPaths: [],
+        },
       };
     }));
     const groups = new Map();
@@ -796,8 +810,16 @@ async function loadTerminalChallengeLane() {
         omittedStreamingEvents: traceManifest.totals.omittedStreamingEvents,
         redactions: traceManifest.totals.redactions,
       } : null,
+      integrityAudit: {
+        reviewedAt: integrityAudit.reviewedAt,
+        method: integrityAudit.method,
+        scope: integrityAudit.scope,
+        sourcePath: 'benchmark/incidents/mini-ledger-v4-isolation.json',
+      },
       standings: summary.elo?.standings ?? [],
-      status: summary.completedRuns === summary.expectedRuns && summary.invalidRuns.length === 0 ? 'complete' : 'scheduled',
+      // The original V4 native runs could see repository verifier source. Keep
+      // the evidence available, but never present its scores as a leaderboard.
+      status: 'withdrawn',
     };
   } catch (error) {
     if (error?.code === 'ENOENT') return null;

@@ -1,4 +1,36 @@
 .study { --paper: #e8e4d7; --ink: #11130f; --acid: #b9f45d; color: var(--ink); background: var(--paper); border-bottom: 1px solid #4a4b42; }
+.withdrawn { --paper: #e7dfd1; --ink: #17120f; background: var(--paper); }
+.withdrawnShell { padding-top: 44px; padding-bottom: 82px; }
+.withdrawnMark { width: 8px; height: 8px; background: #a43b25; box-shadow: 0 0 0 4px rgba(164,59,37,.13); }
+.withdrawnGrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 92px; align-items: end; padding: 70px 0 76px; }
+.withdrawnGrid h1 { max-width: 900px; margin: 0; font-size: clamp(58px, 8.4vw, 114px); font-weight: 760; line-height: .82; letter-spacing: -.075em; }
+.withdrawnGrid h1 em { color: #a43b25; font-style: normal; }
+.incidentCopy { padding: 22px 0 2px; border-top: 3px solid var(--ink); }
+.incidentCopy strong { display: block; font-size: 18px; line-height: 1.35; letter-spacing: -.02em; }
+.incidentCopy p { margin: 22px 0 0; color: #5b5048; font-size: 14px; line-height: 1.7; }
+.auditMetrics { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border: 1px solid #a99e91; }
+.auditMetrics > div { min-height: 142px; padding: 20px; border-right: 1px solid #a99e91; display: flex; flex-direction: column; justify-content: space-between; }
+.auditMetrics > div:last-child { border-right: 0; }
+.auditMetrics dt { color: #6a5e54; font: 700 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+.auditMetrics dd { margin: 0; color: var(--ink); font: 650 40px/1 var(--mono); letter-spacing: -.06em; }
+.auditMetrics small { display: block; max-width: 180px; margin-top: 10px; color: #6a5e54; font: 500 9px/1.35 var(--mono); letter-spacing: 0; }
+.auditNote { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 34px; align-items: start; margin-top: 26px; padding: 24px 0; border-block: 1px solid #a99e91; }
+.auditNote strong { font: 700 10px/1.45 var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+.auditNote p { max-width: 720px; margin: 0; color: #5b5048; font-size: 12px; line-height: 1.65; }
+.auditNote a { color: #a43b25; font: 650 9px/1.4 var(--mono); text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.repairStrip { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #a99e91; }
+.repairStrip > div { min-height: 210px; padding: 22px; border-right: 1px solid #a99e91; }
+.repairStrip > div:last-child { border-right: 0; }
+.repairStrip span { color: #a43b25; font: 700 10px/1 var(--mono); }
+.repairStrip strong { display: block; margin-top: 55px; font-size: 15px; }
+.repairStrip p { margin: 12px 0 0; color: #62574e; font-size: 12px; line-height: 1.6; }
+.repairStrip code { padding: 1px 4px; background: rgba(23,18,15,.07); font: 600 10px/1 var(--mono); }
+.withdrawnEvidence { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; margin-top: 34px; padding-top: 24px; border-top: 2px solid var(--ink); }
+.withdrawnEvidence > div:first-child { display: grid; gap: 7px; }
+.withdrawnEvidence span, .withdrawnEvidence small { color: #6a5e54; font: 600 9px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.withdrawnEvidence strong { font: 650 28px/1 var(--mono); letter-spacing: -.05em; }
+.withdrawnLinks { display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end; }
+.withdrawnLinks a { font: 650 10px/1 var(--mono); text-decoration: underline; text-underline-offset: 4px; }
 .shell { padding-top: 44px; padding-bottom: 104px; }
 .status { display: flex; align-items: center; gap: 10px; padding-bottom: 22px; border-bottom: 1px solid #b7b4a9; color: #5e6058; font: 600 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .09em; }
 .statusMark { width: 7px; height: 7px; background: #315b0b; box-shadow: 0 0 0 4px rgba(49,91,11,.12); }
@@ -52,6 +84,20 @@
 .runRow strong { color: var(--ink); }
 .runLinks { display: flex; gap: 12px; }
 .runLinks a { color: #315b0b; text-decoration: underline; text-underline-offset: 3px; }
+.historicalBoard { --breach: #a43b25; margin-bottom: 112px; }
+.historicalBoard .range { background: #79695e; }
+.historicalBoard .plot i.contaminatedPoint { width: 12px; height: 12px; margin-left: -6px; border: 0; border-radius: 0; background: var(--breach); box-shadow: 0 0 0 2px var(--paper); transform: rotate(45deg); }
+.historicalRunTable .runHead, .historicalRunTable .runRow { grid-template-columns: .7fr .65fr .7fr .7fr .85fr 1.8fr .9fr; }
+.contaminatedRun { background: rgba(164, 59, 37, .065); }
+.auditLabel { display: flex; align-items: center; gap: 8px; color: #6a5e54; line-height: 1.3; }
+.auditLabel i { flex: 0 0 auto; width: 7px; height: 7px; border: 1px solid #847970; border-radius: 50%; }
+.contaminatedRun .auditLabel { color: #8f2e1c; font-weight: 700; }
+.contaminatedRun .auditLabel i { border: 0; border-radius: 0; background: #a43b25; transform: rotate(45deg); }
+.incidentArticle { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .72fr); gap: 90px; margin-bottom: 76px; padding-top: 42px; border-top: 3px solid var(--ink); }
+.incidentArticle span { color: #6a5e54; font: 700 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .12em; }
+.incidentArticle h2 { max-width: 650px; margin: 16px 0 0; font-size: clamp(38px, 5.4vw, 68px); line-height: .93; letter-spacing: -.055em; }
+.incidentArticle p { margin: 0 0 18px; color: #5b5048; font-size: 13px; line-height: 1.7; }
+.incidentArticle a { color: #a43b25; font: 700 10px/1.3 var(--mono); text-decoration: underline; text-underline-offset: 4px; }
 .findings { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 120px; border-top: 2px solid var(--ink); border-left: 1px solid #aaa99f; }
 .findingIntro { grid-column: 1 / -1; padding: 38px 0 56px; border-right: 1px solid #aaa99f; border-bottom: 1px solid #aaa99f; }
 .findingIntro > * { margin-left: 36px; }
@@ -81,6 +127,18 @@
 .traceNote a { color: #315b0b; font: 600 9px/1 var(--mono); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 
 @media (max-width: 900px) {
+  .withdrawnGrid { grid-template-columns: 1fr; gap: 42px; }
+  .repairStrip { grid-template-columns: 1fr 1fr; }
+  .repairStrip > div:nth-child(2) { border-right: 0; }
+  .repairStrip > div:nth-child(-n+2) { border-bottom: 1px solid #a99e91; }
+  .withdrawnEvidence { grid-template-columns: 1fr; }
+  .withdrawnLinks { justify-content: flex-start; }
+  .auditMetrics { grid-template-columns: 1fr 1fr; }
+  .auditMetrics > div:nth-child(2) { border-right: 0; }
+  .auditMetrics > div:nth-child(-n+2) { border-bottom: 1px solid #a99e91; }
+  .auditNote { grid-template-columns: 150px 1fr; }
+  .auditNote a { grid-column: 2; }
+  .incidentArticle { grid-template-columns: 1fr; gap: 35px; }
   .hero, .boardHeader, .protocol, .evidence { grid-template-columns: 1fr; gap: 40px; }
   .heroEvidence { max-width: 340px; }
   .scoreHead, .combo summary { grid-template-columns: minmax(190px, 1fr) minmax(180px, 1.25fr) 70px 22px; }
@@ -94,8 +152,19 @@
 }
 
 @media (max-width: 640px) {
+  .withdrawnShell { padding-top: 28px; padding-bottom: 62px; }
+  .withdrawnGrid { padding: 50px 0; }
+  .withdrawnGrid h1 { font-size: clamp(46px, 13.5vw, 58px); line-height: .86; }
+  .repairStrip { grid-template-columns: 1fr; }
+  .repairStrip > div { min-height: 170px; border-right: 0; border-bottom: 1px solid #a99e91; }
+  .repairStrip > div:last-child { border-bottom: 0; }
+  .repairStrip strong { margin-top: 34px; }
+  .auditMetrics > div { min-height: 120px; padding: 16px; }
+  .auditMetrics dd { font-size: 32px; }
+  .auditNote { grid-template-columns: 1fr; gap: 13px; }
+  .auditNote a { grid-column: auto; white-space: normal; }
   .shell { padding-top: 28px; padding-bottom: 72px; }
-  .status span:nth-last-child(-n+2) { display: none; }
+  .status > span:nth-child(n+3) { display: none; }
   .hero { padding: 48px 0; }
   .hero h1 { font-size: clamp(54px, 17vw, 76px); }
   .lede { font-size: 16px; }
@@ -108,6 +177,9 @@
   .identity { grid-template-columns: 28px 1fr; }
   .runTable { margin-left: 0; overflow-x: auto; }
   .runHead, .runRow { min-width: 560px; }
+  .historicalRunTable .runHead, .historicalRunTable .runRow { min-width: 770px; }
+  .historicalBoard { margin-bottom: 84px; }
+  .incidentArticle { margin-bottom: 58px; }
   .findings { grid-template-columns: 1fr; margin-top: 84px; }
   .findingIntro { grid-column: auto; }
   .findingIntro > * { margin-inline: 22px; }

@@ -88,7 +88,7 @@ export default function MethodologyPage() {
                 <div><dt>missing / invalid</dt><dd>{siteData.terminalChallenge.missingRuns} / {siteData.terminalChallenge.invalidRuns}</dd></div>
                 <div><dt>schedule</dt><dd>{siteData.terminalChallenge.scheduleId}</dd></div>
               </dl>
-              <p className="method-note">Terminal Elo is derived from pairwise comparisons of published task scores, with a {siteData.terminalChallenge.scoring.tieTolerancePoints}-point draw threshold. It is not presented as direct agent-vs-agent execution.</p>
+              <p className="method-note">This result set is withdrawn from official Elo because all 60 runs shared a vulnerable isolation boundary. Its historical scores remain visible with per-run trace-audit labels: {siteData.terminalChallenge.integrityAudit.scope.observedVerifierAccessRuns} observed verifier accesses and {siteData.terminalChallenge.integrityAudit.scope.noObservedVerifierAccessRuns} traces with no access observed.</p>
             </section>
           ) : null}
         </div>

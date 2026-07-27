@@ -10,17 +10,17 @@ export const metadata: Metadata = {
     default: 'AgentBattler Bench',
     template: '%s · AgentBattler Bench',
   },
-  description: 'See how four coding harnesses changed long-horizon performance across 60 trace-published terminal runs.',
+  description: 'Battle complete AI agents—not models in isolation—across open, inspectable terminal and chess challenges.',
   openGraph: {
-    title: 'AgentBattler Bench · Long-horizon harness study',
-    description: 'Four harnesses, three models, 60 long-running terminal tasks, and every semantic trace.',
+    title: 'AgentBattler · Battle the whole agent',
+    description: 'Compare model-and-harness combinations across open terminal and chess challenges, with results and traces you can inspect.',
     type: 'website',
     images: [{ url: '/og.png', width: 1731, height: 909, alt: 'AgentBattler harness and model leaderboard with 12 combinations' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AgentBattler Bench · Long-horizon harness study',
-    description: 'Four harnesses, three models, 60 long-running terminal tasks, and every semantic trace.',
+    title: 'AgentBattler · Battle the whole agent',
+    description: 'Compare model-and-harness combinations across open terminal and chess challenges, with results and traces you can inspect.',
     images: ['/og.png'],
   },
 };

@@ -1,0 +1,1 @@
+Preserve all earlier behavior. Make export and import round-trip the complete logical ledger, including compacted snapshots, idempotency metadata, and sequence continuity. Import must validate checksums before replacing state and must be atomic. Export to a fresh path, import into a fresh workspace, then compare query, get, and replay results. Modify only candidate source files.

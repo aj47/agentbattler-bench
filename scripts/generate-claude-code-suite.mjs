@@ -23,7 +23,7 @@ const RESULT_ROOT = path.join(ROOT, 'results/claude-code-model-suite');
 const GENERATIONS_DIR = path.join(RESULT_ROOT, 'generations');
 const CODEX_AUTH = path.join(os.homedir(), '.codex/auth.json');
 const ADAPTER_COMMIT = 'b5e9f0342a22c3566cd4c11a7ac1dcf58295248b';
-const CLAUDE_VERSION = '2.1.211';
+const CLAUDE_VERSION = '2.1.220';
 const REASONING_EFFORT = 'high';
 const FAMILIES = [
   { id: 'terra', model: 'gpt-5.6-terra', displayName: 'GPT-5.6 Terra' },

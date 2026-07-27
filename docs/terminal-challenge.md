@@ -64,6 +64,67 @@ must not be regenerated during an existing run. The v1 evidence is retained only
 withdrawn diagnostic history because its verifier contradicted its prompt; it is not
 eligible for ratings.
 
+## Mini Ledger v4.1 isolation and v4.2 timing amendment
+
+The first V4 result set is also withdrawn from ratings. Its native adapters isolated the
+harness home and candidate workspace but did not isolate the process from the parent Git
+checkout, allowing access to hidden verifier source. The evidence remains available so the
+failure and its effect can be audited.
+
+V4.1 packages the fifteen-turn task for Harbor 0.20.0. Claude Code, Codex CLI, and Pi run
+inside a fresh Docker environment with `/app` as the only persistent candidate artifact and
+native session resume between turns. Every stage is evaluated in a separate verifier image;
+the agent never receives its `/tests`, and verifier-spawned candidate processes are demoted
+to UID/GID 1000 while `/tests` is root-only. DotAgents continues through its locked-down
+Docker adapter, which mounts only its candidate workspace and isolated configuration.
+The agent environment has public egress for model API access. After Harbor transfers `/app`,
+the verifier container drops outbound traffic before verifier or candidate execution; this
+split policy is recorded in the sealed challenge instead of being described as globally offline.
+
+V4.2 uses an unbounded per-turn wall-time policy: an agent runs until its harness emits a
+terminal result or exits. This amendment followed observation that only Claude Code reached
+the former 20-minute cap. Earlier completed runs that did not reach the cap remain published
+as comparable reference evidence, while the challenge hash records the amended policy and
+new official runs use that hash. Wall-clock duration continues to be measured and reported.
+
+Claude Code is launched with a model-calibrated context policy. For the current Terra, Sol,
+and Luna gateway routes, `CLAUDE_CODE_MAX_CONTEXT_TOKENS` and
+`CLAUDE_CODE_AUTO_COMPACT_WINDOW` are both 200,000, while
+`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80` triggers proactive compaction around 160,000 tokens.
+Unknown models fail closed: whenever the model roster or gateway mapping changes, run an
+intentionally long session and validate its native transcript with
+`npm run terminal:calibrate:claude -- --trace SESSION.jsonl --model MODEL`. Calibration
+must observe at least one native `compact_boundary` before the model can be added to the
+policy table. Results record the policy, compact count, and available token counts before
+and after each boundary. A sealed compatibility proxy also normalizes only explicit gateway
+context-overflow failures to Anthropic's HTTP 400 `invalid_request_error` prompt-too-long
+envelope. HTTP 413 `request_too_large` remains reserved for the separate raw request-body
+size limit, and generic timeouts are never reclassified as context overflow.
+
+Because the verifier and candidate process policy are part of the canonical challenge, the
+V4.1 challenge hash differs from the withdrawn run. The normal schedule validator therefore
+rejects old results rather than silently mixing them into the replacement leaderboard.
+The challenge descriptor also binds Harbor 0.20.0 and a deterministic hash of the complete
+generated Harbor task tree, including per-step verifier images, firewall policy, and scripts.
+
+## V5 transition
+
+V5 reuses the sealed V4 ledger prompt, fifteen-stage verifier, Harbor isolation, scoring,
+and exhaustive combo roster while introducing an explicitly bounded per-turn policy. It
+always writes to `results/terminal-mini-ledger-v5/`, so V4 evidence cannot be overwritten
+or silently mixed into the new leaderboard. The schedule refuses to seal until a positive
+time limit is chosen:
+
+```sh
+AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=<positive-ms> npm run terminal:matrix:v5
+npm run terminal:run:v5
+npm run terminal:verify:v5 -- --allow-incomplete
+```
+
+The selected limit becomes part of the V5 challenge hash. A zero/unbounded value is
+rejected for V5. Changing the limit later creates a different sealed challenge identity
+and therefore requires a separate result namespace rather than modifying an active run.
+
 ## Mini Ledger v3
 
 `terminal-mini-ledger-v3` is the harder follow-on challenge. It keeps the same exhaustive

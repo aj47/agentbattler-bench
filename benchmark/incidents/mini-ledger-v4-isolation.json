@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "agentbattler.trace-isolation-audit.v1",
+  "challengeId": "challenge-7aeb889b180841e2",
+  "resultRoot": "results/terminal-mini-ledger-v4",
+  "reviewedAt": "2026-07-26",
+  "method": "Executable tool-call command and file-path fields in all 60 published semantic traces were inspected for direct access to non-provided Mini Ledger verifier source. Mere mentions in model prose or tool output were not counted.",
+  "scope": {
+    "publishedRuns": 60,
+    "vulnerableRuns": 60,
+    "observedVerifierAccessRuns": 8,
+    "noObservedVerifierAccessRuns": 52,
+    "observedHoldoutAccessRuns": 6,
+    "observedCurrentV4VerifierAccessRuns": 1,
+    "observedPredecessorV3OnlyAccessRuns": 7
+  },
+  "classifications": [
+    {
+      "runKey": "5caff0fd019889193e557f276e239366532e1392ed76256fc25397382adf8d5c",
+      "artifactId": "terminal-claude-code-sol-01",
+      "access": "predecessor-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "2f93dc02b555f31f91c2a4dd6e66675f780a3566f948888f2d872f072908df5a",
+      "artifactId": "terminal-claude-code-sol-02",
+      "access": "predecessor-public",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "cb244e551af827a92955047e54f71a45ead88869fd87fd756dc35095370ff906",
+      "artifactId": "terminal-claude-code-sol-04",
+      "access": "predecessor-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "36d77cf56b2eb77e39ae841c2322885bc97741d4a6813e46d4db46fbc4c2f805",
+      "artifactId": "terminal-claude-code-sol-05",
+      "access": "current-v4-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v4/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v4/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "6c73062c02324f30b45b5005b4c8e50aac0a0dc0a91bd36483983cef640ac565",
+      "artifactId": "terminal-claude-code-terra-02",
+      "access": "predecessor-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "3209e09fdab482c996cf4bc86b38f914f9eab0988a9152ea3f2b5b41383d36b9",
+      "artifactId": "terminal-codex-cli-luna-01",
+      "access": "predecessor-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "ec702333bd7de6be538565b526c9921a8a41ca1c1b70813421d0af3799efb6e8",
+      "artifactId": "terminal-codex-cli-luna-04",
+      "access": "predecessor-holdout",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs",
+        "benchmark/challenges/mini-ledger-v3/holdout-verifier.mjs"
+      ]
+    },
+    {
+      "runKey": "8ab1ba77ac67bd72a8919380f6ee6d4ac049c38058a2d106bc53a96e68332827",
+      "artifactId": "terminal-codex-cli-terra-02",
+      "access": "predecessor-public",
+      "observedPaths": [
+        "benchmark/challenges/mini-ledger-v3/public-verifier.mjs"
+      ]
+    }
+  ]
+}

@@ -13,7 +13,6 @@ const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
 const RESOURCE_SAMPLE_INTERVAL_MS = 5_000;
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TASK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'benchmark', 'harbor', 'mini-ledger-v4');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
 const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_agent.py');
 const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
@@ -25,22 +24,29 @@ const HARBOR_BY_HARNESS = Object.freeze({
 });
 
 export const harnesses = Object.freeze(Object.keys(HARBOR_BY_HARNESS));
-let taskFingerprintPromise = null;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
-async function taskRecords(relative = '') {
+function taskRootForChallenge(challenge) {
+  const expectedPath = challenge.id === 'terminal-mini-ledger-v5'
+    ? 'benchmark/harbor/mini-ledger-v5'
+    : 'benchmark/harbor/mini-ledger-v4';
+  invariant(challenge.execution?.taskPath === expectedPath, `Challenge task path must be ${expectedPath}`);
+  return path.join(REPO_ROOT, expectedPath);
+}
+
+async function taskRecords(taskRoot, relative = '') {
   const records = [];
-  const entries = await readdir(path.join(TASK_ROOT, relative), { withFileTypes: true });
+  const entries = await readdir(path.join(taskRoot, relative), { withFileTypes: true });
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const child = path.join(relative, entry.name);
-    if (entry.isDirectory()) records.push(...await taskRecords(child));
-    else if (entry.isFile()) records.push({ path: child, sha256: await sha256File(path.join(TASK_ROOT, child)) });
+    if (entry.isDirectory()) records.push(...await taskRecords(taskRoot, child));
+    else if (entry.isFile()) records.push({ path: child, sha256: await sha256File(path.join(taskRoot, child)) });
   }
   return records;
 }
 
-async function taskFingerprint() { return canonicalJsonSha256(await taskRecords()); }
+async function taskFingerprint(taskRoot) { return canonicalJsonSha256(await taskRecords(taskRoot)); }
 
 function run(command, args, { cwd, env, stdoutPath, stderrPath, timeoutMs }) {
   return new Promise((resolve, reject) => {
@@ -193,9 +199,9 @@ function harborModel(harness, model) {
   return harness === 'pi-coding-agent' && !model.includes('/') ? `openai-codex/${model}` : model;
 }
 
-export function buildHarborArgs({ job, trialsDir, trialName, claudeProviderRoot = null }) {
+export function buildHarborArgs({ job, taskRoot = path.join(REPO_ROOT, 'benchmark', 'harbor', 'mini-ledger-v4'), trialsDir, trialName, claudeProviderRoot = null }) {
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
-  const args = ['--from', `harbor==${HARBOR_VERSION}`, 'harbor', 'trial', 'start', '--path', TASK_ROOT, '--agent', config.agent, '--model', harborModel(job.harness, job.model ?? job.modelRequested), '--trial-name', trialName, '--trials-dir', trialsDir, '--env', 'docker', '--resume-trajectory', '--delete'];
+  const args = ['--from', `harbor==${HARBOR_VERSION}`, 'harbor', 'trial', 'start', '--path', taskRoot, '--agent', config.agent, '--model', harborModel(job.harness, job.model ?? job.modelRequested), '--trial-name', trialName, '--trials-dir', trialsDir, '--env', 'docker', '--resume-trajectory', '--delete'];
   for (const kwarg of [...config.kwargs, `version=${config.version}`]) args.push('--agent-kwarg', kwarg);
   const proxyEnv = proxyAgentEnv(job.harness, claudeProviderRoot);
   if (job.harness === 'codex-cli' && proxyEnv.length === 0) {
@@ -382,8 +388,8 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(challenge.execution?.adapters?.claudeCompaction?.sha256 === await sha256File(CLAUDE_COMPACTION_PATH), 'Claude compaction policy source does not match the sealed challenge');
   invariant(challenge.execution?.adapters?.anthropicOverflowCompat?.sha256 === await sha256File(ANTHROPIC_OVERFLOW_COMPAT_PATH), 'Anthropic overflow compatibility source does not match the sealed challenge');
   if (job.harness === 'claude-code') invariant(challenge.execution?.adapters?.claudeHarbor?.sha256 === await sha256File(CLAUDE_AGENT_PATH), 'Harbor Claude agent source does not match the sealed challenge');
-  taskFingerprintPromise ??= taskFingerprint();
-  invariant((await taskFingerprintPromise) === challenge.execution.taskSha256, 'Generated Harbor task does not match the sealed challenge hash');
+  const taskRoot = taskRootForChallenge(challenge);
+  invariant((await taskFingerprint(taskRoot)) === challenge.execution.taskSha256, 'Generated Harbor task does not match the sealed challenge hash');
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const trialsDir = path.join(runDirectory, 'harbor-trials'); await rm(trialsDir, { recursive: true, force: true }); await mkdir(trialsDir, { recursive: true });
@@ -397,7 +403,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       advertisedHost: 'host.docker.internal',
     });
   }
-  const args = buildHarborArgs({ job, trialsDir, trialName, claudeProviderRoot: overflowCompat?.baseUrl });
+  const args = buildHarborArgs({ job, taskRoot, trialsDir, trialName, claudeProviderRoot: overflowCompat?.baseUrl });
   const pythonPath = [REPO_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
   const stopResourceMonitor = startResourceMonitor({ trialName, runDirectory });
   let result;
@@ -410,6 +416,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Harbor trial failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'}): ${result.stderr.slice(-1000)}`);
   const resultPath = await findResult(path.join(trialsDir, trialName)); const raw = JSON.parse(await readFile(resultPath, 'utf8'));
   const imported = await importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });
+  imported.resources = JSON.parse(await readFile(path.join(runDirectory, 'harbor-resource-summary.json'), 'utf8'));
   if (overflowCompat) imported.adapter.overflowCompatibility = { name: 'agentbattler-anthropic-overflow-compat', normalizedStatus: 400, normalizedType: 'invalid_request_error', ...overflowCompat.stats };
   return imported;
 }

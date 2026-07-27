@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Implement import of the legacy agentbattler.ledger.v1 shape {schemaVersion:"agentbattler.ledger.v1",events:[...]}; normalize valid legacy events into v2 sequences without changing IDs, kinds, payloads, or order. Reject duplicate IDs, invalid sequences, and unknown schemas without mutating state. Create legacy.json, import it, and verify the migrated records. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Implement recover. If ledger.json is missing and ledger.json.tmp is a valid newer v2 state, recover must restore it atomically. If the temporary state is malformed, recover must reject it and preserve any valid primary state. Ignore or remove stale lock files only when safe. Exercise both valid-temp and malformed-temp cases, then repair the workspace. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

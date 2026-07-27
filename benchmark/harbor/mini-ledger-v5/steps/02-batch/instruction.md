@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Implement append-batch --file PATH --idempotency-key KEY. The file contains a JSON array of events. Validate the complete batch before changing state; a failed batch changes nothing. Repeating a successful idempotency key must not append again and must return an idempotent result. Create batch.json with b1,b2,b3, append it with key batch-001, repeat it, and verify the logical event count is 5. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

@@ -57,6 +57,26 @@ async function writeLine(stream, value) {
   if (!stream.write(`${canonicalJson(sanitize(value))}\n`)) await once(stream, 'drain');
 }
 
+function runSummary(run) {
+  return {
+    type: 'run_summary',
+    status: run.status,
+    validity: run.validity,
+    startedAt: run.startedAt,
+    endedAt: run.endedAt,
+    durationMs: run.durationMs,
+    reasoningEffort: run.reasoningEffort,
+    sessionId: run.sessionId,
+    sameSessionProof: run.sameSessionProof,
+    toolCalls: run.toolCalls,
+    usage: run.usage,
+    turns: run.turns,
+    compaction: run.compaction ?? null,
+    resources: run.resources ?? null,
+    adapter: run.adapter ?? null,
+  };
+}
+
 async function scanLines(file, onLine) {
   const hash = createHash('sha256');
   const stream = createReadStream(file, { encoding: 'utf8', highWaterMark: 1024 * 1024 });
@@ -150,6 +170,7 @@ async function exportHarborRun(run) {
     generationIndex: run.generationIndex,
     transformation: 'Harbor ATIF trajectories are cumulative for resumed native sessions; each turn retains the new semantic step delta plus final metrics, timing, verifier diagnostics, and raw trial metadata.',
   });
+  await writeLine(gzip, runSummary(run));
 
   const resultFile = path.join(trialRoot, 'result.json');
   const harborResult = await readJson(resultFile);
@@ -237,6 +258,7 @@ async function exportRun(run) {
         ? 'Each terminal done event is retained as a turn delta; cumulative progress snapshots are omitted.'
         : 'All JSONL terminal events are retained.',
   });
+  await writeLine(gzip, runSummary(run));
 
   for (let turn = 1; turn <= 15; turn += 1) {
     const file = path.join(workRoot, run.runKey, `turn-${turn}.jsonl`);
@@ -313,7 +335,7 @@ async function exportRun(run) {
 await mkdir(outputRoot, { recursive: true });
 const runFiles = (await readdir(path.join(resultRoot, 'runs'))).filter((file) => file.endsWith('.json')).sort();
 const runs = await Promise.all(runFiles.map((file) => readJson(path.join(resultRoot, 'runs', file))));
-if (runs.length !== 60 || runs.some((run) => run.status !== 'completed')) throw new Error('Expected 60 completed v4 runs');
+if (runs.length !== 60 || runs.some((run) => run.status !== 'completed')) throw new Error(`Expected 60 completed ${version} runs`);
 
 const traces = [];
 for (const run of runs.sort((left, right) => left.artifactId.localeCompare(right.artifactId))) {
@@ -327,7 +349,7 @@ const manifestUnsigned = {
   generatedAt: new Date().toISOString(),
   policy: {
     scope: 'All 60 successful run traces and all 15 turns per run.',
-    retained: 'Final messages, tool calls and results, usage events, session metadata, verifier diagnostics, and non-empty stderr.',
+    retained: 'Normalized run and per-turn duration, token/cache usage, compaction and resource summaries; final messages; tool calls and results; session metadata; verifier diagnostics; and non-empty stderr.',
     omitted: 'Only cumulative streaming snapshots whose final semantic content is retained.',
     redaction: 'Credential-shaped object values and bearer/JWT/API-key patterns are replaced with [REDACTED]; host paths are normalized.',
     rawWorkspaces: 'Not included. They contain transient harness profiles, credentials, repeated trace snapshots, and reproducible candidate files rather than additional model interaction evidence.',

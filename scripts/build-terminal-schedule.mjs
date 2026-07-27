@@ -10,6 +10,7 @@ import {
   MINI_LEDGER_V3_STAGES,
   validateTerminalSchedule,
 } from '../src/terminal-challenge.mjs';
+import { MINI_LEDGER_V5_TURN_LIMIT_MS } from '../src/terminal-prompts-v5.mjs';
 import { canonicalJson, canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,19 +23,20 @@ if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TER
 const challengeRoot = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
 const challengeId = `terminal-mini-ledger-${challengeVersion}`;
 const outputRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
-const harborTaskRoot = path.join(ROOT, 'benchmark/harbor/mini-ledger-v4');
+const harborTaskVersion = challengeVersion === 'v5' ? 'v5' : 'v4';
+const harborTaskRoot = path.join(ROOT, `benchmark/harbor/mini-ledger-${harborTaskVersion}`);
 const manifestPath = path.resolve(ROOT, process.env.AGENTBATTLER_TERMINAL_MANIFEST ?? 'agents/harness-suite/manifest.json');
 const requestedMaxWallTime = process.env.AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS;
 const maxWallTimeMs = requestedMaxWallTime === undefined
-  ? challengeVersion === 'v4' ? null : undefined
+  ? challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_LIMIT_MS : challengeVersion === 'v4' ? null : undefined
   : requestedMaxWallTime === '0'
     ? null
     : Number.parseInt(requestedMaxWallTime, 10);
 if (requestedMaxWallTime !== undefined && !(maxWallTimeMs === null || Number.isSafeInteger(maxWallTimeMs) && maxWallTimeMs > 0)) {
   throw new Error('AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS must be 0 or a positive integer');
 }
-if (challengeVersion === 'v5' && !Number.isSafeInteger(maxWallTimeMs)) {
-  throw new Error('V5 requires an explicit positive AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS before sealing');
+if (challengeVersion === 'v5' && maxWallTimeMs !== MINI_LEDGER_V5_TURN_LIMIT_MS) {
+  throw new Error(`V5 has a fixed ${MINI_LEDGER_V5_TURN_LIMIT_MS} ms per-turn limit; create a new benchmark version to use a different policy`);
 }
 
 async function directoryFingerprint(directory, relative = '') {
@@ -62,7 +64,7 @@ const executionAdapters = isHarborChallenge ? {
 } : null;
 
 const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = await Promise.all([
-  sha256File(path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}.md`)),
+  sha256File(path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}.md`)),
   sha256File(path.join(challengeRoot, 'public-verifier.mjs')),
   sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')),
   readFile(manifestPath, 'utf8').then(JSON.parse),
@@ -70,13 +72,13 @@ const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = aw
 const challenge = createMiniLedgerChallenge({
   challengeId,
   title: `Mini Ledger ${challengeVersion}`,
-  promptPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}.md`,
+  promptPath: `benchmark/challenges/mini-ledger-${challengeVersion}.md`,
   publicVerifierPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/public-verifier.mjs`,
   holdoutVerifierPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/holdout-verifier.mjs`,
   promptSha256,
   publicVerifierSha256,
   holdoutVerifierSha256,
-  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: 'benchmark/harbor/mini-ledger-v4', taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', amendment: 'bounded-turns' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
+  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', amendment: 'fixed-30-minute-turns-with-agent-notice' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
 });
@@ -101,7 +103,7 @@ if (challengeVersion === 'v5') {
   try {
     const existing = JSON.parse(await readFile(path.join(outputRoot, 'challenge.json'), 'utf8'));
     if (existing.challengeSha256 !== challenge.challengeSha256) {
-      throw new Error(`Refusing to replace sealed V5 challenge ${existing.challengeId}; choose a new AGENTBATTLER_TERMINAL_RESULT_TAG for a different time limit`);
+      throw new Error(`Refusing to replace sealed V5 challenge ${existing.challengeId}; choose a new AGENTBATTLER_TERMINAL_RESULT_TAG for a different protocol`);
     }
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;

@@ -109,21 +109,58 @@ generated Harbor task tree, including per-step verifier images, firewall policy,
 
 ## V5 transition
 
-V5 reuses the sealed V4 ledger prompt, fifteen-stage verifier, Harbor isolation, scoring,
-and exhaustive combo roster while introducing an explicitly bounded per-turn policy. It
+V5 reuses the sealed V4 ledger requirements, fifteen-stage verifier, Harbor isolation,
+scoring, and exhaustive combo roster while introducing a fixed 30-minute per-turn policy. It
 always writes to `results/terminal-mini-ledger-v5/`, so V4 evidence cannot be overwritten
-or silently mixed into the new leaderboard. The schedule refuses to seal until a positive
-time limit is chosen:
+or silently mixed into the new leaderboard. Build and run it with:
 
 ```sh
-AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=<positive-ms> npm run terminal:matrix:v5
+npm run terminal:matrix:v5
 npm run terminal:run:v5
 npm run terminal:verify:v5 -- --allow-incomplete
 ```
 
-The selected limit becomes part of the V5 challenge hash. A zero/unbounded value is
-rejected for V5. Changing the limit later creates a different sealed challenge identity
-and therefore requires a separate result namespace rather than modifying an active run.
+The schedule seals `1,800,000` milliseconds into every job, and each adapter enforces that
+limit independently for every agent turn. Every one of the fifteen V5 prompts also tells
+the agent that the benchmark will stop the turn after 30 minutes and instructs it to finish
+the requested stage, prioritize validation, and leave the workspace runnable before the
+deadline. V4 prompts remain unchanged for historical reproducibility.
+
+V5 rejects zero, unbounded, or alternate timeout values. A different limit is a benchmark
+protocol change: introduce a new benchmark version, update the agent-facing notice, rebuild
+the generated Harbor task, and calibrate the adapters for any changed model roster instead
+of modifying V5 in place.
+
+### Clean M4 execution
+
+Run V5 from a dedicated clean checkout pinned to one published Git commit. Do not reuse the
+historical `AgentBattlerv2` or `AgentBattlerv2-v4-unbounded` directories, and do not copy an
+uncommitted working tree with rsync. Before launching, confirm that `git status --porcelain`
+is empty and record `git rev-parse HEAD` alongside the challenge and schedule IDs.
+
+Initialize and start the pinned CLIProxyAPI runtime, then source its generated environment
+in the same login shell that launches the benchmark. CLIProxyAPI is used by Claude Code and
+DotAgents; Codex and Pi use the local Codex ChatGPT subscription credentials directly.
+
+```sh
+node scripts/manage-cliproxy.mjs init /private/tmp/agentbattler-cliproxy-v5
+node scripts/manage-cliproxy.mjs login /private/tmp/agentbattler-cliproxy-v5 # only when auth is absent/expired
+node scripts/manage-cliproxy.mjs start /private/tmp/agentbattler-cliproxy-v5
+source /private/tmp/agentbattler-cliproxy-v5/benchmark.env
+export AGENTBATTLER_CLIPROXY_HARNESSES=claude-code
+npm run terminal:matrix:v5
+npm run terminal:verify:v5 -- --allow-incomplete
+nohup caffeinate -dimsu npm run terminal:run:v5 > terminal-v5.log 2>&1 &
+echo $! > terminal-v5.pid
+```
+
+The runner is resumable: completed sealed run keys are skipped, while infrastructure-invalid
+runs are retried by the bounded retry passes. Do not regenerate the schedule after execution
+starts. Once all 60 runs pass strict verification, run `npm run terminal:traces:v5`. Published
+traces retain normalized run and per-turn durations, input/cached-input/output/reasoning token
+counts, tool calls, compaction boundaries, Harbor resource summaries, native semantic events,
+and verifier diagnostics. Raw workspaces remain local and ignored because they can contain
+ephemeral credentials and redundant session snapshots.
 
 ## Mini Ledger v3
 

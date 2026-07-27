@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Run the integrated stress protocol: append 10,000 events through concurrent batches, execute 1,000 deterministic paged queries, export and import into a fresh workspace, compact with keep 100, replay, and audit. Verify exact IDs, sequence continuity, event counts, checksums, and idempotency metadata before and after every transition. Do not trade correctness for speed. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

@@ -55,7 +55,7 @@
     "terminal:matrix": "node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v3": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v3 node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v4": "npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 AGENTBATTLER_TERMINAL_RESULT_TAG=v4-harbor-unbounded node scripts/build-terminal-schedule.mjs",
-    "terminal:matrix:v5": "npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5 node scripts/build-terminal-schedule.mjs",
+    "terminal:matrix:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5 node scripts/build-terminal-schedule.mjs",
     "terminal:harbor:build": "node scripts/build-harbor-terminal-task.mjs",
     "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",

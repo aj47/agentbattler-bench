@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Make every write crash-safe: write a complete candidate state to ledger.json.tmp, flush/close it, then atomically replace ledger.json. Maintain a recoverable append journal or equivalent proof of the last committed state. Commands must never leave a partially valid ledger.json. Run append, export, and batch operations and audit their state after each operation. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

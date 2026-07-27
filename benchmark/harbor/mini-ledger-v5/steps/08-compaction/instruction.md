@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Implement compact --keep N. Compaction must create a checksummed snapshot for the prefix and retain only the requested tail in the live state. get, query, export, replay, and recover must transparently read the snapshot plus tail. The logical ledger before and after compaction must be identical. Compact the current ledger with keep 3 and verify every record remains addressable. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

@@ -4,33 +4,38 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MINI_LEDGER_V4_TURN_PROMPTS } from '../src/terminal-prompts-v4.mjs';
+import { MINI_LEDGER_V5_TURN_PROMPTS } from '../src/terminal-prompts-v5.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const output = path.join(root, 'benchmark', 'harbor', 'mini-ledger-v4');
+const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
+if (!['v4', 'v5'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4 and V5');
+const prompts = challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
+const versionNumber = challengeVersion === 'v5' ? '5.0.0' : '4.2.0';
+const output = path.join(root, 'benchmark', 'harbor', `mini-ledger-${challengeVersion}`);
 const stages = [
   ['foundation', 3], ['batch', 3], ['pagination', 3], ['migration', 3], ['atomicity', 3],
   ['recovery', 3], ['concurrency', 3], ['compaction', 3], ['roundtrip', 3], ['replay', 3],
   ['audit', 5], ['scale', 5], ['stress-concurrency', 10], ['validation', 10], ['scale-stress', 10],
 ];
 
-if (MINI_LEDGER_V4_TURN_PROMPTS.length !== stages.length) throw new Error('V4 prompt/stage count mismatch');
+if (prompts.length !== stages.length) throw new Error(`${challengeVersion.toUpperCase()} prompt/stage count mismatch`);
 
 const toml = `schema_version = "1.4"
 multi_step_reward_strategy = "final"
 artifacts = [{ source = "/app", destination = "candidate" }]
 
 [task]
-name = "agentbattler/mini-ledger-v4"
-version = "4.2.0"
+name = "agentbattler/mini-ledger-${challengeVersion}"
+version = "${versionNumber}"
 description = "Fifteen-turn long-horizon deterministic ledger challenge"
 
 [metadata]
 benchmark = "AgentBattler"
-challenge = "mini-ledger-v4"
+challenge = "mini-ledger-${challengeVersion}"
 harbor_version = "0.20.0"
 visible_points = 70
 holdout_points = 30
-agent_time_policy = "self-terminating"
+agent_time_policy = "${challengeVersion === 'v5' ? 'hard-30-minutes-per-turn-with-agent-notice' : 'self-terminating'}"
 
 [agent]
 network_mode = "public"
@@ -148,7 +153,7 @@ for (const version of ['v3', 'v4']) {
     );
   }
 }
-for (const [[stage], prompt, index] of stages.map((stage, index) => [stage, MINI_LEDGER_V4_TURN_PROMPTS[index], index])) {
+for (const [[stage], prompt, index] of stages.map((stage, index) => [stage, prompts[index], index])) {
   const step = `${String(index + 1).padStart(2, '0')}-${stage}`;
   const directory = path.join(output, 'steps', step);
   const tests = path.join(directory, 'tests');
@@ -181,10 +186,9 @@ WORKDIR /
     }
   }
 }
-await writeFile(path.join(output, 'README.md'), `# Mini Ledger V4 for Harbor
+await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersion.toUpperCase()} for Harbor
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.
-`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${challengeVersion === 'v5' ? '\n\nEvery agent step has a hard 30-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n' : '\n'}`);
 console.log(output);

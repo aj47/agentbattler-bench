@@ -220,6 +220,20 @@ test('generated Harbor V4 task uses fifteen steps and a separate verifier', asyn
   assert.doesNotMatch(firstPrompt, /holdout-verifier|benchmark\/challenges/);
 });
 
+test('generated Harbor V5 task gives every turn the sealed 30-minute notice', async () => {
+  const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v5');
+  const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
+  assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
+  assert.match(config, /challenge = "mini-ledger-v5"/);
+  assert.match(config, /agent_time_policy = "hard-30-minutes-per-turn-with-agent-notice"/);
+  for (const entry of await import('node:fs/promises').then(({ readdir }) => readdir(path.join(taskRoot, 'steps'), { withFileTypes: true }))) {
+    if (!entry.isDirectory()) continue;
+    const prompt = await readFile(path.join(taskRoot, 'steps', entry.name, 'instruction.md'), 'utf8');
+    assert.match(prompt, /hard 30-minute wall-clock limit enforced by the benchmark/);
+    assert.match(prompt, /leave the workspace in a runnable state before the limit/);
+  }
+});
+
 test('candidate verifier process identity is opt-in and validated', () => {
   const previousUid = process.env.AGENTBATTLER_CANDIDATE_UID;
   const previousGid = process.env.AGENTBATTLER_CANDIDATE_GID;

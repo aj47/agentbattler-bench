@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Implement replay and audit. replay must reconstruct the logical ledger from snapshot plus journal/tail and report a deterministic digest; audit must detect checksum mismatch, duplicate IDs, sequence gaps, malformed payloads, stale locks, and invalid idempotency metadata without silently repairing them. Repair the workspace and prove audit passes. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

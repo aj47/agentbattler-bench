@@ -1,0 +1,3 @@
+Preserve all earlier behavior. Make mutations safe under concurrent processes. Use a lock or equivalent compare-and-swap protocol so eight concurrent append-batch or append clients with disjoint IDs cannot lose updates or duplicate sequence numbers. A crashed/stale lock must be recoverable. Run the supplied concurrency audit mentally and with local child processes; leave the final ledger valid and deterministic. Modify only candidate source files.
+
+This turn has a hard 30-minute wall-clock limit enforced by the benchmark. Complete the requested work, run the most important checks you can, and leave the workspace in a runnable state before the limit. Do not rely on another message before saving your progress.

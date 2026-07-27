@@ -1,0 +1,195 @@
+{
+  "challengeId": "challenge-30e25741cfe06bfd",
+  "challengeSha256": "30e25741cfe06bfd18300b1f498a2174908c1215b7b2fca09587e4b1502fae5d",
+  "execution": {
+    "adapters": {
+      "anthropicOverflowCompat": {
+        "path": "src/anthropic-overflow-compat.mjs",
+        "sha256": "609381dab9771f492d5f42bb63d108d3c0e1ae5817c2e49740456cf7a45a91e4"
+      },
+      "claudeCompaction": {
+        "path": "src/claude-compaction.mjs",
+        "sha256": "a7546d961314b17aba444d9d5bd8a3eba9b1305b1b9a087402825d9446b74279"
+      },
+      "claudeHarbor": {
+        "path": "benchmark/harbor/claude_agent.py",
+        "sha256": "f06e45b2362a7a87112584cfda9339f748a9e0bc1f3964ce2495101e5ef5ea68"
+      },
+      "dispatcher": {
+        "path": "scripts/terminal-adapter-all.mjs",
+        "sha256": "01f4dc9a536e7458e93f2417cb911ef07dd34252b7bd1b8c3c09e79476a9bc2b"
+      },
+      "dotagents": {
+        "path": "scripts/terminal-adapter-dotagents.mjs",
+        "sha256": "38762a78b6c5fdb88251ceaf24b43430f35289ea311c1f92693aae300a371dbd"
+      },
+      "harbor": {
+        "path": "scripts/terminal-adapter-harbor.mjs",
+        "sha256": "2b41286a48847a226646b0c25856eb2f83414b7f73aa9fbc92981590369c5500"
+      },
+      "piHarbor": {
+        "path": "benchmark/harbor/pi_agent.py",
+        "sha256": "a82781e4076ae44de1c987959626ec1a9a1c82dbba7b26b9f25fc17b8fa550f1"
+      }
+    },
+    "amendment": "fixed-30-minute-turns-with-agent-notice",
+    "predecessor": "terminal-mini-ledger-v4",
+    "substrate": "harbor",
+    "taskPath": "benchmark/harbor/mini-ledger-v5",
+    "taskSha256": "d306eb45e52a586404fd5d1c0fc334bba7993402a0e553d54e9fa334fe9e98aa",
+    "version": "0.20.0"
+  },
+  "fairness": {
+    "comparableFields": [
+      "promptSha256",
+      "verifiers",
+      "protocol",
+      "reasoningEffort",
+      "generationSettings"
+    ],
+    "exhaustiveMatrixRequired": true,
+    "generationIndexIsArtifact": true,
+    "publish": [
+      "challenge",
+      "schedule",
+      "manifests",
+      "run-results",
+      "pairwise-comparisons",
+      "checksums"
+    ],
+    "redact": [
+      "credentials",
+      "hostPaths",
+      "privateTraces",
+      "unrelatedFiles"
+    ]
+  },
+  "id": "terminal-mini-ledger-v5",
+  "kind": "long-horizon-terminal-task",
+  "prompt": {
+    "path": "benchmark/challenges/mini-ledger-v5.md",
+    "sha256": "de3546177f61fd80da989187286f2b88aec28983ed2e2bc23d06e160a30f699b"
+  },
+  "protocol": {
+    "humanIntervention": "invalidates-run",
+    "maxWallTimeMs": 1800000,
+    "maxWorkspaceBytes": 52428800,
+    "network": "agent-public; verifier-and-candidate-offline",
+    "sameSession": true,
+    "sameWorkspace": true,
+    "turns": 15
+  },
+  "schemaVersion": "agentbattler.terminal-challenge.v1",
+  "scoring": {
+    "holdoutPoints": 30,
+    "infrastructureInvalid": true,
+    "maxPoints": 100,
+    "regressionPenalty": 0,
+    "tieTolerancePoints": 1,
+    "visibleStagePoints": 70
+  },
+  "stages": [
+    {
+      "id": "foundation",
+      "order": 1,
+      "points": 3,
+      "title": "Append/get foundation"
+    },
+    {
+      "id": "batch",
+      "order": 2,
+      "points": 3,
+      "title": "Atomic batches and idempotency"
+    },
+    {
+      "id": "pagination",
+      "order": 3,
+      "points": 3,
+      "title": "Deterministic pagination"
+    },
+    {
+      "id": "migration",
+      "order": 4,
+      "points": 3,
+      "title": "Legacy schema migration"
+    },
+    {
+      "id": "atomicity",
+      "order": 5,
+      "points": 3,
+      "title": "Crash-safe writes"
+    },
+    {
+      "id": "recovery",
+      "order": 6,
+      "points": 3,
+      "title": "Interrupted-write recovery"
+    },
+    {
+      "id": "concurrency",
+      "order": 7,
+      "points": 3,
+      "title": "Multi-process concurrency"
+    },
+    {
+      "id": "compaction",
+      "order": 8,
+      "points": 3,
+      "title": "Checksummed compaction"
+    },
+    {
+      "id": "roundtrip",
+      "order": 9,
+      "points": 3,
+      "title": "Export/import round trip"
+    },
+    {
+      "id": "replay",
+      "order": 10,
+      "points": 3,
+      "title": "Replay and integrity"
+    },
+    {
+      "id": "audit",
+      "order": 11,
+      "points": 5,
+      "title": "Full regression audit"
+    },
+    {
+      "id": "scale",
+      "order": 12,
+      "points": 5,
+      "title": "Scale and performance"
+    },
+    {
+      "id": "stress-concurrency",
+      "order": 13,
+      "points": 10,
+      "title": "Adversarial concurrent batches"
+    },
+    {
+      "id": "validation",
+      "order": 14,
+      "points": 10,
+      "title": "Fault injection and validation"
+    },
+    {
+      "id": "scale-stress",
+      "order": 15,
+      "points": 10,
+      "title": "Large integrated stress run"
+    }
+  ],
+  "title": "Mini Ledger v5",
+  "verifiers": {
+    "holdout": {
+      "cases": 11,
+      "path": "benchmark/challenges/mini-ledger-v4/holdout-verifier.mjs",
+      "sha256": "0af731538171e671774e83e4e42a6b63502fe749a69eb72e64df9b6b5996c9aa"
+    },
+    "public": {
+      "path": "benchmark/challenges/mini-ledger-v4/public-verifier.mjs",
+      "sha256": "f7d3b22ada9c3597421cf5955f97af60de74c9d89182b9b5c3847e5145d80dfe"
+    }
+  }
+}

@@ -12,6 +12,12 @@ import {
   validateTerminalChallenge,
   validateTerminalSchedule,
 } from '../src/terminal-challenge.mjs';
+import { MINI_LEDGER_V4_TURN_PROMPTS } from '../src/terminal-prompts-v4.mjs';
+import {
+  MINI_LEDGER_V5_TIME_BUDGET_NOTICE,
+  MINI_LEDGER_V5_TURN_LIMIT_MS,
+  MINI_LEDGER_V5_TURN_PROMPTS,
+} from '../src/terminal-prompts-v5.mjs';
 
 const HASH = 'a'.repeat(64);
 const challenge = createMiniLedgerChallenge({ promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64) });
@@ -62,6 +68,17 @@ test('challenge can seal an unbounded turn policy', () => {
   const unbounded = createMiniLedgerChallenge({ promptSha256: HASH, publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64), maxWallTimeMs: null });
   assert.equal(validateTerminalChallenge(unbounded), unbounded);
   assert.equal(unbounded.protocol.maxWallTimeMs, null);
+});
+
+test('V5 preserves V4 requirements and tells agents about the fixed turn limit', () => {
+  assert.equal(MINI_LEDGER_V5_TURN_LIMIT_MS, 1_800_000);
+  assert.equal(MINI_LEDGER_V5_TURN_PROMPTS.length, MINI_LEDGER_V4_TURN_PROMPTS.length);
+  for (const [index, prompt] of MINI_LEDGER_V5_TURN_PROMPTS.entries()) {
+    assert.ok(prompt.startsWith(MINI_LEDGER_V4_TURN_PROMPTS[index]));
+    assert.ok(prompt.endsWith(MINI_LEDGER_V5_TIME_BUDGET_NOTICE));
+    assert.match(prompt, /hard 30-minute wall-clock limit/);
+  }
+  assert.ok(MINI_LEDGER_V4_TURN_PROMPTS.every((prompt) => !prompt.includes(MINI_LEDGER_V5_TIME_BUDGET_NOTICE)));
 });
 
 test('terminal combo identity separates harness/model but groups generations', () => {

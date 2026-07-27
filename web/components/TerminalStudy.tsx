@@ -19,36 +19,106 @@ function familyName(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function accessLabel(access: TerminalChallengeLane['combos'][number]['runs'][number]['integrity']['access']) {
+  if (access === 'current-v4-holdout') return 'V4 verifier accessed';
+  if (access === 'predecessor-holdout') return 'V3 holdout accessed';
+  if (access === 'predecessor-public') return 'V3 public verifier accessed';
+  return 'no verifier access observed';
+}
+
 export function TerminalStudy({ lane }: { lane: TerminalChallengeLane }) {
+  const runs = lane.combos.flatMap((combo) => combo.runs);
   if (lane.status === 'withdrawn') {
+    const audit = lane.integrityAudit.scope;
     return (
       <section className={`${styles.study} ${styles.withdrawn}`} id="terminal-study" aria-labelledby="terminal-study-title">
         <div className={`shell ${styles.withdrawnShell}`}>
           <div className={styles.status}>
             <span className={styles.withdrawnMark} aria-hidden="true" />
-            <span>study withdrawn</span><span>/</span><span>isolation failure</span><span>/</span><span>Harbor rerun pending</span>
+            <span>historical study</span><span>/</span><span>withdrawn from official ranking</span><span>/</span><span>trace audit published</span>
           </div>
           <div className={styles.withdrawnGrid}>
             <div>
               <p className={styles.kicker}>Mini Ledger v4 · benchmark correction</p>
-              <h1 id="terminal-study-title">The scores were<br /><em>not sealed.</em></h1>
+              <h1 id="terminal-study-title">Vulnerable boundary.<br /><em>Visible evidence.</em></h1>
             </div>
             <div className={styles.incidentCopy}>
-              <strong>We found the agents could read the parent repository—including hidden verifier source.</strong>
-              <p>That makes the original 60-run leaderboard invalid as a measure of model or harness ability. We have removed its ranking and findings, kept every result and trace as diagnostic evidence, and changed the challenge hash so those runs cannot validate against the replacement.</p>
+              <strong>All 60 agents could reach the parent repository. Eight captured traces show direct verifier-source access.</strong>
+              <p>The shared isolation failure makes every score unofficial, but it does not make every trace equivalent. We preserve the historical ordering below, label the eight observed contaminations run by run, and distinguish them from the 52 traces where no verifier access was observed.</p>
+            </div>
+          </div>
+          <dl className={styles.auditMetrics} aria-label="Trace isolation audit summary">
+            <div><dt>observed access</dt><dd>{audit.observedVerifierAccessRuns}<small>direct verifier-source access in tool calls</small></dd></div>
+            <div><dt>not observed</dt><dd>{audit.noObservedVerifierAccessRuns}<small>not a claim that the boundary was sealed</small></dd></div>
+            <div><dt>holdout reached</dt><dd>{audit.observedHoldoutAccessRuns}<small>5 predecessor · 1 current V4</small></dd></div>
+            <div><dt>vulnerable runs</dt><dd>{audit.vulnerableRuns}<small>all excluded from official Elo</small></dd></div>
+          </dl>
+          <div className={styles.auditNote}>
+            <strong>What the labels mean</strong>
+            <p>“Observed access” requires an executable tool-call command or file path—not model prose or a filename echoed by a tool. One run opened the current V4 verifier. Seven opened only the closely related V3 predecessor. “No access observed” means exactly that; it does not certify a clean environment.</p>
+            <a href={`${BLOB}/${lane.integrityAudit.sourcePath}`}>open machine-readable audit ↗</a>
+          </div>
+
+          <div className={styles.boardHeader}>
+            <div><span>01 / historical results</span><h2>Keep the numbers. Mark the breach.</h2></div>
+            <p>This is the original five-run ordering, preserved for investigation—not an official leaderboard. Red diamonds identify generations with trace-observed verifier access.</p>
+          </div>
+          <div className={`${styles.scoreboard} ${styles.historicalBoard}`}>
+            <div className={styles.scoreHead} aria-hidden="true"><span>historical rank / condition</span><span>five independent runs</span><span>mean</span><span>mean time</span></div>
+            {lane.combos.map((combo, index) => (
+              <details className={styles.combo} key={combo.comboId}>
+                <summary>
+                  <span className={styles.rank}>{String(index + 1).padStart(2, '0')}</span>
+                  <span className={styles.identity}><strong>{combo.harnessDisplayName}</strong><small>v{combo.harnessVersion} × {familyName(combo.modelFamilyId)}</small></span>
+                  <span className={styles.plot} aria-label={`Historical scores from ${combo.minimumScore} to ${combo.maximumScore}`}>
+                    <span className={styles.track} />
+                    <span className={styles.range} style={{ left: `${combo.minimumScore}%`, width: `${combo.maximumScore - combo.minimumScore}%` }} />
+                    {combo.runs.map((run) => <i className={run.integrity.status === 'observed-verifier-access' ? styles.contaminatedPoint : undefined} key={run.runKey} style={{ left: `${run.scorePct}%` }} title={`Generation ${run.generationIndex}: ${run.scorePct} · ${accessLabel(run.integrity.access)}`} />)}
+                  </span>
+                  <strong className={styles.mean}>{combo.averageScore.toFixed(2)}</strong>
+                  <span className={styles.time}>{duration(combo.averageDurationMs)}</span>
+                  <span className={styles.chevron} aria-hidden="true">+</span>
+                </summary>
+                <div className={`${styles.runTable} ${styles.historicalRunTable}`}>
+                  <div className={styles.runHead}><span>generation</span><span>score</span><span>visible</span><span>holdout</span><span>duration</span><span>trace audit</span><span>evidence</span></div>
+                  {combo.runs.map((run) => (
+                    <div className={`${styles.runRow} ${run.integrity.status === 'observed-verifier-access' ? styles.contaminatedRun : ''}`} key={run.runKey}>
+                      <span>#{run.generationIndex}</span>
+                      <strong>{run.scorePct.toFixed(2)}</strong>
+                      <span>{run.visiblePoints}/70</span>
+                      <span>{run.holdoutPassed}/{run.holdoutTotal}</span>
+                      <span>{duration(run.durationMs)}</span>
+                      <span className={styles.auditLabel}><i aria-hidden="true" />{accessLabel(run.integrity.access)}</span>
+                      <span className={styles.runLinks}>
+                        <a href={`${BLOB}/results/terminal-mini-ledger-v4/runs/${run.runKey}.json`}>result</a>
+                        {run.trace ? <a href={`${RAW}/${run.trace.path}`} title={`${bytes(run.trace.bytes)} compressed semantic trace`}>trace ↓</a> : null}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+
+          <div className={styles.incidentArticle}>
+            <div><span>02 / incident record</span><h2>Why none of the 60 is official.</h2></div>
+            <div>
+              <p>A trace can show that an agent used an exposed path; it cannot prove that another agent never benefited from an exposed environment. Because the same broken boundary applied to every run, the whole result set remains outside official Elo even though only eight traces contain observed access.</p>
+              <p>The replacement uses Harbor agent containers, separate root-owned verifier containers, candidate UID/GID demotion, and a new challenge hash. V5 will add a sealed positive turn limit without mixing these historical results into the new ranking.</p>
+              <a href="/changelog/">read the full incident changelog →</a>
             </div>
           </div>
           <div className={styles.repairStrip}>
             <div><span>01</span><strong>Fresh agent container</strong><p>Claude Code, Codex CLI, and Pi now run through Harbor 0.20 with only the persistent <code>/app</code> workspace.</p></div>
             <div><span>02</span><strong>Separate verifier</strong><p>Only candidate artifacts cross into a new verifier container. Agents never receive <code>/tests</code>.</p></div>
             <div><span>03</span><strong>Privilege boundary</strong><p>Candidate code runs as UID 1000 while verifier source remains root-only.</p></div>
-            <div><span>04</span><strong>Full rerun</strong><p>All harness × model × generation combinations will repopulate the leaderboard from zero.</p></div>
+            <div><span>04</span><strong>Versioned restart</strong><p>V5 starts from a new sealed identity and retains V4 only as labeled history.</p></div>
           </div>
           <div className={styles.withdrawnEvidence}>
             <div><span>isolation smoke</span><strong>15 / 15 steps</strong><small>resume exercised on steps 2–15 · holdout reads denied</small></div>
             <div className={styles.withdrawnLinks}>
               <a href={`${BLOB}/benchmark/harbor/mini-ledger-v4`}>inspect Harbor task ↗</a>
-              <a href={`${BLOB}/docs/terminal-challenge.md`}>read correction ↗</a>
+              <a href={`${BLOB}/docs/incidents/mini-ledger-v4-isolation.md`}>read correction ↗</a>
               <a href={`${BLOB}/results/terminal-mini-ledger-v4`}>open withdrawn evidence ↗</a>
             </div>
           </div>
@@ -56,7 +126,6 @@ export function TerminalStudy({ lane }: { lane: TerminalChallengeLane }) {
       </section>
     );
   }
-  const runs = lane.combos.flatMap((combo) => combo.runs);
   const bestRun = runs.reduce((best, run) => run.scorePct > best.scorePct ? run : best);
   const bestCombo = lane.combos[0];
   const widest = lane.combos.reduce((best, combo) => (

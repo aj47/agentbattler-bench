@@ -15,9 +15,11 @@ import { canonicalJson, canonicalJsonSha256, sha256File } from '../src/provenanc
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
+const isHarborChallenge = challengeVersion === 'v4' || challengeVersion === 'v5';
+const challengeSourceVersion = challengeVersion === 'v5' ? 'v4' : challengeVersion;
 const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? challengeVersion;
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
-const challengeRoot = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}`);
+const challengeRoot = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
 const challengeId = `terminal-mini-ledger-${challengeVersion}`;
 const outputRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const harborTaskRoot = path.join(ROOT, 'benchmark/harbor/mini-ledger-v4');
@@ -31,6 +33,9 @@ const maxWallTimeMs = requestedMaxWallTime === undefined
 if (requestedMaxWallTime !== undefined && !(maxWallTimeMs === null || Number.isSafeInteger(maxWallTimeMs) && maxWallTimeMs > 0)) {
   throw new Error('AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS must be 0 or a positive integer');
 }
+if (challengeVersion === 'v5' && !Number.isSafeInteger(maxWallTimeMs)) {
+  throw new Error('V5 requires an explicit positive AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS before sealing');
+}
 
 async function directoryFingerprint(directory, relative = '') {
   const records = [];
@@ -43,19 +48,21 @@ async function directoryFingerprint(directory, relative = '') {
   return records;
 }
 
-const harborTaskSha256 = challengeVersion === 'v4'
+const harborTaskSha256 = isHarborChallenge
   ? canonicalJsonSha256(await directoryFingerprint(harborTaskRoot))
   : null;
-const executionAdapters = challengeVersion === 'v4' ? {
+const executionAdapters = isHarborChallenge ? {
   dispatcher: { path: 'scripts/terminal-adapter-all.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-all.mjs')) },
   harbor: { path: 'scripts/terminal-adapter-harbor.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-harbor.mjs')) },
   piHarbor: { path: 'benchmark/harbor/pi_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/pi_agent.py')) },
   claudeHarbor: { path: 'benchmark/harbor/claude_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/claude_agent.py')) },
+  claudeCompaction: { path: 'src/claude-compaction.mjs', sha256: await sha256File(path.join(ROOT, 'src/claude-compaction.mjs')) },
+  anthropicOverflowCompat: { path: 'src/anthropic-overflow-compat.mjs', sha256: await sha256File(path.join(ROOT, 'src/anthropic-overflow-compat.mjs')) },
   dotagents: { path: 'scripts/terminal-adapter-dotagents.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-dotagents.mjs')) },
 } : null;
 
 const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = await Promise.all([
-  sha256File(path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}.md`)),
+  sha256File(path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}.md`)),
   sha256File(path.join(challengeRoot, 'public-verifier.mjs')),
   sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')),
   readFile(manifestPath, 'utf8').then(JSON.parse),
@@ -63,13 +70,13 @@ const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = aw
 const challenge = createMiniLedgerChallenge({
   challengeId,
   title: `Mini Ledger ${challengeVersion}`,
-  promptPath: `benchmark/challenges/mini-ledger-${challengeVersion}.md`,
-  publicVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/public-verifier.mjs`,
-  holdoutVerifierPath: `benchmark/challenges/mini-ledger-${challengeVersion}/holdout-verifier.mjs`,
+  promptPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}.md`,
+  publicVerifierPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/public-verifier.mjs`,
+  holdoutVerifierPath: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/holdout-verifier.mjs`,
   promptSha256,
   publicVerifierSha256,
   holdoutVerifierSha256,
-  ...(challengeVersion === 'v4' ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: 'benchmark/harbor/mini-ledger-v4', taskSha256: harborTaskSha256, adapters: executionAdapters }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
+  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: 'benchmark/harbor/mini-ledger-v4', taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', amendment: 'bounded-turns' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
 });
@@ -90,6 +97,16 @@ const schedule = createExhaustiveTerminalSchedule({
   seed: Number.parseInt(process.env.AGENTBATTLER_TERMINAL_SEED ?? '1', 10),
 });
 validateTerminalSchedule(schedule, challenge);
+if (challengeVersion === 'v5') {
+  try {
+    const existing = JSON.parse(await readFile(path.join(outputRoot, 'challenge.json'), 'utf8'));
+    if (existing.challengeSha256 !== challenge.challengeSha256) {
+      throw new Error(`Refusing to replace sealed V5 challenge ${existing.challengeId}; choose a new AGENTBATTLER_TERMINAL_RESULT_TAG for a different time limit`);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+}
 await mkdir(outputRoot, { recursive: true });
 await writeFile(path.join(outputRoot, 'challenge.json'), `${canonicalJson(challenge, { space: 2 })}\n`);
 await writeFile(path.join(outputRoot, 'schedule.json'), `${canonicalJson(schedule, { space: 2 })}\n`);

@@ -336,6 +336,11 @@ export type TerminalChallengeLane = {
       usage: { cachedInputTokens?: number; inputTokens?: number; outputTokens?: number; reasoningTokens?: number };
       stages: Array<{ id: string; passed: boolean }>;
       trace: null | { path: string; bytes: number; sha256: string; sourceBytes: number };
+      integrity: {
+        status: 'observed-verifier-access' | 'no-verifier-access-observed';
+        access: 'predecessor-public' | 'predecessor-holdout' | 'current-v4-holdout' | null;
+        observedPaths: string[];
+      };
     }>;
   }>;
   tracePublication: null | {
@@ -346,6 +351,20 @@ export type TerminalChallengeLane = {
     publishedBytes: number;
     omittedStreamingEvents: number;
     redactions: number;
+  };
+  integrityAudit: {
+    reviewedAt: string;
+    method: string;
+    sourcePath: string;
+    scope: {
+      publishedRuns: number;
+      vulnerableRuns: number;
+      observedVerifierAccessRuns: number;
+      noObservedVerifierAccessRuns: number;
+      observedHoldoutAccessRuns: number;
+      observedCurrentV4VerifierAccessRuns: number;
+      observedPredecessorV3OnlyAccessRuns: number;
+    };
   };
   standings: Array<{ rank: number; comboId: string | null; scorePoints: number; rating: number }>;
   status: 'scheduled' | 'complete' | 'withdrawn';

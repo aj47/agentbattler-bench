@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runner = path.join(ROOT, 'scripts/run-terminal-matrix.mjs');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
-const v4Adapter = version === 'v4' ? 'scripts/terminal-adapter-all.mjs' : null;
+const v4Adapter = version === 'v4' || version === 'v5' ? 'scripts/terminal-adapter-all.mjs' : null;
 const passes = Number.parseInt(process.env.AGENTBATTLER_TERMINAL_RETRY_PASSES ?? '3', 10);
 if (!Number.isSafeInteger(passes) || passes < 1) throw new Error('AGENTBATTLER_TERMINAL_RETRY_PASSES must be a positive integer');
 

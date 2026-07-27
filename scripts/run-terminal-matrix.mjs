@@ -8,10 +8,11 @@ import { runTerminalSchedule } from '../src/terminal-runner.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
+const challengeSourceVersion = challengeVersion === 'v5' ? 'v4' : challengeVersion;
 const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? challengeVersion;
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const RESULT_ROOT = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
-const CHALLENGE_ROOT = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}`);
+const CHALLENGE_ROOT = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
 
 function arg(name, fallback = null) {
   const index = process.argv.indexOf(name);

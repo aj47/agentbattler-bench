@@ -7,6 +7,14 @@
 > results. V4.1 uses Harbor 0.20 separate verifier containers and a new challenge
 > hash; it will be rerun from zero.
 
+The completed trace audit found direct non-provided verifier-source access in 8
+runs; no such access was observed in the other 52 traces. Six of the 8 reached
+holdout source. One opened the current V4 verifier and seven opened only the
+closely related V3 predecessor. All 60 remain unofficial because all 60 shared
+the vulnerable boundary. See the machine-readable per-run classifications in
+[`benchmark/incidents/mini-ledger-v4-isolation.json`](../../benchmark/incidents/mini-ledger-v4-isolation.json)
+and the [incident record](../../docs/incidents/mini-ledger-v4-isolation.md).
+
 Mini Ledger v4 is a 15-turn, long-horizon terminal benchmark designed to exercise sustained
 software-engineering work in one session and workspace. The task grows a dependency-free Node.js
 event ledger through atomic batches, migration, crash recovery, process concurrency, checksummed

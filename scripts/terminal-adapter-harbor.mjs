@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
+import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
+import { claudeCompactionPolicy, claudeCompactionTelemetry, compactionDelta } from '../src/claude-compaction.mjs';
 
 const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
@@ -14,8 +16,10 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const TASK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'benchmark', 'harbor', 'mini-ledger-v4');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
 const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_agent.py');
+const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
+const ANTHROPIC_OVERFLOW_COMPAT_PATH = path.join(REPO_ROOT, 'src', 'anthropic-overflow-compat.mjs');
 const HARBOR_BY_HARNESS = Object.freeze({
-  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: '2.1.211', kwargs: ['reasoning_effort=high'] },
+  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: '2.1.220', kwargs: ['reasoning_effort=high'] },
   'codex-cli': { agent: 'codex', version: '0.144.0', kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
   'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: '0.80.7', kwargs: [] },
 });
@@ -165,29 +169,35 @@ function startResourceMonitor({ trialName, runDirectory }) {
   };
 }
 
-function proxyAgentEnv(harness) {
+function proxyConnection(harness) {
   const proxyHarnesses = new Set((process.env.AGENTBATTLER_CLIPROXY_HARNESSES ?? 'claude-code').split(',').map((value) => value.trim()).filter(Boolean));
-  if (!proxyHarnesses.has(harness)) return [];
+  if (!proxyHarnesses.has(harness)) return null;
   const base = process.env.AGENTBATTLER_CLIPROXY_BASE_URL;
   const key = process.env.AGENTBATTLER_CLIPROXY_API_KEY;
-  if (!base && !key) return [];
+  if (!base && !key) return null;
   invariant(base && key, 'Harbor requires both AGENTBATTLER_CLIPROXY_BASE_URL and AGENTBATTLER_CLIPROXY_API_KEY');
   const containerBase = base.replace(/^http:\/\/(?:127\.0\.0\.1|localhost)(?=[:/])/, 'http://host.docker.internal');
   const providerRoot = containerBase.replace(/\/v1\/?$/, '').replace(/\/$/, '');
-  const openaiBase = `${providerRoot}/v1`;
-  if (harness === 'claude-code') return [`ANTHROPIC_BASE_URL=${providerRoot}`, `ANTHROPIC_API_KEY=${key}`];
-  return [`OPENAI_BASE_URL=${openaiBase}`, `OPENAI_API_KEY=${key}`];
+  return { providerRoot, key };
+}
+
+function proxyAgentEnv(harness, providerRootOverride = null) {
+  const proxy = proxyConnection(harness);
+  if (!proxy) return [];
+  const providerRoot = providerRootOverride ?? proxy.providerRoot;
+  if (harness === 'claude-code') return [`ANTHROPIC_BASE_URL=${providerRoot}`, `ANTHROPIC_API_KEY=${proxy.key}`];
+  return [`OPENAI_BASE_URL=${providerRoot}/v1`, `OPENAI_API_KEY=${proxy.key}`];
 }
 
 function harborModel(harness, model) {
   return harness === 'pi-coding-agent' && !model.includes('/') ? `openai-codex/${model}` : model;
 }
 
-export function buildHarborArgs({ job, trialsDir, trialName }) {
+export function buildHarborArgs({ job, trialsDir, trialName, claudeProviderRoot = null }) {
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
   const args = ['--from', `harbor==${HARBOR_VERSION}`, 'harbor', 'trial', 'start', '--path', TASK_ROOT, '--agent', config.agent, '--model', harborModel(job.harness, job.model ?? job.modelRequested), '--trial-name', trialName, '--trials-dir', trialsDir, '--env', 'docker', '--resume-trajectory', '--delete'];
   for (const kwarg of [...config.kwargs, `version=${config.version}`]) args.push('--agent-kwarg', kwarg);
-  const proxyEnv = proxyAgentEnv(job.harness);
+  const proxyEnv = proxyAgentEnv(job.harness, claudeProviderRoot);
   if (job.harness === 'codex-cli' && proxyEnv.length === 0) {
     // Do not use CODEX_FORCE_AUTH_JSON=true here. Harbor 0.20.0 registers
     // agent-env values as secrets, and redacting the generic value "true"
@@ -198,7 +208,11 @@ export function buildHarborArgs({ job, trialsDir, trialName }) {
     args.push('--agent-env', `CODEX_AUTH_JSON_PATH=${path.join(homedir(), '.codex', 'auth.json')}`);
   }
   for (const value of proxyEnv) args.push('--agent-env', value);
-  if (job.harness === 'claude-code') args.push('--agent-env', `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=${CLAUDE_MAX_TOOL_USE_CONCURRENCY}`);
+  if (job.harness === 'claude-code') {
+    const compaction = claudeCompactionPolicy(job.model ?? job.modelRequested);
+    args.push('--agent-env', `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=${CLAUDE_MAX_TOOL_USE_CONCURRENCY}`);
+    for (const [name, value] of Object.entries(compaction.environmentVariables)) args.push('--agent-env', `${name}=${value}`);
+  }
   if (Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0) args.push('--agent-timeout', String(job.maxWallTimeMs / 1000));
   return args;
 }
@@ -257,6 +271,26 @@ async function nativePiEvidence(trialRoot, stepName) {
   } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 } }; }
 }
 
+async function nativeClaudeEvidence(trialRoot, stepName) {
+  const projectRoot = path.join(trialRoot, 'steps', stepName, 'agent', 'sessions', 'projects');
+  try {
+    const projects = await readdir(projectRoot, { withFileTypes: true });
+    const transcripts = [];
+    for (const project of projects) {
+      if (!project.isDirectory()) continue;
+      const files = await readdir(path.join(projectRoot, project.name), { withFileTypes: true });
+      for (const file of files) {
+        if (file.isFile() && file.name.endsWith('.jsonl')) transcripts.push(path.join(projectRoot, project.name, file.name));
+      }
+    }
+    const events = [];
+    for (const transcript of transcripts) {
+      for (const line of (await readFile(transcript, 'utf8')).split(/\r?\n/).filter(Boolean)) events.push(JSON.parse(line));
+    }
+    return claudeCompactionTelemetry(events);
+  } catch { return { count: 0, boundaries: [] }; }
+}
+
 async function sessionIdForStep(trialRoot, stepName, nativeSessionId = null) {
   const trajectory = path.join(trialRoot, 'steps', stepName, 'agent', 'trajectory.json');
   try { return JSON.parse(await readFile(trajectory, 'utf8')).session_id ?? null; }
@@ -284,7 +318,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
   invariant(!raw.exception_info, `Harbor trial failed: ${raw.exception_info?.exception_message ?? 'unknown error'}`);
   const expectedStages = job.challengeStageIds ?? challenge.stages.map((stage) => stage.id);
   invariant(raw.step_results?.length === expectedStages.length, `Harbor returned ${raw.step_results?.length ?? 0}/${expectedStages.length} steps`);
-  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; let holdout = null; let nativeToolCalls = 0;
+  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; const compactionSamples = []; let holdout = null; let nativeToolCalls = 0;
   for (let index = 0; index < raw.step_results.length; index += 1) {
     const step = raw.step_results[index];
     const timedOut = step.exception_info?.exception_type === 'AgentTimeoutError';
@@ -293,6 +327,8 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
     const context = step.agent_result ?? {};
     const nativeEvidence = await nativePiEvidence(trialRoot, step.step_name);
+    const nativeCompaction = job.harness === 'claude-code' ? await nativeClaudeEvidence(trialRoot, step.step_name) : { count: 0, boundaries: [] };
+    compactionSamples.push(nativeCompaction);
     const sessionId = await sessionIdForStep(trialRoot, step.step_name, nativeEvidence.sessionId); sessionIds.push(sessionId);
     nativeToolCalls += nativeEvidence.toolCalls;
     let trajectory = null;
@@ -301,7 +337,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     trajectories.push(trajectory);
     const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
-    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage });
+    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');
   const observedSessions = sessionIds.filter(Boolean);
@@ -317,8 +353,13 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
       turns[index].usage = Object.fromEntries(Object.entries(usageSamples[index]).map(([field, value]) => [field, Math.max(0, value - Number(previous[field] ?? 0))]));
     }
   }
+  if (job.harness === 'claude-code') {
+    for (let index = compactionSamples.length - 1; index >= 0; index -= 1) turns[index].compaction = compactionDelta(compactionSamples[index], compactionSamples[index - 1]);
+  }
   const countToolCalls = (trajectory) => (trajectory?.steps ?? []).reduce((sum, item) => sum + (item.tool_calls?.length ?? 0), 0);
   const toolCalls = nativeToolCalls + (cumulativeTrajectories ? countToolCalls(trajectories.at(-1)) : trajectories.reduce((sum, trajectory) => sum + countToolCalls(trajectory), 0));
+  const compaction = job.harness === 'claude-code' ? compactionSamples.at(-1) : null;
+  const compactionPolicy = job.harness === 'claude-code' ? claudeCompactionPolicy(job.model ?? job.modelRequested) : null;
   return {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',
@@ -328,29 +369,47 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     durationMs: Math.max(0, Date.parse(raw.finished_at) - Date.parse(raw.started_at)),
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
-    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY) } : null },
+    ...(compaction ? { compaction } : {}),
+    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
   };
 }
 
 export async function runTerminalJob({ challenge, job, runDirectory }) {
-  invariant(challenge.id === 'terminal-mini-ledger-v4', `Harbor adapter only supports terminal-mini-ledger-v4, received ${challenge.id}`);
+  invariant(challenge.id === 'terminal-mini-ledger-v4' || challenge.id === 'terminal-mini-ledger-v5', `Harbor adapter only supports terminal-mini-ledger-v4/v5, received ${challenge.id}`);
   invariant(challenge.execution?.substrate === 'harbor' && challenge.execution?.version === HARBOR_VERSION, 'Challenge does not bind the expected Harbor execution substrate');
   invariant(challenge.execution?.adapters?.harbor?.sha256 === await sha256File(fileURLToPath(import.meta.url)), 'Harbor adapter source does not match the sealed challenge');
   if (job.harness === 'pi-coding-agent') invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
+  invariant(challenge.execution?.adapters?.claudeCompaction?.sha256 === await sha256File(CLAUDE_COMPACTION_PATH), 'Claude compaction policy source does not match the sealed challenge');
+  invariant(challenge.execution?.adapters?.anthropicOverflowCompat?.sha256 === await sha256File(ANTHROPIC_OVERFLOW_COMPAT_PATH), 'Anthropic overflow compatibility source does not match the sealed challenge');
+  if (job.harness === 'claude-code') invariant(challenge.execution?.adapters?.claudeHarbor?.sha256 === await sha256File(CLAUDE_AGENT_PATH), 'Harbor Claude agent source does not match the sealed challenge');
   taskFingerprintPromise ??= taskFingerprint();
   invariant((await taskFingerprintPromise) === challenge.execution.taskSha256, 'Generated Harbor task does not match the sealed challenge hash');
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const trialsDir = path.join(runDirectory, 'harbor-trials'); await rm(trialsDir, { recursive: true, force: true }); await mkdir(trialsDir, { recursive: true });
   const trialName = `agentbattler-${job.runKey.slice(0, 16)}`;
-  const args = buildHarborArgs({ job, trialsDir, trialName });
+  const proxy = proxyConnection(job.harness);
+  let overflowCompat = null;
+  if (job.harness === 'claude-code' && proxy) {
+    overflowCompat = await startAnthropicOverflowCompat({
+      upstreamBaseUrl: process.env.AGENTBATTLER_CLIPROXY_BASE_URL.replace(/\/v1\/?$/, ''),
+      listenHost: '0.0.0.0',
+      advertisedHost: 'host.docker.internal',
+    });
+  }
+  const args = buildHarborArgs({ job, trialsDir, trialName, claudeProviderRoot: overflowCompat?.baseUrl });
   const pythonPath = [REPO_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
   const stopResourceMonitor = startResourceMonitor({ trialName, runDirectory });
   let result;
   try {
     result = await run('uvx', args, { cwd: REPO_ROOT, env: { ...process.env, PYTHONPATH: pythonPath }, stdoutPath: path.join(runDirectory, 'harbor.stdout'), stderrPath: path.join(runDirectory, 'harbor.stderr'), timeoutMs: Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0 ? job.maxWallTimeMs * 16 : null });
-  } finally { await stopResourceMonitor(); }
+  } finally {
+    await stopResourceMonitor();
+    if (overflowCompat) await overflowCompat.close();
+  }
   invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Harbor trial failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'}): ${result.stderr.slice(-1000)}`);
   const resultPath = await findResult(path.join(trialsDir, trialName)); const raw = JSON.parse(await readFile(resultPath, 'utf8'));
-  return importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });
+  const imported = await importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });
+  if (overflowCompat) imported.adapter.overflowCompatibility = { name: 'agentbattler-anthropic-overflow-compat', normalizedStatus: 400, normalizedType: 'invalid_request_error', ...overflowCompat.stats };
+  return imported;
 }

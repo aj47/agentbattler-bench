@@ -4,12 +4,15 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { createServer } from 'node:http';
 
 import * as all from '../scripts/terminal-adapter-all.mjs';
 import * as claude from '../scripts/terminal-adapter-claude.mjs';
 import * as dotagents from '../scripts/terminal-adapter-dotagents.mjs';
 import * as harbor from '../scripts/terminal-adapter-harbor.mjs';
 import { candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
+import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
+import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'pi-coding-agent']);
@@ -57,8 +60,11 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   });
   assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.claude_agent:AgentBattlerClaude');
   assert.equal(args[args.indexOf('--model') + 1], 'gpt-5.6-sol');
-  assert.ok(args.includes('version=2.1.211'));
+  assert.ok(args.includes('version=2.1.220'));
   assert.ok(args.includes('CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=4'));
+  assert.ok(args.includes('CLAUDE_CODE_MAX_CONTEXT_TOKENS=200000'));
+  assert.ok(args.includes('CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000'));
+  assert.ok(args.includes('CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80'));
   const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_agent.py'), 'utf8');
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
@@ -70,6 +76,72 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /mkdir -p "\$\(dirname "\$active"\)"/);
   assert.match(source, /kill -TERM "\$previous"/);
   assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
+});
+
+test('Claude compaction policy is explicit per model and fails closed for new models', () => {
+  assert.deepEqual(claudeCompactionPolicy('gpt-5.6-sol'), {
+    version: 'model-window-v2',
+    model: 'gpt-5.6-sol',
+    contextWindowTokens: 200_000,
+    autoCompactWindowTokens: 200_000,
+    autoCompactPercent: 80,
+    autoCompactTriggerTokens: 160_000,
+    environmentVariables: {
+      CLAUDE_CODE_MAX_CONTEXT_TOKENS: '200000',
+      CLAUDE_CODE_AUTO_COMPACT_WINDOW: '200000',
+      CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: '80',
+    },
+  });
+  assert.throws(() => claudeCompactionPolicy('gpt-next'), /calibrate the model/);
+});
+
+test('Claude compaction telemetry records native boundaries and pre/post token counts', () => {
+  const telemetry = claudeCompactionTelemetry([
+    { type: 'assistant', message: { usage: { input_tokens: 180_000, cache_read_input_tokens: 5_000 } } },
+    { type: 'system', subtype: 'compact_boundary', timestamp: '2026-07-26T00:00:00.000Z', compact_metadata: { trigger: 'auto' } },
+    { type: 'assistant', message: { usage: { input_tokens: 22_000 } } },
+  ]);
+  assert.deepEqual(telemetry, { count: 1, boundaries: [{ index: 1, timestamp: '2026-07-26T00:00:00.000Z', trigger: 'auto', beforeTokens: 185_000, afterTokens: 22_000 }] });
+});
+
+test('overflow compatibility recognizes context errors and emits Anthropic prompt-too-long structure', () => {
+  const body = { error: { message: 'maximum context length exceeded' } };
+  assert.equal(isContextOverflowResponse(400, body), true);
+  assert.deepEqual(normalizeContextOverflow(400, body, 'req-1'), {
+    status: 400,
+    body: {
+      type: 'error',
+      error: { type: 'invalid_request_error', message: 'Prompt is too long: the input exceeds the model context window. Upstream response: maximum context length exceeded' },
+      request_id: 'req-1',
+    },
+  });
+  assert.equal(normalizeContextOverflow(400, { error: { message: 'request too large' } }), null);
+  assert.equal(normalizeContextOverflow(413, { error: { message: 'request too large' } }), null);
+  assert.equal(normalizeContextOverflow(429, { error: { message: 'rate limited' } }), null);
+});
+
+test('overflow compatibility proxy preserves success and translates only context overflow', async () => {
+  const upstream = createServer((request, response) => {
+    if (request.url === '/overflow') {
+      response.writeHead(400, { 'content-type': 'application/json', 'x-request-id': 'req-overflow' });
+      response.end(JSON.stringify({ error: { message: 'prompt is too long for this context window' } }));
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'application/json' }); response.end('{"ok":true}');
+  });
+  await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const proxy = await startAnthropicOverflowCompat({ upstreamBaseUrl: `http://127.0.0.1:${upstream.address().port}` });
+  try {
+    const success = await fetch(`${proxy.baseUrl}/ok`);
+    assert.equal(success.status, 200); assert.deepEqual(await success.json(), { ok: true });
+    const overflow = await fetch(`${proxy.baseUrl}/overflow`);
+    assert.equal(overflow.status, 400);
+    assert.equal((await overflow.json()).error.type, 'invalid_request_error');
+    assert.deepEqual(proxy.stats, { requests: 2, translatedContextOverflows: 1 });
+  } finally {
+    await proxy.close();
+    await new Promise((resolve, reject) => upstream.close((error) => error ? reject(error) : resolve()));
+  }
 });
 
 test('Harbor Claude lease terminates a predecessor before the next turn', async () => {

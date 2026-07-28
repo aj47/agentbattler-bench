@@ -1,6 +1,6 @@
 # DotAgents generation harness
 
-This image builds DotAgents from pinned commit `8d4df16140e33083eba5dfae4878f22696afdfe9` (package version `1.1.6`). Build it and run a single Terra generation first:
+This image builds DotAgents from pinned commit `fd76e502e551d5266ce50a5ed4b1536ed7323e26` (package version `1.1.9`). This release adds stable prompt-cache routing for CLIProxyAPI-compatible endpoints. Build it and run a single Terra generation first:
 
 ```sh
 npm run dotagents:image

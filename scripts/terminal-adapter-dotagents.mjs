@@ -17,6 +17,8 @@ import {
   DOTAGENTS_VERSION,
   buildDotAgentsDockerArgs,
   createDotAgentsConfig,
+  dotAgentsCumulativeUsageDelta,
+  dotAgentsTerminalUsage,
   summarizeDotAgentsTrace,
 } from '../src/dotagents-harness.mjs';
 import { canonicalJson } from '../src/provenance.mjs';
@@ -158,6 +160,7 @@ async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
   invariant(settings.agentProviderId === 'openai', `DotAgents effective provider is ${settings.agentProviderId ?? 'missing'}, not openai`);
   invariant(settings.agentOpenaiModel === job.model, `DotAgents effective model is ${settings.agentOpenaiModel ?? 'missing'}, not ${job.model}`);
   invariant(settings.openaiBaseUrl === proxy.baseUrl.replace(/\/$/, ''), `DotAgents effective proxy URL is ${settings.openaiBaseUrl ?? 'missing'}`);
+  invariant(settings.openaiCompatiblePromptCaching === 'cliproxy', `DotAgents effective prompt-cache capability is ${settings.openaiCompatiblePromptCaching ?? 'missing'}, not cliproxy`);
   invariant(typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0, 'DotAgents effective proxy API key is empty');
 }
 
@@ -307,7 +310,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const container = await startContainer(runDirectory, job);
   const stages = []; const turns = []; const sessionIds = [];
-  const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
+  let cumulativeUsage = null;
   const runStartedAt = new Date().toISOString(); let conversationId = null; let toolCalls = 0;
   try {
     for (let index = 0; index < prompts.length; index += 1) {
@@ -325,18 +328,17 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       if (!conversationId) conversationId = telemetry.conversationId;
       invariant(telemetry.conversationId === conversationId, `DotAgents conversation changed on turn ${index + 1}`);
       sessionIds.push(telemetry.conversationId); toolCalls += telemetry.toolCallCount;
-      usage.inputTokens += telemetry.sessionCost?.inputTokens ?? 0;
-      usage.cachedInputTokens += telemetry.sessionCost?.cacheReadTokens ?? 0;
-      usage.outputTokens += telemetry.sessionCost?.outputTokens ?? 0;
-      usage.reasoningTokens += telemetry.sessionCost?.reasoningTokens ?? 0;
+      invariant(telemetry.sessionCost, `DotAgents turn ${index + 1} emitted no cumulative usage telemetry`);
+      const turnUsage = dotAgentsCumulativeUsageDelta(cumulativeUsage, telemetry.sessionCost);
+      cumulativeUsage = telemetry.sessionCost;
       const stage = await publicVerifier.verifyPublicStage({ workspace: container.workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
       stages.push({ ...stage, id: stage.id ?? stage.stageId });
-      turns.push({ index: index + 1, sessionId: telemetry.conversationId, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry.sessionCost ?? {} });
+      turns.push({ index: index + 1, sessionId: telemetry.conversationId, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: turnUsage });
     }
     const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage: dotAgentsTerminalUsage(cumulativeUsage), stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
   } finally {
     await stopContainer(container);
   }

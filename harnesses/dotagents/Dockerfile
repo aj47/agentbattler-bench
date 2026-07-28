@@ -1,8 +1,8 @@
 FROM node:22-bookworm-slim
 
 ARG DOTAGENTS_REPOSITORY=https://github.com/aj47/dotagents-mono.git
-ARG DOTAGENTS_COMMIT=8d4df16140e33083eba5dfae4878f22696afdfe9
-ARG DOTAGENTS_VERSION=1.1.6
+ARG DOTAGENTS_COMMIT=fd76e502e551d5266ce50a5ed4b1536ed7323e26
+ARG DOTAGENTS_VERSION=1.1.9
 
 LABEL org.opencontainers.image.source="https://github.com/aj47/dotagents-mono" \
       org.opencontainers.image.revision="${DOTAGENTS_COMMIT}" \

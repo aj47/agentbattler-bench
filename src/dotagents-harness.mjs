@@ -3,7 +3,7 @@ import path from 'node:path';
 import { canonicalJsonSha256 } from './provenance.mjs';
 import { terminalHarnessVersion } from './terminal-harness-versions.mjs';
 
-export const DOTAGENTS_COMMIT = '8d4df16140e33083eba5dfae4878f22696afdfe9';
+export const DOTAGENTS_COMMIT = 'fd76e502e551d5266ce50a5ed4b1536ed7323e26';
 export const DOTAGENTS_VERSION = terminalHarnessVersion('dotagents-mono');
 export const DOTAGENTS_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}`;
 export const DOTAGENTS_PROFILE_ID = 'agentbattler-benchmark';
@@ -47,6 +47,7 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       mcpToolsOpenaiModel: model,
       openaiBaseUrl: openaiProxy.baseUrl.replace(/\/$/, ''),
       openaiApiKey: openaiProxy.apiKey,
+      openaiCompatiblePromptCaching: 'cliproxy',
       currentModelPresetId: 'agentbattler-cliproxy',
       modelPresets: [{
         id: 'agentbattler-cliproxy',
@@ -116,6 +117,7 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
     generationSettings: {
       provider: openaiProxy ? 'openai-compatible' : 'chatgpt-web',
       transport: openaiProxy ? 'cliproxyapi' : 'native',
+      promptCaching: openaiProxy ? 'cliproxy' : 'native',
       reasoningEffort: 'high',
       textVerbosity: 'medium',
       maxIterations: 12,
@@ -129,6 +131,38 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       externalMcpServers: 0,
       skillsEnabled: false,
     },
+  };
+}
+
+const DOTAGENTS_USAGE_FIELDS = Object.freeze([
+  'inputTokens',
+  'outputTokens',
+  'cacheReadTokens',
+  'cacheWriteTokens',
+  'reasoningTokens',
+]);
+
+function usageCounter(usage, field) {
+  const value = Number(usage?.[field] ?? 0);
+  invariant(Number.isFinite(value) && value >= 0, `DotAgents ${field} telemetry is invalid`);
+  return value;
+}
+
+export function dotAgentsCumulativeUsageDelta(previous, current) {
+  return Object.fromEntries(DOTAGENTS_USAGE_FIELDS.map((field) => {
+    const before = usageCounter(previous, field);
+    const after = usageCounter(current, field);
+    invariant(after >= before, `DotAgents cumulative ${field} decreased`);
+    return [field, after - before];
+  }));
+}
+
+export function dotAgentsTerminalUsage(cumulative) {
+  return {
+    inputTokens: usageCounter(cumulative, 'inputTokens'),
+    cachedInputTokens: usageCounter(cumulative, 'cacheReadTokens'),
+    outputTokens: usageCounter(cumulative, 'outputTokens'),
+    reasoningTokens: usageCounter(cumulative, 'reasoningTokens'),
   };
 }
 

@@ -28,6 +28,11 @@ const outputRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const harborTaskVersion = challengeVersion === 'v5' ? `v5-${protocolRevision}` : 'v4';
 const harborTaskRoot = path.join(ROOT, `benchmark/harbor/mini-ledger-${harborTaskVersion}`);
 const manifestPath = path.resolve(ROOT, process.env.AGENTBATTLER_TERMINAL_MANIFEST ?? 'agents/harness-suite/manifest.json');
+function selection(name) {
+  return (process.env[name] ?? '').split(',').map((value) => value.trim()).filter(Boolean);
+}
+const selectedHarnesses = selection('AGENTBATTLER_TERMINAL_HARNESSES');
+const selectedModels = selection('AGENTBATTLER_TERMINAL_MODELS');
 const requestedMaxWallTime = process.env.AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS;
 const maxWallTimeMs = requestedMaxWallTime === undefined
   ? challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_LIMIT_MS : challengeVersion === 'v4' ? null : undefined
@@ -86,14 +91,18 @@ const challenge = createMiniLedgerChallenge({
   promptSha256,
   publicVerifierSha256,
   holdoutVerifierSha256,
-  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', protocolRevision, amendment: 'fixed-turns-explicit-wire-contract-source-only-verification' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
+  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', protocolRevision, amendment: protocolRevision === 'r3' ? 'dotagents-v1.1.9-prompt-cache-continuity-and-cumulative-usage-fix' : 'fixed-turns-explicit-wire-contract-source-only-verification' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
 });
-const expectedHarnesses = manifest.comparison?.harnesses ?? [...new Set(manifest.agents.map((agent) => agent.provenance.harness))];
-const expectedModels = manifest.comparison?.models ?? [...new Set(manifest.agents.map((agent) => agent.provenance.modelRequested))];
+const availableHarnesses = manifest.comparison?.harnesses ?? [...new Set(manifest.agents.map((agent) => agent.provenance.harness))];
+const availableModels = manifest.comparison?.models ?? [...new Set(manifest.agents.map((agent) => agent.provenance.modelRequested))];
+const expectedHarnesses = selectedHarnesses.length ? selectedHarnesses : availableHarnesses;
+const expectedModels = selectedModels.length ? selectedModels : availableModels;
+for (const harness of expectedHarnesses) if (!availableHarnesses.includes(harness)) throw new Error(`Requested terminal harness is absent from the manifest: ${harness}`);
+for (const model of expectedModels) if (!availableModels.includes(model)) throw new Error(`Requested terminal model is absent from the manifest: ${model}`);
 const generationsPerCombo = manifest.comparison?.generationsPerHarnessModel ?? Math.max(...manifest.agents.map((agent) => agent.generationIndex ?? agent.provenance.generationIndex ?? 0));
-const terminalAgents = manifest.agents.map((sourceAgent) => {
+const terminalAgents = manifest.agents.filter((agent) => expectedHarnesses.includes(agent.provenance.harness) && expectedModels.includes(agent.provenance.modelRequested)).map((sourceAgent) => {
   const agent = bindTerminalHarnessRuntime(sourceAgent);
   return {
     ...agent,

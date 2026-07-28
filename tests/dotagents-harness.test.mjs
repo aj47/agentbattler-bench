@@ -5,6 +5,8 @@ import {
   DOTAGENTS_IMAGE,
   buildDotAgentsDockerArgs,
   createDotAgentsConfig,
+  dotAgentsCumulativeUsageDelta,
+  dotAgentsTerminalUsage,
   networkCommandReason,
   summarizeDotAgentsTrace,
 } from '../src/dotagents-harness.mjs';
@@ -43,11 +45,33 @@ test('can route DotAgents through a pinned OpenAI-compatible proxy', () => {
   assert.equal(models.agentOpenaiModel, 'gpt-5.6-luna');
   assert.equal(models.openaiBaseUrl, 'http://agentbattler-cliproxy:8317/v1');
   assert.equal(models.openaiApiKey, 'b'.repeat(64));
+  assert.equal(models.openaiCompatiblePromptCaching, 'cliproxy');
   assert.equal(models.currentModelPresetId, 'agentbattler-cliproxy');
   assert.equal(models.modelPresets[0].agentModel, 'gpt-5.6-luna');
   assert.equal(config.legacyConfig.openaiApiKey, 'b'.repeat(64));
   assert.equal(profile.modelConfig.agentProviderId, 'openai');
   assert.equal(config.generationSettings.transport, 'cliproxyapi');
+  assert.equal(config.generationSettings.promptCaching, 'cliproxy');
+});
+
+test('normalizes cumulative DotAgents usage without double counting previous turns', () => {
+  const first = { inputTokens: 100, outputTokens: 20, cacheReadTokens: 60, cacheWriteTokens: 0, reasoningTokens: 10 };
+  const second = { inputTokens: 250, outputTokens: 45, cacheReadTokens: 190, cacheWriteTokens: 0, reasoningTokens: 18 };
+  assert.deepEqual(dotAgentsCumulativeUsageDelta(null, first), first);
+  assert.deepEqual(dotAgentsCumulativeUsageDelta(first, second), {
+    inputTokens: 150,
+    outputTokens: 25,
+    cacheReadTokens: 130,
+    cacheWriteTokens: 0,
+    reasoningTokens: 8,
+  });
+  assert.deepEqual(dotAgentsTerminalUsage(second), {
+    inputTokens: 250,
+    cachedInputTokens: 190,
+    outputTokens: 45,
+    reasoningTokens: 18,
+  });
+  assert.throws(() => dotAgentsCumulativeUsageDelta(second, first), /decreased/);
 });
 
 test('summarizes a sealed trace and rejects model, tool, and network drift', () => {

@@ -30,7 +30,7 @@ function invariant(condition, message) { if (!condition) throw new Error(message
 
 function taskRootForChallenge(challenge) {
   const allowedPaths = challenge.id === 'terminal-mini-ledger-v5'
-    ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2'])
+    ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2', 'benchmark/harbor/mini-ledger-v5-r3'])
     : new Set(['benchmark/harbor/mini-ledger-v4']);
   const expectedPath = challenge.execution?.taskPath;
   invariant(allowedPaths.has(expectedPath), `Challenge task path is not an allowed sealed task: ${expectedPath ?? 'missing'}`);

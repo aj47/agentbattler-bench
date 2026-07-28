@@ -41,7 +41,7 @@ test('terminal schedules bind declared harness versions to launched runtimes', (
   assert.deepEqual(SEALED_TERMINAL_HARNESS_VERSIONS, {
     'claude-code': '2.1.220',
     'codex-cli': '0.144.0',
-    'dotagents-mono': '1.1.6',
+    'dotagents-mono': '1.1.9',
     'pi-coding-agent': '0.80.7',
   });
   const rebound = bindTerminalHarnessRuntime({ provenance: { harness: 'claude-code', harnessVersion: '2.1.211' } });

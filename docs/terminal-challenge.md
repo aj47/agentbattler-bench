@@ -143,9 +143,9 @@ in the same login shell that launches the benchmark. CLIProxyAPI is used by Clau
 DotAgents; Codex and Pi use the local Codex ChatGPT subscription credentials directly.
 
 ```sh
-node scripts/manage-cliproxy.mjs init /private/tmp/agentbattler-cliproxy-v5
-node scripts/manage-cliproxy.mjs login /private/tmp/agentbattler-cliproxy-v5 # only when auth is absent/expired
-node scripts/manage-cliproxy.mjs start /private/tmp/agentbattler-cliproxy-v5
+node scripts/manage-cliproxy.mjs init ~/AgentBattlerRuntime/cliproxy-v5
+node scripts/manage-cliproxy.mjs login ~/AgentBattlerRuntime/cliproxy-v5 # only when auth is absent/expired
+node scripts/manage-cliproxy.mjs start ~/AgentBattlerRuntime/cliproxy-v5
 source /private/tmp/agentbattler-cliproxy-v5/benchmark.env
 export AGENTBATTLER_CLIPROXY_HARNESSES=claude-code
 npm run terminal:matrix:v5

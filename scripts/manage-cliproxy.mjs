@@ -4,6 +4,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
+import { defaultCliProxyRuntimeRoot, formatCliProxyContainerState, validatePersistentCliProxyRuntimeRoot } from '../src/cliproxy-runtime.mjs';
+
 const COMMIT = 'db82d65d1cc3be6dc9662ee2b9a3810ac948d377';
 const CATALOG_COMMIT = '8b32755e666bcb98a435aaf4728e7341ffb9507a';
 const MODELS_SHA256 = '395a9c2c2e0581f6663fd7a72dc44581f52b361464fc477e79744466c1f9b7c7';
@@ -14,7 +16,10 @@ const NETWORK = 'agentbattler-cliproxy';
 const PORT = 8317;
 const SERVER_ARGS = ['./CLIProxyAPI', '-config', '/CLIProxyAPI/config.yaml', '-local-model'];
 const command = process.argv[2];
-const runtimeRoot = path.resolve(process.argv[3] ?? '/private/tmp/agentbattler-cliproxy-v4');
+const requestedRuntimeRoot = path.resolve(process.argv[3] ?? defaultCliProxyRuntimeRoot());
+const runtimeRoot = ['init', 'login', 'start'].includes(command)
+  ? validatePersistentCliProxyRuntimeRoot(requestedRuntimeRoot)
+  : requestedRuntimeRoot;
 const configPath = path.join(runtimeRoot, 'config.yaml');
 const keyPath = path.join(runtimeRoot, 'api-key');
 const authPath = path.join(runtimeRoot, 'auth');
@@ -162,8 +167,8 @@ async function start() {
 }
 
 async function status() {
-  const result = await docker(['inspect', CONTAINER, '--format', '{{.State.Status}} {{.State.Health.Status}}'], { capture: true, allowFailure: true });
-  console.log(result.code === 0 ? result.stdout.replace(' <no value>', '') : 'not running');
+  const result = await docker(['inspect', CONTAINER, '--format', '{{json .State}}'], { capture: true, allowFailure: true });
+  console.log(result.code === 0 ? formatCliProxyContainerState(result.stdout) : 'not running');
 }
 
 if (command === 'init') await initialize();

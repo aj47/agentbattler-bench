@@ -23,15 +23,46 @@ export default function ChangelogPage() {
     <main className="shell detail-page changelog-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">leaderboard</Link><span>/</span><span>changelog</span></nav>
       <header className="changelog-hero">
-        <span className="eyebrow">benchmark record · July 26, 2026</span>
-        <h1>When the boundary broke,<br /><span>we kept the evidence.</span></h1>
-        <p>The original Mini Ledger V4 result set remains visible as history, with every run labeled according to what its trace actually shows.</p>
+        <span className="eyebrow">benchmark record · July 27, 2026</span>
+        <h1>Corrections are part<br /><span>of the benchmark.</span></h1>
+        <p>Invalid protocols remain visible as evidence. They do not quietly become scores.</p>
       </header>
+
+      <article className="incident-entry">
+        <div className="incident-entry-head">
+          <div><span className="chapter-number">01 / verifier lifecycle correction</span><h2>V5-R1 found the container boundary.<br />Then failed inside it.</h2></div>
+          <aside><span>status</span><strong>invalidated before publication</strong><code>replaced by V5-R2</code></aside>
+        </div>
+
+        <div className="incident-prose">
+          <h3>What happened</h3>
+          <div>
+            <p>V5-R1 separated agent and verifier containers, but verifier stages still shared candidate state, root-owned fixtures could be unreadable to the candidate, and one concurrency oracle contradicted the public idempotency contract. DotAgents also received the wrong workspace path. These defects could move scores in either direction, so no R1 trial is an official result.</p>
+            <p>R2 gives every stage and holdout case a source-only workspace, applies candidate ownership to fixtures, states the wire protocol in every turn, distinguishes infrastructure faults from agent failures, and archives each retry as a separate immutable attempt.</p>
+          </div>
+        </div>
+
+        <div className="incident-remediation">
+          <span>release invariants</span>
+          <ol>
+            <li><strong>Source-only stages</strong><p>Only a regular, non-symlink <code>ledger.mjs</code> enters each fresh verifier workspace.</p></li>
+            <li><strong>Correct identity</strong><p>Verifier fixtures are owned by the configured candidate UID/GID.</p></li>
+            <li><strong>Transactional retries</strong><p>No failed attempt can seed the next one or overwrite its evidence.</p></li>
+            <li><strong>Sealed protocol</strong><p>Prompts, verifiers, runtime policy, task tree, and adapters are bound into the challenge identity.</p></li>
+          </ol>
+        </div>
+
+        <div className="incident-sources">
+          <strong>Open the record</strong>
+          <a href="https://github.com/aj47/agentbattler-bench/blob/main/benchmark/incidents/mini-ledger-v5-r1-verifier.json">machine-readable incident ↗</a>
+          <a href="https://github.com/aj47/agentbattler-bench/blob/main/docs/incidents/mini-ledger-v5-r1-verifier.md">incident document ↗</a>
+        </div>
+      </article>
 
       {lane ? (
         <article className="incident-entry">
           <div className="incident-entry-head">
-            <div><span className="chapter-number">01 / isolation correction</span><h2>Eight observed accesses.<br />Sixty unofficial runs.</h2></div>
+            <div><span className="chapter-number">02 / isolation correction</span><h2>Eight observed accesses.<br />Sixty unofficial runs.</h2></div>
             <aside><span>status</span><strong>withdrawn from official Elo</strong><code>{lane.challengeId}</code></aside>
           </div>
 

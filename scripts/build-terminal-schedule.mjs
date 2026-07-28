@@ -18,12 +18,13 @@ const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
 const isHarborChallenge = challengeVersion === 'v4' || challengeVersion === 'v5';
 const challengeSourceVersion = challengeVersion === 'v5' ? 'v4' : challengeVersion;
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? challengeVersion;
+const protocolRevision = challengeVersion === 'v5' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2' : null;
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? `v5-${protocolRevision}` : challengeVersion);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const challengeRoot = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
 const challengeId = `terminal-mini-ledger-${challengeVersion}`;
 const outputRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
-const harborTaskVersion = challengeVersion === 'v5' ? 'v5' : 'v4';
+const harborTaskVersion = challengeVersion === 'v5' ? `v5-${protocolRevision}` : 'v4';
 const harborTaskRoot = path.join(ROOT, `benchmark/harbor/mini-ledger-${harborTaskVersion}`);
 const manifestPath = path.resolve(ROOT, process.env.AGENTBATTLER_TERMINAL_MANIFEST ?? 'agents/harness-suite/manifest.json');
 const requestedMaxWallTime = process.env.AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS;
@@ -61,6 +62,11 @@ const executionAdapters = isHarborChallenge ? {
   claudeCompaction: { path: 'src/claude-compaction.mjs', sha256: await sha256File(path.join(ROOT, 'src/claude-compaction.mjs')) },
   anthropicOverflowCompat: { path: 'src/anthropic-overflow-compat.mjs', sha256: await sha256File(path.join(ROOT, 'src/anthropic-overflow-compat.mjs')) },
   dotagents: { path: 'scripts/terminal-adapter-dotagents.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-dotagents.mjs')) },
+  candidateProcess: { path: 'benchmark/challenges/candidate-process.mjs', sha256: await sha256File(path.join(ROOT, 'benchmark/challenges/candidate-process.mjs')) },
+  publicVerifier: { path: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/public-verifier.mjs`, sha256: await sha256File(path.join(challengeRoot, 'public-verifier.mjs')) },
+  holdoutVerifier: { path: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/holdout-verifier.mjs`, sha256: await sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')) },
+  challengeRuntime: { path: 'src/terminal-challenge-runtime.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-challenge-runtime.mjs')) },
+  terminalPrompts: { path: challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs', sha256: await sha256File(path.join(ROOT, challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs')) },
 } : null;
 
 const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = await Promise.all([
@@ -78,7 +84,7 @@ const challenge = createMiniLedgerChallenge({
   promptSha256,
   publicVerifierSha256,
   holdoutVerifierSha256,
-  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', amendment: 'fixed-30-minute-turns-with-agent-notice' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
+  ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', protocolRevision, amendment: 'fixed-turns-explicit-wire-contract-source-only-verification' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
 });
@@ -103,7 +109,11 @@ if (challengeVersion === 'v5') {
   try {
     const existing = JSON.parse(await readFile(path.join(outputRoot, 'challenge.json'), 'utf8'));
     if (existing.challengeSha256 !== challenge.challengeSha256) {
-      throw new Error(`Refusing to replace sealed V5 challenge ${existing.challengeId}; choose a new AGENTBATTLER_TERMINAL_RESULT_TAG for a different protocol`);
+      const persistedRuns = await readdir(path.join(outputRoot, 'runs')).catch((error) => error?.code === 'ENOENT' ? [] : Promise.reject(error));
+      const persistedAttempts = await readdir(path.join(outputRoot, 'attempts')).catch((error) => error?.code === 'ENOENT' ? [] : Promise.reject(error));
+      if (persistedRuns.length > 0 || persistedAttempts.length > 0) {
+        throw new Error(`Refusing to replace sealed V5 challenge ${existing.challengeId}; choose a new AGENTBATTLER_TERMINAL_RESULT_TAG for a different protocol`);
+      }
     }
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;

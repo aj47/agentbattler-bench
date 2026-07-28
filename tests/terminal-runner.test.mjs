@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -36,6 +36,30 @@ test('terminal runner records infrastructure-invalid and retries it explicitly',
   assert.equal(first.invalid, 2);
   const second = await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, runTerminalJob: async ({ job }) => { calls += 1; return completed(job); }, retryInvalid: true });
   assert.equal(second.completed, 2); assert.equal(calls, 4);
+});
+
+test('terminal retries archive the failed workspace and start from an empty attempt', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-attempts-'));
+  const s = createExhaustiveTerminalSchedule({ challenge, agents: [agent('codex-cli', 'terra', 1)], expectedHarnesses: ['codex-cli'], expectedModels: ['terra'], generationsPerCombo: 1 });
+  await runTerminalSchedule({
+    challenge, schedule: s, resultRoot: root, challengeRoot: root,
+    runTerminalJob: async ({ runDirectory }) => {
+      await writeFile(path.join(runDirectory, 'stale-runtime-state'), 'must not survive');
+      throw new Error('transient infrastructure failure');
+    },
+  });
+  const result = await runTerminalSchedule({
+    challenge, schedule: s, resultRoot: root, challengeRoot: root, retryInvalid: true,
+    runTerminalJob: async ({ job, runDirectory }) => {
+      await assert.rejects(access(path.join(runDirectory, 'stale-runtime-state')), /ENOENT/);
+      await writeFile(path.join(runDirectory, 'accepted-attempt'), 'ok');
+      return completed(job);
+    },
+  });
+  assert.equal(result.completed, 1);
+  assert.equal((await readdir(path.join(root, 'attempts', s.jobs[0].runKey))).length, 2);
+  assert.equal((await readdir(path.join(root, 'work-attempts', s.jobs[0].runKey))).length, 1);
+  assert.equal(await readFile(path.join(root, 'work', s.jobs[0].runKey, 'accepted-attempt'), 'utf8'), 'ok');
 });
 
 test('terminal runner bounds independent job concurrency without parallelizing turns', async () => {

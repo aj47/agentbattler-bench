@@ -9,9 +9,12 @@ import { MINI_LEDGER_V5_TURN_PROMPTS } from '../src/terminal-prompts-v5.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!['v4', 'v5'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4 and V5');
+const protocolRevision = challengeVersion === 'v5' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2' : null;
+if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
-const versionNumber = challengeVersion === 'v5' ? '5.0.0' : '4.2.0';
-const output = path.join(root, 'benchmark', 'harbor', `mini-ledger-${challengeVersion}`);
+const versionNumber = challengeVersion === 'v5' ? '5.1.0' : '4.2.0';
+const taskTag = challengeVersion === 'v5' ? `${challengeVersion}-${protocolRevision}` : challengeVersion;
+const output = path.join(root, 'benchmark', 'harbor', `mini-ledger-${taskTag}`);
 const stages = [
   ['foundation', 3], ['batch', 3], ['pagination', 3], ['migration', 3], ['atomicity', 3],
   ['recovery', 3], ['concurrency', 3], ['compaction', 3], ['roundtrip', 3], ['replay', 3],
@@ -32,10 +35,12 @@ description = "Fifteen-turn long-horizon deterministic ledger challenge"
 [metadata]
 benchmark = "AgentBattler"
 challenge = "mini-ledger-${challengeVersion}"
+protocol_revision = "${protocolRevision ?? 'original'}"
 harbor_version = "0.20.0"
 visible_points = 70
 holdout_points = 30
 agent_time_policy = "${challengeVersion === 'v5' ? 'hard-30-minutes-per-turn-with-agent-notice' : 'self-terminating'}"
+verifier_workspace_policy = "source-only-per-stage-and-holdout-case"
 
 [agent]
 network_mode = "public"
@@ -105,17 +110,19 @@ async function directoryBytes(directory) {
 let stage = { id: stageId, passed: false, regressions: 1, exitCode: 1, durationMs: 0, diagnostic: 'verifier did not run' };
 let holdout = null;
 let workspaceBytes = null;
+let infrastructureError = null;
 try {
   workspaceBytes = await directoryBytes(workspace);
   stage = workspaceBytes > 50 * 1024 * 1024
     ? { ...stage, diagnostic: \`workspace exceeds 50 MiB limit: \${workspaceBytes} bytes\` }
     : await verifyPublicStage({ workspace, ledgerPath: path.join(workspace, 'ledger.mjs'), stageId });
 } catch (error) {
-  stage = { ...stage, diagnostic: String(error?.stack ?? error).slice(0, 2000) };
+  infrastructureError = String(error?.stack ?? error).slice(0, 2000);
+  stage = { ...stage, diagnostic: 'verifier infrastructure failed before the candidate could be judged' };
 }
 if (finalStep) {
   try { holdout = await verifyHoldout({ workspace }); }
-  catch (error) { holdout = { passed: 0, total: 11, cases: [{ name: 'holdout-verifier-error', passed: false, diagnostic: String(error?.message ?? error).slice(0, 500) }] }; }
+  catch (error) { infrastructureError ??= String(error?.stack ?? error).slice(0, 2000); holdout = { passed: 0, total: 11, cases: [{ name: 'holdout-verifier-infrastructure-error', passed: false, diagnostic: 'holdout verifier infrastructure failed' }] }; }
 }
 const reward = {
   reward: stage.passed ? 1 : 0,
@@ -128,7 +135,8 @@ const reward = {
 let isolationProbe = null;
 try { isolationProbe = JSON.parse(await readFile(path.join(workspace, 'isolation-probe.json'), 'utf8')); } catch { /* Normal candidates do not emit a probe. */ }
 await writeFile(path.join(logs, 'reward.json'), JSON.stringify(reward));
-await writeFile(path.join(logs, 'stage-result.json'), JSON.stringify({ stage, holdout, isolationProbe, workspaceBytes }, null, 2));
+await writeFile(path.join(logs, 'stage-result.json'), JSON.stringify({ stage, holdout, isolationProbe, workspaceBytes, infrastructureError, verifierWorkspace: { policy: 'source-only-per-stage-and-holdout-case', sourceEntryPoint: 'ledger.mjs', candidateUid: 1000, candidateGid: 1000 } }, null, 2));
+if (infrastructureError) process.exitCode = 2;
 `;
 
 await rm(output, { recursive: true, force: true });
@@ -190,5 +198,5 @@ await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersio
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${challengeVersion === 'v5' ? '\n\nEvery agent step has a hard 30-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n' : '\n'}`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${challengeVersion === 'v5' ? '\n\nEvery agent step has a hard 30-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n' : '\n'}`);
 console.log(output);

@@ -77,7 +77,7 @@ test('builds a locked-down loopback-only Docker invocation', () => {
   assert.ok(args.includes('--read-only'));
   assert.ok(args.includes('no-new-privileges'));
   assert.ok(args.includes('127.0.0.1:40123:3210'));
-  assert.ok(args.includes('DOTAGENTS_WORKSPACE_DIR=/config-workspace'));
+  assert.ok(args.includes('DOTAGENTS_WORKSPACE_DIR=/workspace'));
 });
 
 test('can attach the DotAgents container to an isolated proxy network', () => {

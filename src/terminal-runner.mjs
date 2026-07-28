@@ -1,4 +1,5 @@
 import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
 import { canonicalJson, canonicalJsonSha256 } from './provenance.mjs';
@@ -21,6 +22,25 @@ async function atomicWriteJson(file, value) {
 
 export function terminalRunPath(resultRoot, runKey) {
   return path.join(resultRoot, 'runs', `${runKey}.json`);
+}
+
+function terminalAttemptPath(resultRoot, runKey, attemptId) {
+  return path.join(resultRoot, 'attempts', runKey, `${attemptId}.json`);
+}
+
+function createAttemptId() {
+  return `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomBytes(4).toString('hex')}`;
+}
+
+async function prepareAttemptWorkspace(resultRoot, runKey) {
+  const runDirectory = path.join(resultRoot, 'work', runKey);
+  if (await exists(runDirectory)) {
+    const archive = path.join(resultRoot, 'work-attempts', runKey, createAttemptId());
+    await mkdir(path.dirname(archive), { recursive: true });
+    await rename(runDirectory, archive);
+  }
+  await mkdir(runDirectory, { recursive: true, mode: 0o700 });
+  return runDirectory;
 }
 
 export function validateTerminalJobIdentity(job, run) {
@@ -132,12 +152,14 @@ export async function runTerminalSchedule({
       return;
     }
 
-    const runDirectory = path.join(resultRoot, 'work', job.runKey);
+    const attemptId = createAttemptId();
+    const runDirectory = await prepareAttemptWorkspace(resultRoot, job.runKey);
     const startedAt = new Date().toISOString();
-    onProgress({ job, status: 'started', startedAt });
+    onProgress({ job, status: 'started', startedAt, attemptId });
     try {
       const result = await runTerminalJob({ challenge, job: adapterJob, challengeRoot, runDirectory });
-      const normalized = normalizeCompletedRun(job, result);
+      const normalized = normalizeCompletedRun(job, { ...result, attemptId });
+      await atomicWriteJson(terminalAttemptPath(resultRoot, job.runKey, attemptId), normalized);
       await atomicWriteJson(file, normalized);
       summary.completed += 1;
       onProgress({ job, status: 'completed', result: normalized });
@@ -147,9 +169,13 @@ export async function runTerminalSchedule({
         startedAt,
         endedAt: new Date().toISOString(),
       });
-      await atomicWriteJson(file, invalid);
+      const { resultSha256: _discardedInvalidHash, ...invalidUnsigned } = invalid;
+      const attempted = { ...invalidUnsigned, attemptId };
+      const sealedAttempt = { ...attempted, resultSha256: canonicalJsonSha256(attempted) };
+      await atomicWriteJson(terminalAttemptPath(resultRoot, job.runKey, attemptId), sealedAttempt);
+      await atomicWriteJson(file, sealedAttempt);
       summary.invalid += 1;
-      onProgress({ job, status: 'infrastructure-invalid', result: invalid });
+      onProgress({ job, status: 'infrastructure-invalid', result: sealedAttempt });
     }
   }
 

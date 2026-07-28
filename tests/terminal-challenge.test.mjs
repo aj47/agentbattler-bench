@@ -14,6 +14,7 @@ import {
 } from '../src/terminal-challenge.mjs';
 import { MINI_LEDGER_V4_TURN_PROMPTS } from '../src/terminal-prompts-v4.mjs';
 import {
+  MINI_LEDGER_V5_PROTOCOL_NOTICE,
   MINI_LEDGER_V5_TIME_BUDGET_NOTICE,
   MINI_LEDGER_V5_TURN_LIMIT_MS,
   MINI_LEDGER_V5_TURN_PROMPTS,
@@ -76,7 +77,9 @@ test('V5 preserves V4 requirements and tells agents about the fixed turn limit',
   for (const [index, prompt] of MINI_LEDGER_V5_TURN_PROMPTS.entries()) {
     assert.ok(prompt.startsWith(MINI_LEDGER_V4_TURN_PROMPTS[index]));
     assert.ok(prompt.endsWith(MINI_LEDGER_V5_TIME_BUDGET_NOTICE));
+    assert.ok(prompt.includes(MINI_LEDGER_V5_PROTOCOL_NOTICE));
     assert.match(prompt, /hard 30-minute wall-clock limit/);
+    assert.match(prompt, /query emits the event array directly/);
   }
   assert.ok(MINI_LEDGER_V4_TURN_PROMPTS.every((prompt) => !prompt.includes(MINI_LEDGER_V5_TIME_BUDGET_NOTICE)));
 });

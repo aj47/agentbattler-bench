@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "agentbattler.benchmark-incident.v1",
+  "incidentId": "mini-ledger-v5-r1-verifier-lifecycle",
+  "publishedAt": "2026-07-27",
+  "affectedResultRoot": "results/terminal-mini-ledger-v5",
+  "status": "invalidated-prepublication",
+  "officialRankingEligible": false,
+  "replacement": {
+    "protocol": "mini-ledger-v5-r2",
+    "taskPath": "benchmark/harbor/mini-ledger-v5-r2",
+    "resultRoot": "results/terminal-mini-ledger-v5-r2"
+  },
+  "failureClasses": [
+    "cross-stage-candidate-state-leakage",
+    "candidate-fixture-ownership-mismatch",
+    "idempotency-oracle-contract-mismatch",
+    "dotagents-workspace-mismatch",
+    "infrastructure-fault-scored-as-agent-failure",
+    "retry-workspace-reuse"
+  ],
+  "validityPolicy": "V5-R1 trial artifacts may be inspected as diagnostic evidence but must not enter score aggregates, leaderboards, or Elo.",
+  "replacementInvariants": [
+    "source-only-fresh-workspace-per-verifier-stage-and-holdout-case",
+    "regular-non-symlink-ledger-source",
+    "candidate-owned-fixtures",
+    "explicit-wire-contract-in-every-turn",
+    "infrastructure-exceptions-invalidate-attempts",
+    "fresh-workspace-and-immutable-record-per-attempt",
+    "verifier-prompt-runtime-and-adapter-hashes-bound-into-challenge",
+    "reference-candidate-calibration-required"
+  ]
+}

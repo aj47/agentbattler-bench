@@ -28,10 +28,11 @@ export const harnesses = Object.freeze(Object.keys(HARBOR_BY_HARNESS));
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
 function taskRootForChallenge(challenge) {
-  const expectedPath = challenge.id === 'terminal-mini-ledger-v5'
-    ? 'benchmark/harbor/mini-ledger-v5'
-    : 'benchmark/harbor/mini-ledger-v4';
-  invariant(challenge.execution?.taskPath === expectedPath, `Challenge task path must be ${expectedPath}`);
+  const allowedPaths = challenge.id === 'terminal-mini-ledger-v5'
+    ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2'])
+    : new Set(['benchmark/harbor/mini-ledger-v4']);
+  const expectedPath = challenge.execution?.taskPath;
+  invariant(allowedPaths.has(expectedPath), `Challenge task path is not an allowed sealed task: ${expectedPath ?? 'missing'}`);
   return path.join(REPO_ROOT, expectedPath);
 }
 
@@ -243,10 +244,14 @@ function milliseconds(timing) {
 
 async function detailedStage(trialRoot, step, fallbackId) {
   const detailPath = path.join(trialRoot, 'steps', step.step_name, 'verifier', 'stage-result.json');
+  let detail = null;
   try {
-    const detail = JSON.parse(await readFile(detailPath, 'utf8'));
+    detail = JSON.parse(await readFile(detailPath, 'utf8'));
+  } catch { /* Fall back to Harbor's scalar rewards when detailed output is absent. */ }
+  if (detail) {
+    invariant(!detail.infrastructureError, `Verifier infrastructure failed for ${step.step_name}: ${detail.infrastructureError}`);
     return { stage: { ...detail.stage, id: detail.stage?.id ?? fallbackId }, holdout: detail.holdout ?? null };
-  } catch {
+  } else {
     const rewards = step.verifier_result?.rewards ?? {};
     const passed = rewards.reward === 1;
     return {
@@ -376,7 +381,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
     ...(compaction ? { compaction } : {}),
-    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
+    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
   };
 }
 

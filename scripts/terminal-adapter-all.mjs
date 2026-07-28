@@ -21,7 +21,11 @@ async function verifyHarborAdapters(challenge, harness) {
   const expected = challenge.execution?.adapters;
   if (!expected) throw new Error('V4 challenge does not bind adapter source');
   const kind = harborByHarness.has(harness) ? 'harbor' : 'dotagents';
-  for (const name of ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat']) {
+  const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
+  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts']) {
+    if (expected[optional]) common.push(optional);
+  }
+  for (const name of common) {
     const descriptor = expected[name];
     if (!descriptor || await sha256File(path.join(ROOT, descriptor.path)) !== descriptor.sha256) throw new Error(`${name} adapter source does not match the sealed challenge`);
   }

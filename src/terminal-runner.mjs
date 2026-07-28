@@ -80,6 +80,17 @@ export function normalizeCompletedRun(job, result) {
   return { ...unsigned, resultSha256: canonicalJsonSha256(unsigned) };
 }
 
+export function orderTerminalJobsBreadthFirst(jobs, coverage = []) {
+  const comboOrder = new Map(coverage.map((entry, index) => [entry.combo.comboId, index]));
+  return [...jobs].sort((left, right) => (
+    left.generationIndex - right.generationIndex
+    || (left.repeat ?? 1) - (right.repeat ?? 1)
+    || (comboOrder.get(left.comboId) ?? Number.MAX_SAFE_INTEGER) - (comboOrder.get(right.comboId) ?? Number.MAX_SAFE_INTEGER)
+    || (left.seed ?? 0) - (right.seed ?? 0)
+    || left.artifactId.localeCompare(right.artifactId)
+  ));
+}
+
 async function readExistingRun(file, job) {
   if (!await exists(file)) return null;
   const run = JSON.parse(await readFile(file, 'utf8'));
@@ -117,12 +128,12 @@ export async function runTerminalSchedule({
   invariant(Number.isSafeInteger(concurrency) && concurrency > 0, 'Terminal concurrency must be a positive integer');
   await mkdir(path.join(resultRoot, 'runs'), { recursive: true });
 
-  const selected = schedule.jobs.filter((job) => {
+  const selected = orderTerminalJobsBreadthFirst(schedule.jobs.filter((job) => {
     const combo = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo;
     return (!onlyHarnesses?.length || onlyHarnesses.includes(combo?.harness.id))
       && (!onlyModels?.length || onlyModels.includes(combo?.model.id))
       && (!onlyGenerationIndices?.length || onlyGenerationIndices.includes(job.generationIndex));
-  });
+  }), schedule.coverage);
   const summary = { expected: selected.length, skipped: 0, completed: 0, invalid: 0, failed: 0 };
   async function executeJob(job) {
     const coverage = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId);

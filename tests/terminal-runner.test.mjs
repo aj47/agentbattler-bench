@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
-import { runTerminalSchedule, terminalRunPath } from '../src/terminal-runner.mjs';
+import { orderTerminalJobsBreadthFirst, runTerminalSchedule, terminalRunPath } from '../src/terminal-runner.mjs';
 
 const challenge = createMiniLedgerChallenge({ promptSha256: 'p'.repeat(64), publicVerifierSha256: 'u'.repeat(64), holdoutVerifierSha256: 'h'.repeat(64) });
 function agent(harness, model, generationIndex) {
@@ -92,4 +92,21 @@ test('terminal runner can select one model and generation for calibration', asyn
   });
   assert.equal(result.expected, 1);
   assert.equal(result.completed, 1);
+});
+
+test('terminal runner gives every combo first coverage before later generations', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-breadth-'));
+  const breadthSchedule = createExhaustiveTerminalSchedule({
+    challenge,
+    agents: [agent('codex-cli', 'terra', 1), agent('codex-cli', 'terra', 2), agent('codex-cli', 'sol', 1), agent('codex-cli', 'sol', 2)],
+    expectedHarnesses: ['codex-cli'], expectedModels: ['terra', 'sol'], generationsPerCombo: 2,
+  });
+  const calls = [];
+  await runTerminalSchedule({
+    challenge, schedule: breadthSchedule, resultRoot: root, challengeRoot: root,
+    runTerminalJob: async ({ job }) => { calls.push({ comboId: job.comboId, generationIndex: job.generationIndex }); return completed(job); },
+  });
+  assert.deepEqual(calls.map((job) => job.generationIndex), [1, 1, 2, 2]);
+  assert.equal(new Set(calls.slice(0, 2).map((job) => job.comboId)).size, 2);
+  assert.deepEqual(orderTerminalJobsBreadthFirst([...breadthSchedule.jobs].reverse(), breadthSchedule.coverage).map((job) => job.generationIndex), [1, 1, 2, 2]);
 });

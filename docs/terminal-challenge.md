@@ -154,9 +154,13 @@ nohup caffeinate -dimsu npm run terminal:run:v5 > terminal-v5.log 2>&1 &
 echo $! > terminal-v5.pid
 ```
 
-The runner is resumable: completed sealed run keys are skipped, while infrastructure-invalid
-runs are retried by the bounded retry passes. Do not regenerate the schedule after execution
-starts. Once all 60 runs pass strict verification, run `npm run terminal:traces:v5`. Published
+The runner is resumable and breadth-first. It gives every harness/model combo generation 1
+before starting generation 2, then repeats that generation-major order through generation 5.
+Completed sealed run keys are skipped. Infrastructure-invalid attempts are deferred until the
+first-coverage pass is complete, then retried by bounded retry passes in the same order. This
+keeps early results representative of the whole matrix instead of oversampling whichever combo
+happens to appear first. Do not regenerate the schedule after execution starts. Once all 60 runs
+pass strict verification, run `npm run terminal:traces:v5`. Published
 traces retain normalized run and per-turn durations, input/cached-input/output/reasoning token
 counts, tool calls, compaction boundaries, Harbor resource summaries, native semantic events,
 and verifier diagnostics. Raw workspaces remain local and ignored because they can contain

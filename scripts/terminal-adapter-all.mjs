@@ -22,7 +22,7 @@ async function verifyHarborAdapters(challenge, harness) {
   if (!expected) throw new Error('V4 challenge does not bind adapter source');
   const kind = harborByHarness.has(harness) ? 'harbor' : 'dotagents';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
-  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts']) {
+  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions']) {
     if (expected[optional]) common.push(optional);
   }
   for (const name of common) {

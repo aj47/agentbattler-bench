@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry, compactionDelta } from '../src/claude-compaction.mjs';
+import { terminalHarnessVersion } from '../src/terminal-harness-versions.mjs';
 
 const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
@@ -18,9 +19,9 @@ const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_ag
 const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
 const ANTHROPIC_OVERFLOW_COMPAT_PATH = path.join(REPO_ROOT, 'src', 'anthropic-overflow-compat.mjs');
 const HARBOR_BY_HARNESS = Object.freeze({
-  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: '2.1.220', kwargs: ['reasoning_effort=high'] },
-  'codex-cli': { agent: 'codex', version: '0.144.0', kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
-  'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: '0.80.7', kwargs: [] },
+  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: terminalHarnessVersion('claude-code'), kwargs: ['reasoning_effort=high'] },
+  'codex-cli': { agent: 'codex', version: terminalHarnessVersion('codex-cli'), kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
+  'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: terminalHarnessVersion('pi-coding-agent'), kwargs: [] },
 });
 
 export const harnesses = Object.freeze(Object.keys(HARBOR_BY_HARNESS));

@@ -13,6 +13,7 @@ import * as harbor from '../scripts/terminal-adapter-harbor.mjs';
 import { candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
 import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
+import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'pi-coding-agent']);
@@ -31,8 +32,22 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
   assert.ok(args.includes('--resume-trajectory'));
   assert.equal(args[args.indexOf('--env') + 1], 'docker');
   assert.equal(args[args.indexOf('--model') + 1], 'gpt-5.6-sol');
+  assert.equal(args[args.indexOf('--agent-timeout') + 1], '1800');
   assert.ok(args.some((value) => value.endsWith('/.codex/auth.json') && value.startsWith('CODEX_AUTH_JSON_PATH=')));
   assert.ok(!args.includes('CODEX_FORCE_AUTH_JSON=true'));
+});
+
+test('terminal schedules bind declared harness versions to launched runtimes', () => {
+  assert.deepEqual(SEALED_TERMINAL_HARNESS_VERSIONS, {
+    'claude-code': '2.1.220',
+    'codex-cli': '0.144.0',
+    'dotagents-mono': '1.1.6',
+    'pi-coding-agent': '0.80.7',
+  });
+  const rebound = bindTerminalHarnessRuntime({ provenance: { harness: 'claude-code', harnessVersion: '2.1.211' } });
+  assert.equal(rebound.provenance.harnessVersion, '2.1.220');
+  assert.equal(rebound.provenance.sourceArtifactHarnessVersion, '2.1.211');
+  assert.throws(() => bindTerminalHarnessRuntime({ provenance: { harness: 'new-harness', harnessVersion: '1.0.0' } }), /No sealed terminal runtime version/);
 });
 
 test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', async () => {

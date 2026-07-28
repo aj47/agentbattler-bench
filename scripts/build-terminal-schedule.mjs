@@ -11,6 +11,7 @@ import {
   validateTerminalSchedule,
 } from '../src/terminal-challenge.mjs';
 import { MINI_LEDGER_V5_TURN_LIMIT_MS } from '../src/terminal-prompts-v5.mjs';
+import { bindTerminalHarnessRuntime } from '../src/terminal-harness-versions.mjs';
 import { canonicalJson, canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -67,6 +68,7 @@ const executionAdapters = isHarborChallenge ? {
   holdoutVerifier: { path: `benchmark/challenges/mini-ledger-${challengeSourceVersion}/holdout-verifier.mjs`, sha256: await sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')) },
   challengeRuntime: { path: 'src/terminal-challenge-runtime.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-challenge-runtime.mjs')) },
   terminalPrompts: { path: challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs', sha256: await sha256File(path.join(ROOT, challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs')) },
+  harnessVersions: { path: 'src/terminal-harness-versions.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-harness-versions.mjs')) },
 } : null;
 
 const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = await Promise.all([
@@ -91,10 +93,13 @@ const challenge = createMiniLedgerChallenge({
 const expectedHarnesses = manifest.comparison?.harnesses ?? [...new Set(manifest.agents.map((agent) => agent.provenance.harness))];
 const expectedModels = manifest.comparison?.models ?? [...new Set(manifest.agents.map((agent) => agent.provenance.modelRequested))];
 const generationsPerCombo = manifest.comparison?.generationsPerHarnessModel ?? Math.max(...manifest.agents.map((agent) => agent.generationIndex ?? agent.provenance.generationIndex ?? 0));
-const terminalAgents = manifest.agents.map((agent) => ({
-  ...agent,
-  id: `terminal-${agent.provenance.harness}-${agent.provenance.modelFamilyId}-${String(agent.generationIndex ?? agent.provenance.generationIndex).padStart(2, '0')}`,
-}));
+const terminalAgents = manifest.agents.map((sourceAgent) => {
+  const agent = bindTerminalHarnessRuntime(sourceAgent);
+  return {
+    ...agent,
+    id: `terminal-${agent.provenance.harness}-${agent.provenance.modelFamilyId}-${String(agent.generationIndex ?? agent.provenance.generationIndex).padStart(2, '0')}`,
+  };
+});
 const schedule = createExhaustiveTerminalSchedule({
   challenge,
   agents: terminalAgents,

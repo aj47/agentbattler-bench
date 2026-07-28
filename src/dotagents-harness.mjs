@@ -1,9 +1,10 @@
 import path from 'node:path';
 
 import { canonicalJsonSha256 } from './provenance.mjs';
+import { terminalHarnessVersion } from './terminal-harness-versions.mjs';
 
 export const DOTAGENTS_COMMIT = '8d4df16140e33083eba5dfae4878f22696afdfe9';
-export const DOTAGENTS_VERSION = '1.1.6';
+export const DOTAGENTS_VERSION = terminalHarnessVersion('dotagents-mono');
 export const DOTAGENTS_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}`;
 export const DOTAGENTS_PROFILE_ID = 'agentbattler-benchmark';
 export const DOTAGENTS_RUNTIME_TOOLS = Object.freeze(['execute_command', 'mark_work_complete']);

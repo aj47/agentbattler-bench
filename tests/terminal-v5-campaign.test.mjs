@@ -2,7 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
-import { reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+import { configureTerminalV5RuntimeEnvironment, reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+
+test('V5 campaign pins the R4 verifier runtime before adapter import', () => {
+  const environment = {
+    AGENTBATTLER_TERMINAL_CHALLENGE_VERSION: 'v2',
+    AGENTBATTLER_TERMINAL_PROTOCOL_REVISION: 'r2',
+    AGENTBATTLER_TERMINAL_RESULT_TAG: 'v5-r2',
+  };
+  configureTerminalV5RuntimeEnvironment(environment);
+  assert.deepEqual(environment, {
+    AGENTBATTLER_TERMINAL_CHALLENGE_VERSION: 'v5',
+    AGENTBATTLER_TERMINAL_PROTOCOL_REVISION: 'r4',
+    AGENTBATTLER_TERMINAL_RESULT_TAG: 'v5-r4-reliability',
+  });
+});
 
 function challenge(seed) {
   return createMiniLedgerChallenge({ challengeId: 'terminal-mini-ledger-v5', promptSha256: seed.repeat(64), publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64) });

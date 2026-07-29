@@ -1,6 +1,13 @@
 const HARNESS_ORDER = new Map(['dotagents-mono', 'pi-coding-agent', 'claude-code', 'codex-cli'].map((value, index) => [value, index]));
 const MODEL_ORDER = new Map(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra'].map((value, index) => [value, index]));
 
+export function configureTerminalV5RuntimeEnvironment(environment = process.env) {
+  environment.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION = 'v5';
+  environment.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION = 'r4';
+  environment.AGENTBATTLER_TERMINAL_RESULT_TAG = 'v5-r4-reliability';
+  return environment;
+}
+
 export function logicalTerminalJobKey(job, combo) {
   return [
     combo.harness.id,

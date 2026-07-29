@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
-import { reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+import { configureTerminalV5RuntimeEnvironment, reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
 import { runTerminalSchedule } from '../src/terminal-runner.mjs';
 import { scoreTerminalRun, validateMiniLedgerChallenge, validateTerminalSchedule } from '../src/terminal-challenge.mjs';
 
@@ -152,6 +152,10 @@ async function runNext() {
     const { target, campaign } = await loadCampaign({ requireLegacy: true });
     if (!campaign.next) return { message: 'V5 campaign is complete', campaign };
     const next = campaign.next;
+    // Adapters resolve their prompt and verifier modules at import time. Pin
+    // the R4 runtime first so direct coordinator invocations cannot silently
+    // fall back to the older default stage registry.
+    configureTerminalV5RuntimeEnvironment();
     const adapter = await import('./terminal-adapter-all.mjs');
     const summary = await runTerminalSchedule({
       challenge: target.challenge,

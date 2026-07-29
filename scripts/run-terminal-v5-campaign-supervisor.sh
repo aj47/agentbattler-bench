@@ -17,6 +17,13 @@ while [[ -f "$lock" ]]; do
   break
 done
 
+# A one-shot runner may have been launched by the watchdog before this service
+# acquired the campaign lock. Let it finalize its distinct job before the
+# persistent coordinator reconciles and selects the next two-lane batch.
+while pgrep -f 'node scripts/run-terminal-matrix.mjs' >/dev/null; do
+  sleep 15
+done
+
 git -C "$checkout" diff --quiet
 git -C "$checkout" diff --cached --quiet
 git -C "$checkout" fetch https://github.com/aj47/agentbattler-bench.git main

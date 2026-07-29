@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
+import { reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+
+function challenge(seed) {
+  return createMiniLedgerChallenge({ challengeId: 'terminal-mini-ledger-v5', promptSha256: seed.repeat(64), publicVerifierSha256: 'b'.repeat(64), holdoutVerifierSha256: 'c'.repeat(64) });
+}
+function agent(harness, model, generationIndex) {
+  return { id: `${harness}-${model}-${generationIndex}`, generationIndex, provenance: { harness, harnessVersion: 'test', modelRequested: model, modelFamilyId: model, reasoningEffort: 'high' } };
+}
+function scheduleFor(challengeValue) {
+  return createExhaustiveTerminalSchedule({
+    challenge: challengeValue,
+    agents: ['dotagents-mono', 'pi-coding-agent'].flatMap((harness) => [1, 2].map((generation) => agent(harness, 'gpt-sol', generation))),
+    expectedHarnesses: ['dotagents-mono', 'pi-coding-agent'],
+    expectedModels: ['gpt-sol'],
+    generationsPerCombo: 2,
+  });
+}
+function record(schedule, harness, generation, status, attemptCount = 1) {
+  const combo = schedule.coverage.find((entry) => entry.combo.harness.id === harness).combo;
+  const job = schedule.jobs.find((entry) => entry.comboId === combo.comboId && entry.generationIndex === generation);
+  return { job, combo, run: { ...job, status, runKey: job.runKey }, attemptCount, file: `/results/${job.runKey}.json` };
+}
+
+test('V5 campaign preserves accepted legacy evidence and finishes first coverage before retries', () => {
+  const target = scheduleFor(challenge('a'));
+  const legacy = scheduleFor(challenge('d'));
+  const sources = [
+    { id: 'R4', protocolRevision: 'r4', records: [] },
+    { id: 'R3', protocolRevision: 'r3', harnesses: ['dotagents-mono'], records: [record(legacy, 'dotagents-mono', 1, 'completed')] },
+    { id: 'R2', protocolRevision: 'r2', harnesses: ['pi-coding-agent'], records: [record(legacy, 'pi-coding-agent', 1, 'infrastructure-invalid')] },
+  ];
+  const campaign = reconcileTerminalV5Campaign({ targetSchedule: target, sources });
+  assert.deepEqual(campaign.counts, { expected: 4, accepted: 1, infrastructureInvalid: 1, unstarted: 2, outstanding: 3 });
+  assert.equal(campaign.phase, 'first-coverage');
+  assert.equal(campaign.next.job.generationIndex, 2);
+  assert.equal(campaign.next.combo.harness.id, 'dotagents-mono');
+  assert.equal(campaign.entries.find((entry) => entry.combo.harness.id === 'dotagents-mono' && entry.job.generationIndex === 1).acceptedSource.sourceId, 'R3');
+});
+
+test('bounded retry passes choose the unresolved job with the fewest attempts', () => {
+  const target = scheduleFor(challenge('e'));
+  const records = target.coverage.flatMap(({ combo }) => [1, 2].map((generation) => record(target, combo.harness.id, generation, 'infrastructure-invalid', combo.harness.id === 'dotagents-mono' ? 2 : 1)));
+  const campaign = reconcileTerminalV5Campaign({ targetSchedule: target, sources: [{ id: 'R4', protocolRevision: 'r4', records }] });
+  assert.equal(campaign.phase, 'bounded-retries');
+  assert.equal(campaign.next.combo.harness.id, 'pi-coding-agent');
+  assert.equal(campaign.next.attemptCount, 1);
+});

@@ -101,8 +101,7 @@ class AgentBattlerPi(Pi):
                 f"--session {self._SESSION_PATH} $continue_flag "
                 f"{shlex.quote(instruction)} "
                 "2>&1 </dev/null | grep -v '\"type\":\"message_update\"' | "
-                f"stdbuf -oL tee /logs/agent/{self._OUTPUT_FILENAME}; "
-                f"! grep -q '\"stopReason\":\"error\"' /logs/agent/{self._OUTPUT_FILENAME}"
+                f"stdbuf -oL tee /logs/agent/{self._OUTPUT_FILENAME}"
             ),
         )
         context.metadata = {

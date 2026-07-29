@@ -12,7 +12,9 @@ if (!['v4', 'v5'].includes(challengeVersion)) throw new Error('Harbor task gener
 const protocolRevision = challengeVersion === 'v5' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
-const versionNumber = challengeVersion === 'v5' ? protocolRevision === 'r3' ? '5.2.0' : '5.1.0' : '4.2.0';
+const versionNumber = challengeVersion === 'v5'
+  ? protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
+  : '4.2.0';
 const taskTag = challengeVersion === 'v5' ? `${challengeVersion}-${protocolRevision}` : challengeVersion;
 const output = path.join(root, 'benchmark', 'harbor', `mini-ledger-${taskTag}`);
 const stages = [

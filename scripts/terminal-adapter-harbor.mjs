@@ -30,7 +30,7 @@ function invariant(condition, message) { if (!condition) throw new Error(message
 
 function taskRootForChallenge(challenge) {
   const allowedPaths = challenge.id === 'terminal-mini-ledger-v5'
-    ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2', 'benchmark/harbor/mini-ledger-v5-r3'])
+    ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2', 'benchmark/harbor/mini-ledger-v5-r3', 'benchmark/harbor/mini-ledger-v5-r4'])
     : new Set(['benchmark/harbor/mini-ledger-v4']);
   const expectedPath = challenge.execution?.taskPath;
   invariant(allowedPaths.has(expectedPath), `Challenge task path is not an allowed sealed task: ${expectedPath ?? 'missing'}`);
@@ -217,9 +217,10 @@ export function buildHarborArgs({ job, taskRoot = path.join(REPO_ROOT, 'benchmar
   }
   for (const value of proxyEnv) args.push('--agent-env', value);
   if (job.harness === 'claude-code') {
-    const compaction = claudeCompactionPolicy(job.model ?? job.modelRequested);
-    args.push('--agent-env', `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=${CLAUDE_MAX_TOOL_USE_CONCURRENCY}`);
-    for (const [name, value] of Object.entries(compaction.environmentVariables)) args.push('--agent-env', `${name}=${value}`);
+    // The Claude wrapper owns public numeric resource settings. Passing them
+    // via --agent-env makes Harbor register values such as 200000 as secrets;
+    // literal redaction can then corrupt unrelated JSON number fields.
+    claudeCompactionPolicy(job.model ?? job.modelRequested);
   }
   if (Number.isSafeInteger(job.maxWallTimeMs) && job.maxWallTimeMs > 0) args.push('--agent-timeout', String(job.maxWallTimeMs / 1000));
   return args;
@@ -267,20 +268,27 @@ async function nativePiEvidence(trialRoot, stepName) {
   try {
     const events = (await readFile(eventFile, 'utf8')).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
     const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
+    const providerErrors = [];
     for (const event of events) {
-      if (event.type !== 'message_end' || event.message?.role !== 'assistant') continue;
-      const sample = event.message.usage ?? {};
-      usage.inputTokens += Number(sample.input ?? 0) + Number(sample.cacheRead ?? 0);
-      usage.cachedInputTokens += Number(sample.cacheRead ?? 0);
-      usage.outputTokens += Number(sample.output ?? 0);
-      usage.reasoningTokens += Number(sample.reasoning ?? 0);
+      const messages = [event.message, ...(Array.isArray(event.messages) ? event.messages : [])].filter(Boolean);
+      for (const message of messages) {
+        if (message.stopReason === 'error') providerErrors.push(String(message.errorMessage ?? message.error ?? 'provider error').slice(0, 500));
+      }
+      if (event.type === 'message_end' && event.message?.role === 'assistant') {
+        const sample = event.message.usage ?? {};
+        usage.inputTokens += Number(sample.input ?? 0) + Number(sample.cacheRead ?? 0);
+        usage.cachedInputTokens += Number(sample.cacheRead ?? 0);
+        usage.outputTokens += Number(sample.output ?? 0);
+        usage.reasoningTokens += Number(sample.reasoning ?? 0);
+      }
     }
     return {
       sessionId: events.find((event) => event.type === 'session')?.id ?? null,
       toolCalls: events.filter((event) => event.type === 'tool_execution_start').length,
       usage,
+      providerErrors: [...new Set(providerErrors)],
     };
-  } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 } }; }
+  } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 }, providerErrors: [] }; }
 }
 
 async function nativeClaudeEvidence(trialRoot, stepName) {
@@ -349,7 +357,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     trajectories.push(trajectory);
     const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
-    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
+    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'pi-coding-agent' && nativeEvidence.providerErrors.length ? { providerErrors: nativeEvidence.providerErrors } : {}), ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');
   const observedSessions = sessionIds.filter(Boolean);
@@ -382,7 +390,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
     ...(compaction ? { compaction } : {}),
-    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
+    adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, providerErrorTurns: turns.filter((turn) => turn.providerErrors?.length).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
   };
 }
 

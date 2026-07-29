@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { access, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { createCandidateSubdirectory, withCandidateWorkspace } from '../benchmark/challenges/candidate-process.mjs';
+import { createCandidateSubdirectory, removeCandidateWorkspace, withCandidateWorkspace } from '../benchmark/challenges/candidate-process.mjs';
 import { validateIdempotencyRace, verifyPublicStage } from '../benchmark/challenges/mini-ledger-v4/public-verifier.mjs';
 import { verifyHoldout } from '../benchmark/challenges/mini-ledger-v4/holdout-verifier.mjs';
 
@@ -28,6 +28,43 @@ test('verifier rejects a symlinked candidate entry point', async () => {
   await writeFile(path.join(source, 'real.mjs'), '#!/usr/bin/env node\n');
   await import('node:fs/promises').then(({ symlink }) => symlink('real.mjs', path.join(source, 'ledger.mjs')));
   await assert.rejects(withCandidateWorkspace(path.join(source, 'ledger.mjs'), 'symlink-test', async () => {}), /regular source file/);
+});
+
+test('candidate workspace cleanup retries transient ENOTEMPTY races', async () => {
+  let calls = 0;
+  const removed = await removeCandidateWorkspace('/tmp/fake-candidate-workspace', {
+    retryDelayMs: 0,
+    remove: async () => {
+      calls += 1;
+      if (calls < 3) throw Object.assign(new Error('directory not empty'), { code: 'ENOTEMPTY' });
+    },
+    warn: () => assert.fail('cleanup should not warn after a successful retry'),
+  });
+  assert.equal(removed, true);
+  assert.equal(calls, 3);
+});
+
+test('cleanup failure does not replace a completed verifier result', async () => {
+  const source = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-cleanup-result-'));
+  const ledger = path.join(source, 'ledger.mjs');
+  await writeFile(ledger, '#!/usr/bin/env node\n');
+  let leakedWorkspace = null;
+  let warning = null;
+  try {
+    const result = await withCandidateWorkspace(ledger, 'cleanup-result', async ({ workspace }) => {
+      leakedWorkspace = workspace;
+      return { id: 'scale-stress', passed: true };
+    }, {
+      attempts: 1,
+      remove: async () => { throw Object.assign(new Error('directory not empty'), { code: 'ENOTEMPTY' }); },
+      warn: (message) => { warning = message; },
+    });
+    assert.deepEqual(result, { id: 'scale-stress', passed: true });
+    assert.match(warning, /cleanup deferred/);
+  } finally {
+    if (leakedWorkspace) await rm(leakedWorkspace, { recursive: true, force: true, maxRetries: 5 });
+    await rm(source, { recursive: true, force: true });
+  }
 });
 
 test('idempotency race accepts one commit with multiple successful retry responses', () => {

@@ -9,6 +9,16 @@ from harbor.environments.base import BaseEnvironment
 _WRAPPER = r"""#!/usr/bin/env bash
 set -uo pipefail
 
+# Harbor registers every --agent-env value as a secret and performs literal
+# replacement in its serialized result JSON. Generic numeric values such as
+# 200000 can occur inside cost decimals, where replacing them with an unquoted
+# [REDACTED] token corrupts the JSON. Keep public resource-policy values in the
+# wrapper instead of passing them through Harbor's secret registry.
+export CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY="4"
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS="200000"
+export CLAUDE_CODE_AUTO_COMPACT_WINDOW="200000"
+export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="80"
+
 real="$HOME/.local/bin/claude-agentbattler-real"
 if [[ ! -x "$real" ]]; then
   echo "AgentBattler Claude wrapper cannot find $real" >&2

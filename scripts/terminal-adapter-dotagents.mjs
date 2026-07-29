@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -164,7 +165,7 @@ async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
   invariant(typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0, 'DotAgents effective proxy API key is empty');
 }
 
-async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, outputPath }) {
+export async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, outputPath }) {
   const body = {
     model: `agent:${DOTAGENTS_PROFILE_ID}`,
     profile_id: DOTAGENTS_PROFILE_ID,
@@ -173,14 +174,6 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, out
     send_push_notification: false,
   };
   if (conversationId) body.conversation_id = conversationId;
-  const response = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: Number.isSafeInteger(timeoutMs) && timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
-  });
-  invariant(response.ok, `DotAgents request failed (${response.status})`);
-  invariant(response.body, 'DotAgents response has no streaming body');
   const trace = createWriteStream(outputPath, { mode: 0o600 });
   const events = [];
   const decoder = new TextDecoder();
@@ -202,12 +195,47 @@ async function streamTurn({ port, apiKey, prompt, conversationId, timeoutMs, out
     await writeEvent(JSON.parse(payload));
   };
   try {
-    for await (const chunk of response.body) {
-      pending += decoder.decode(chunk, { stream: true });
-      const lines = pending.split(/\r?\n/);
-      pending = lines.pop() ?? '';
-      for (const line of lines) await consumeLine(line);
-    }
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        callback(value);
+      };
+      const payload = JSON.stringify(body);
+      const request = httpRequest({
+        hostname: '127.0.0.1',
+        port,
+        path: '/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      }, (response) => {
+        void (async () => {
+          if ((response.statusCode ?? 500) < 200 || (response.statusCode ?? 500) >= 300) {
+            response.resume();
+            throw new Error(`DotAgents request failed (${response.statusCode ?? 'unknown'})`);
+          }
+          for await (const chunk of response) {
+            pending += decoder.decode(chunk, { stream: true });
+            const lines = pending.split(/\r?\n/);
+            pending = lines.pop() ?? '';
+            for (const line of lines) await consumeLine(line);
+          }
+          finish(resolve);
+        })().catch((error) => finish(reject, error));
+      });
+      const timer = Number.isSafeInteger(timeoutMs) && timeoutMs > 0
+        ? setTimeout(() => request.destroy(new Error(`DotAgents turn exceeded ${timeoutMs} ms`)), timeoutMs)
+        : null;
+      timer?.unref();
+      request.once('error', (error) => finish(reject, error));
+      request.end(payload);
+    });
     pending += decoder.decode();
     if (pending) await consumeLine(pending);
   } finally {
@@ -341,5 +369,9 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage: dotAgentsTerminalUsage(cumulativeUsage), stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
   } finally {
     await stopContainer(container);
+    await Promise.allSettled([
+      writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout)),
+      writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr)),
+    ]);
   }
 }

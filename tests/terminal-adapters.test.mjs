@@ -65,6 +65,7 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /--session/);
   assert.match(source, /--continue/);
   assert.match(source, /upload_file/);
+  assert.doesNotMatch(source, /! grep -q .*stopReason/);
 });
 
 test('Harbor Claude terminates the native CLI after a terminal result event', async () => {
@@ -76,11 +77,15 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.claude_agent:AgentBattlerClaude');
   assert.equal(args[args.indexOf('--model') + 1], 'gpt-5.6-sol');
   assert.ok(args.includes('version=2.1.220'));
-  assert.ok(args.includes('CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=4'));
-  assert.ok(args.includes('CLAUDE_CODE_MAX_CONTEXT_TOKENS=200000'));
-  assert.ok(args.includes('CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000'));
-  assert.ok(args.includes('CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80'));
+  assert.ok(!args.includes('CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=4'));
+  assert.ok(!args.includes('CLAUDE_CODE_MAX_CONTEXT_TOKENS=200000'));
+  assert.ok(!args.includes('CLAUDE_CODE_AUTO_COMPACT_WINDOW=200000'));
+  assert.ok(!args.includes('CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80'));
   const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_agent.py'), 'utf8');
+  assert.match(source, /CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY="4"/);
+  assert.match(source, /CLAUDE_CODE_MAX_CONTEXT_TOKENS="200000"/);
+  assert.match(source, /CLAUDE_CODE_AUTO_COMPACT_WINDOW="200000"/);
+  assert.match(source, /CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="80"/);
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
   assert.match(source, /kill -TERM -- "-\$agent_pid"/);
@@ -91,6 +96,35 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /mkdir -p "\$\(dirname "\$active"\)"/);
   assert.match(source, /kill -TERM "\$previous"/);
   assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
+});
+
+test('DotAgents turn streaming tolerates quiet SSE intervals without fetch body timeouts', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-dotagents-stream-'));
+  const outputPath = path.join(root, 'turn.jsonl');
+  const server = createServer((request, response) => {
+    assert.equal(request.method, 'POST');
+    response.writeHead(200, { 'content-type': 'text/event-stream' });
+    response.write(`data: ${JSON.stringify({ type: 'progress', data: { conversationId: 'conv-1', steps: [] } })}\n\n`);
+    setTimeout(() => {
+      response.end(`data: ${JSON.stringify({ type: 'done', data: { conversation_id: 'conv-1', conversation_history: [] } })}\n\n`);
+    }, 75);
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const result = await dotagents.streamTurn({
+      port: server.address().port,
+      apiKey: 'test-key',
+      prompt: 'test',
+      conversationId: null,
+      timeoutMs: 1_000,
+      outputPath,
+    });
+    assert.equal(result.events.some((event) => event.type === 'done'), true);
+    assert.match(await readFile(outputPath, 'utf8'), /"type":"done"/);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('Claude compaction policy is explicit per model and fails closed for new models', () => {
@@ -250,6 +284,16 @@ test('generated Harbor V5 task gives every turn the sealed 30-minute notice', as
     assert.match(prompt, /leave the workspace in a runnable state before the limit/);
     assert.match(prompt, /query emits the event array directly/);
   }
+});
+
+test('generated Harbor V5 R4 task declares the harness reliability revision', async () => {
+  const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v5-r4');
+  const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
+  assert.match(config, /version = "5\.3\.0"/);
+  assert.match(config, /protocol_revision = "r4"/);
+  const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
+  assert.match(candidateProcess, /removeCandidateWorkspace/);
+  assert.match(candidateProcess, /cleanup deferred/);
 });
 
 test('candidate verifier process identity is opt-in and validated', () => {

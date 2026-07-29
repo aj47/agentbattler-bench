@@ -100,9 +100,25 @@ const traces = campaign.accepted.map((entry) => {
   };
 });
 
+const traceIndexUnsigned = {
+  schemaVersion: 'agentbattler.terminal-v5-campaign-traces.v1',
+  generatedAt: new Date().toISOString(),
+  totals: {
+    logicalRuns: traces.length,
+    turns: traces.length * 15,
+    publishedBytes: traces.reduce((sum, entry) => sum + entry.trace.publishedBytes, 0),
+  },
+  traces,
+};
+const traceIndex = { ...traceIndexUnsigned, traceIndexSha256: canonicalJsonSha256(traceIndexUnsigned) };
+const traceIndexFile = path.join(TARGET_RESULT_ROOT, 'campaign-trace-index.json');
+const traceIndexTemporary = `${traceIndexFile}.${process.pid}.tmp`;
+await writeFile(traceIndexTemporary, `${canonicalJson(traceIndex, { space: 2 })}\n`, { mode: 0o600 });
+await rename(traceIndexTemporary, traceIndexFile);
+
 const documentUnsigned = {
   schemaVersion: 'agentbattler.terminal-v5-campaign-artifacts.v1',
-  generatedAt: new Date().toISOString(),
+  generatedAt: traceIndex.generatedAt,
   campaign: {
     index: path.join(TARGET_RESULT_ROOT, 'campaign-index.json'),
     indexSha256: canonicalJsonSha256(campaign),
@@ -121,11 +137,9 @@ const documentUnsigned = {
     },
   })),
   totals: {
-    logicalRuns: traces.length,
-    turns: traces.length * 15,
-    publishedBytes: traces.reduce((sum, entry) => sum + entry.trace.publishedBytes, 0),
+    ...traceIndex.totals,
   },
-  traces,
+  traceIndex: { file: traceIndexFile, sha256: traceIndex.traceIndexSha256 },
 };
 const document = { ...documentUnsigned, artifactsSha256: canonicalJsonSha256(documentUnsigned) };
 const output = path.join(TARGET_RESULT_ROOT, 'campaign-artifacts.json');
@@ -133,3 +147,4 @@ const temporary = `${output}.${process.pid}.tmp`;
 await writeFile(temporary, `${canonicalJson(document, { space: 2 })}\n`, { mode: 0o600 });
 await rename(temporary, output);
 console.log(`V5 campaign artifacts: ${output}`);
+console.log(`V5 campaign trace index: ${traceIndexFile}`);

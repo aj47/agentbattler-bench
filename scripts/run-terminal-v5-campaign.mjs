@@ -1,11 +1,16 @@
 #!/usr/bin/env node
+import { spawn } from 'node:child_process';
 import { access, mkdir, open, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
-import { configureTerminalV5RuntimeEnvironment, reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+import {
+  configureTerminalV5RuntimeEnvironment,
+  reconcileTerminalV5Campaign,
+  selectTerminalV5CampaignBatch,
+} from '../src/terminal-v5-campaign.mjs';
 import { runTerminalSchedule } from '../src/terminal-runner.mjs';
 import { scoreTerminalRun, validateMiniLedgerChallenge, validateTerminalSchedule } from '../src/terminal-challenge.mjs';
 
@@ -83,7 +88,12 @@ function campaignDocument(campaign, sources) {
       ordering: 'generation-major-breadth-first',
       acceptedEvidence: 'preserved-by-reference',
       retries: 'bounded-fewest-attempts-first',
-      concurrency: 1,
+      maxAttemptsPerLogicalJob: 3,
+      concurrency: {
+        perRun: 1,
+        maxConcurrentRuns: 2,
+        lanes: ['dotagents', 'legacy'],
+      },
     },
     sources: sources.map((source) => ({ id: source.id, protocolRevision: source.protocolRevision, resultRoot: source.resultRoot })),
     phase: campaign.phase,
@@ -176,8 +186,77 @@ async function runNext() {
   });
 }
 
+async function runCampaignEntry(target, entry, adapter) {
+  return runTerminalSchedule({
+    challenge: target.challenge,
+    schedule: target.schedule,
+    resultRoot: TARGET_RESULT_ROOT,
+    challengeRoot: path.join(ROOT, 'benchmark/challenges/mini-ledger-v4'),
+    runTerminalJob: adapter.runTerminalJob,
+    onlyHarnesses: [entry.combo.harness.id],
+    onlyModels: [entry.combo.model.id],
+    onlyGenerationIndices: [entry.job.generationIndex],
+    concurrency: 1,
+    retryInvalid: true,
+    onProgress: ({ job, status, error }) => console.log(`[${entry.combo.harness.id}] [${status}] ${job.artifactId}${error ? `: ${error}` : ''}`),
+  });
+}
+
+function finalizeCampaign() {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path.join(ROOT, 'scripts/finalize-terminal-v5-campaign.mjs')], {
+      cwd: ROOT,
+      env: process.env,
+      stdio: 'inherit',
+    });
+    child.once('error', reject);
+    child.once('close', (code, signal) => {
+      if (code === 0) resolve(path.join(TARGET_RESULT_ROOT, 'campaign-artifacts.json'));
+      else reject(new Error(`V5 campaign finalization exited ${code ?? signal}`));
+    });
+  });
+}
+
+async function superviseCampaign({ lanes, maxAttempts }) {
+  return withCampaignLock(async () => {
+    configureTerminalV5RuntimeEnvironment();
+    const adapter = await import('./terminal-adapter-all.mjs');
+    while (true) {
+      const loaded = await loadCampaign({ requireLegacy: true });
+      const index = await writeIndex(loaded.campaign, loaded.sources);
+      const batch = selectTerminalV5CampaignBatch(loaded.campaign, { lanes, maxAttempts });
+      if (!batch.length) {
+        const blocked = loaded.campaign.counts.outstanding > 0;
+        const artifacts = blocked ? null : await finalizeCampaign();
+        return {
+          message: blocked
+            ? `V5 campaign stopped with unresolved jobs at the ${maxAttempts}-attempt ceiling`
+            : 'V5 campaign is complete',
+          campaign: loaded.campaign,
+          index,
+          blocked,
+          artifacts,
+        };
+      }
+      console.log(`\n=== V5 campaign ${loaded.campaign.phase}: ${batch.map((entry) => entry.logicalKey).join(' + ')} ===`);
+      await Promise.all(batch.map((entry) => runCampaignEntry(loaded.target, entry, adapter)));
+    }
+  });
+}
+
+function integerArg(name, fallback) {
+  const index = process.argv.indexOf(name);
+  const value = Number.parseInt(index >= 0 ? process.argv[index + 1] : String(fallback), 10);
+  if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${name} must be a positive integer`);
+  return value;
+}
+
 const shouldRun = process.argv.includes('--run-next');
-const result = shouldRun ? await runNext() : await loadCampaign();
+const shouldSupervise = process.argv.includes('--supervise');
+if (shouldRun && shouldSupervise) throw new Error('Choose either --run-next or --supervise');
+const result = shouldSupervise
+  ? await superviseCampaign({ lanes: integerArg('--lanes', 2), maxAttempts: integerArg('--max-attempts', 3) })
+  : shouldRun ? await runNext() : await loadCampaign();
 if (!shouldRun && process.argv.includes('--write-index')) result.index = await writeIndex(result.campaign, result.sources);
 const campaign = result.campaign;
 console.log(JSON.stringify({
@@ -191,4 +270,7 @@ console.log(JSON.stringify({
   } : null,
   ...(result.summary ? { runSummary: result.summary } : {}),
   ...(result.index ? { index: result.index } : {}),
+  ...(result.message ? { message: result.message } : {}),
+  ...(result.blocked !== undefined ? { blocked: result.blocked } : {}),
+  ...(result.artifacts ? { artifacts: result.artifacts } : {}),
 }, null, 2));

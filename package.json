@@ -70,6 +70,8 @@
     "terminal:run:v5:dotagents-latest": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r3-dotagents-v1-1-9 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs --harness dotagents-mono --concurrency 1 --retry-invalid",
     "terminal:campaign:v5:status": "node scripts/run-terminal-v5-campaign.mjs --write-index",
     "terminal:campaign:v5:next": "node scripts/run-terminal-v5-campaign.mjs --run-next",
+    "terminal:campaign:v5:supervise": "node scripts/run-terminal-v5-campaign.mjs --supervise --lanes 2 --max-attempts 3",
+    "terminal:campaign:v5:finalize": "node scripts/finalize-terminal-v5-campaign.mjs",
     "terminal:run:v4:sample": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 AGENTBATTLER_TERMINAL_RESULT_TAG=v4-harbor-unbounded node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs --harness codex-cli --generation 1",
     "terminal:run:parallel": "AGENTBATTLER_TERMINAL_CONCURRENCY=4 node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs",

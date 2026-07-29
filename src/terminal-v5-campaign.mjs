@@ -18,6 +18,36 @@ export function logicalTerminalJobKey(job, combo) {
   ].join('|');
 }
 
+export function terminalV5CampaignLane(entry) {
+  return entry.combo.harness.id === 'dotagents-mono' ? 'dotagents' : 'legacy';
+}
+
+export function selectTerminalV5CampaignBatch(campaign, { lanes = 1, maxAttempts = 3 } = {}) {
+  if (!Number.isSafeInteger(lanes) || lanes < 1 || lanes > 2) throw new Error('V5 campaign lanes must be 1 or 2');
+  if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) throw new Error('V5 campaign maxAttempts must be positive');
+  const firstCoverage = campaign.entries.filter((entry) => entry.status === 'unstarted');
+  let candidates;
+  if (firstCoverage.length) {
+    const generation = Math.min(...firstCoverage.map((entry) => entry.job.generationIndex));
+    candidates = firstCoverage.filter((entry) => entry.job.generationIndex === generation);
+  } else {
+    candidates = campaign.entries
+      .filter((entry) => entry.status === 'infrastructure-invalid' && entry.attemptCount < maxAttempts)
+      .sort((left, right) => left.attemptCount - right.attemptCount || left.orderIndex - right.orderIndex);
+  }
+  if (lanes === 1) return candidates.slice(0, 1);
+  const selected = [];
+  const occupied = new Set();
+  for (const entry of candidates) {
+    const lane = terminalV5CampaignLane(entry);
+    if (occupied.has(lane)) continue;
+    selected.push(entry);
+    occupied.add(lane);
+    if (selected.length === lanes) break;
+  }
+  return selected;
+}
+
 function sourceMap(source) {
   const map = new Map();
   for (const record of source.records ?? []) {

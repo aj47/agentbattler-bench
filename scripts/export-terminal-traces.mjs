@@ -15,9 +15,11 @@ const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!/^v\d+$/.test(version)) throw new Error('Challenge version must look like v4');
 const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('Result tag must look like v4-harbor');
-const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
+const resultRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_RESULT_ROOT
+  ?? path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`));
 const workRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_WORK_ROOT ?? path.join(resultRoot, 'work'));
 const outputRoot = path.join(resultRoot, 'traces');
+const allowIncomplete = process.argv.includes('--allow-incomplete');
 
 const SECRET_KEY = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|oauth|credential|secret)/i;
 const SECRET_VALUE = /(?:Bearer\s+[A-Za-z0-9._~+\/-]{16,}|\bsk-[A-Za-z0-9_-]{16,}|\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/g;
@@ -334,8 +336,14 @@ async function exportRun(run) {
 
 await mkdir(outputRoot, { recursive: true });
 const runFiles = (await readdir(path.join(resultRoot, 'runs'))).filter((file) => file.endsWith('.json')).sort();
-const runs = await Promise.all(runFiles.map((file) => readJson(path.join(resultRoot, 'runs', file))));
-if (runs.length !== 60 || runs.some((run) => run.status !== 'completed')) throw new Error(`Expected 60 completed ${version} runs`);
+const [schedule, persistedRuns] = await Promise.all([
+  readJson(path.join(resultRoot, 'schedule.json')),
+  Promise.all(runFiles.map((file) => readJson(path.join(resultRoot, 'runs', file)))),
+]);
+if (!allowIncomplete && (persistedRuns.length !== schedule.jobs.length || persistedRuns.some((run) => run.status !== 'completed'))) {
+  throw new Error(`Expected ${schedule.jobs.length} completed ${version} runs`);
+}
+const runs = persistedRuns.filter((run) => run.status === 'completed');
 
 const traces = [];
 for (const run of runs.sort((left, right) => left.artifactId.localeCompare(right.artifactId))) {
@@ -348,7 +356,9 @@ const manifestUnsigned = {
   challengeVersion: version,
   generatedAt: new Date().toISOString(),
   policy: {
-    scope: 'All 60 successful run traces and all 15 turns per run.',
+    scope: allowIncomplete
+      ? `${runs.length} completed run traces currently available from a ${schedule.jobs.length}-job sealed schedule, with all 15 turns per exported run.`
+      : `All ${schedule.jobs.length} successful run traces and all 15 turns per run.`,
     retained: 'Normalized run and per-turn duration, token/cache usage, compaction and resource summaries; final messages; tool calls and results; session metadata; verifier diagnostics; and non-empty stderr.',
     omitted: 'Only cumulative streaming snapshots whose final semantic content is retained.',
     redaction: 'Credential-shaped object values and bearer/JWT/API-key patterns are replaced with [REDACTED]; host paths are normalized.',

@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
-import { configureTerminalV5RuntimeEnvironment, reconcileTerminalV5Campaign } from '../src/terminal-v5-campaign.mjs';
+import {
+  configureTerminalV5RuntimeEnvironment,
+  reconcileTerminalV5Campaign,
+  selectTerminalV5CampaignBatch,
+} from '../src/terminal-v5-campaign.mjs';
 
 test('V5 campaign pins the R4 verifier runtime before adapter import', () => {
   const environment = {
@@ -62,4 +66,31 @@ test('bounded retry passes choose the unresolved job with the fewest attempts', 
   assert.equal(campaign.phase, 'bounded-retries');
   assert.equal(campaign.next.combo.harness.id, 'pi-coding-agent');
   assert.equal(campaign.next.attemptCount, 1);
+});
+
+test('two-lane batches select one DotAgents and one legacy job behind the same generation barrier', () => {
+  const target = scheduleFor(challenge('f'));
+  const records = [
+    record(target, 'dotagents-mono', 1, 'completed'),
+    record(target, 'pi-coding-agent', 1, 'completed'),
+  ];
+  const campaign = reconcileTerminalV5Campaign({ targetSchedule: target, sources: [{ id: 'R4', protocolRevision: 'r4', records }] });
+  const batch = selectTerminalV5CampaignBatch(campaign, { lanes: 2 });
+  assert.deepEqual(batch.map((entry) => [entry.combo.harness.id, entry.job.generationIndex]), [
+    ['dotagents-mono', 2],
+    ['pi-coding-agent', 2],
+  ]);
+});
+
+test('bounded retry batches respect lane isolation and the attempt ceiling', () => {
+  const target = scheduleFor(challenge('1'));
+  const records = target.coverage.flatMap(({ combo }) => [1, 2].map((generation) => (
+    record(target, combo.harness.id, generation, 'infrastructure-invalid', generation === 1 ? 3 : 1)
+  )));
+  const campaign = reconcileTerminalV5Campaign({ targetSchedule: target, sources: [{ id: 'R4', protocolRevision: 'r4', records }] });
+  const batch = selectTerminalV5CampaignBatch(campaign, { lanes: 2, maxAttempts: 3 });
+  assert.deepEqual(batch.map((entry) => [entry.combo.harness.id, entry.job.generationIndex]), [
+    ['dotagents-mono', 2],
+    ['pi-coding-agent', 2],
+  ]);
 });

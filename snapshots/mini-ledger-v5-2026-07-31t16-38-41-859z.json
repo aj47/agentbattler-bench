@@ -1,0 +1,45 @@
+{
+  "createdAt": "2026-07-31T16:38:41.859Z",
+  "dataset": {
+    "manifest": {
+      "path": "snapshots/mini-ledger-v5-2026-07-31t16-38-41-859z/manifest.json",
+      "sha256": "6a0250d60c89a4712e8e5b599d16e55cf2b55e721ac92071d598c73ba99ea374",
+      "sizeBytes": 43550
+    },
+    "repoId": "techfren/agentbattler-bench",
+    "repoType": "dataset",
+    "revision": "8f36dbaa4a2f7a32f8e700953ca0313e0aa79eb6",
+    "root": "snapshots/mini-ledger-v5-2026-07-31t16-38-41-859z",
+    "siteData": {
+      "path": "snapshots/mini-ledger-v5-2026-07-31t16-38-41-859z/site/terminal-campaign.json",
+      "sha256": "c577df0ad4944cdf2b1165e2705e4339bc6a3c229ace24328ba2d60c5bc18be8",
+      "sizeBytes": 426826
+    }
+  },
+  "publication": {
+    "description": "Immutable Mini Ledger V5 campaign evidence: full accepted results, semantic traces, source revisions, retry records, checksums, and website analysis data.",
+    "title": "AgentBattler Mini Ledger V5 · 60 runs"
+  },
+  "release": {
+    "archive": {
+      "path": "agentbattler-mini-ledger-v5-2026-07-31t16-38-41-859z.tar.gz",
+      "sha256": "24cf31492de81aa90ff2a6d23f1e7027c6ea1420c6a5a655b1dc2393e868ecc8",
+      "sizeBytes": 35650427
+    },
+    "repository": "aj47/agentbattler-bench",
+    "tag": "snapshot-mini-ledger-v5-2026-07-31t16-38-41-859z"
+  },
+  "schemaVersion": "agentbattler.snapshot.v1",
+  "snapshotId": "mini-ledger-v5-2026-07-31t16-38-41-859z",
+  "snapshotSha256": "629ce983630bf056821232001128170d851602296eb9a6b66ef4dd50a7692a7e",
+  "source": {
+    "gitCommit": "333f34a0ea7b998370dedd472146872b6e9eda6c"
+  },
+  "totals": {
+    "failedAttempts": 7,
+    "runs": 60,
+    "tokens": 694639692,
+    "toolCalls": 37366,
+    "turns": 900
+  }
+}

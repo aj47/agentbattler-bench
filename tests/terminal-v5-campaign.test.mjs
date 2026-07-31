@@ -6,6 +6,7 @@ import {
   configureTerminalV5RuntimeEnvironment,
   reconcileTerminalV5Campaign,
   selectTerminalV5CampaignBatch,
+  terminalV5CampaignPolicy,
 } from '../src/terminal-v5-campaign.mjs';
 
 test('V5 campaign pins the R4 verifier runtime before adapter import', () => {
@@ -93,4 +94,21 @@ test('bounded retry batches respect lane isolation and the attempt ceiling', () 
     ['dotagents-mono', 2],
     ['pi-coding-agent', 2],
   ]);
+});
+
+test('retry ceiling extensions require and publish an explicit recovery reason', () => {
+  assert.throws(
+    () => terminalV5CampaignPolicy({ maxAttempts: 4 }),
+    /documented recovery reason/,
+  );
+  const policy = terminalV5CampaignPolicy({
+    maxAttempts: 4,
+    recoveryReason: 'Operator authorized one recovery attempt after three infrastructure-invalid streams.',
+  });
+  assert.equal(policy.maxAttemptsPerLogicalJob, 4);
+  assert.deepEqual(policy.retryCeilingException, {
+    publishedMaxAttempts: 3,
+    authorizedMaxAttempts: 4,
+    reason: 'Operator authorized one recovery attempt after three infrastructure-invalid streams.',
+  });
 });

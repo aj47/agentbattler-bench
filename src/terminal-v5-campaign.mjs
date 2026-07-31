@@ -22,6 +22,31 @@ export function terminalV5CampaignLane(entry) {
   return entry.combo.harness.id === 'dotagents-mono' ? 'dotagents' : 'legacy';
 }
 
+export function terminalV5CampaignPolicy({ maxAttempts = 3, recoveryReason = null } = {}) {
+  if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) throw new Error('V5 campaign maxAttempts must be positive');
+  if (maxAttempts > 3 && (typeof recoveryReason !== 'string' || !recoveryReason.trim())) {
+    throw new Error('A documented recovery reason is required above the published three-attempt ceiling');
+  }
+  return {
+    ordering: 'generation-major-breadth-first',
+    acceptedEvidence: 'preserved-by-reference',
+    retries: 'bounded-fewest-attempts-first',
+    maxAttemptsPerLogicalJob: maxAttempts,
+    ...(maxAttempts > 3 ? {
+      retryCeilingException: {
+        publishedMaxAttempts: 3,
+        authorizedMaxAttempts: maxAttempts,
+        reason: recoveryReason.trim(),
+      },
+    } : {}),
+    concurrency: {
+      perRun: 1,
+      maxConcurrentRuns: 2,
+      lanes: ['dotagents', 'legacy'],
+    },
+  };
+}
+
 export function selectTerminalV5CampaignBatch(campaign, { lanes = 1, maxAttempts = 3 } = {}) {
   if (!Number.isSafeInteger(lanes) || lanes < 1 || lanes > 2) throw new Error('V5 campaign lanes must be 1 or 2');
   if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1) throw new Error('V5 campaign maxAttempts must be positive');

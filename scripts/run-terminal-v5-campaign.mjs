@@ -10,6 +10,7 @@ import {
   configureTerminalV5RuntimeEnvironment,
   reconcileTerminalV5Campaign,
   selectTerminalV5CampaignBatch,
+  terminalV5CampaignPolicy,
 } from '../src/terminal-v5-campaign.mjs';
 import { runTerminalSchedule } from '../src/terminal-runner.mjs';
 import { scoreTerminalRun, validateMiniLedgerChallenge, validateTerminalSchedule } from '../src/terminal-challenge.mjs';
@@ -80,21 +81,11 @@ async function loadCampaign({ requireLegacy = false } = {}) {
   return { target, sources, campaign: reconcileTerminalV5Campaign({ targetSchedule: target.schedule, sources }) };
 }
 
-function campaignDocument(campaign, sources) {
+function campaignDocument(campaign, sources, { maxAttempts = 3, recoveryReason = null } = {}) {
   return {
     schemaVersion: campaign.schemaVersion,
     generatedAt: new Date().toISOString(),
-    policy: {
-      ordering: 'generation-major-breadth-first',
-      acceptedEvidence: 'preserved-by-reference',
-      retries: 'bounded-fewest-attempts-first',
-      maxAttemptsPerLogicalJob: 3,
-      concurrency: {
-        perRun: 1,
-        maxConcurrentRuns: 2,
-        lanes: ['dotagents', 'legacy'],
-      },
-    },
+    policy: terminalV5CampaignPolicy({ maxAttempts, recoveryReason }),
     sources: sources.map((source) => ({ id: source.id, protocolRevision: source.protocolRevision, resultRoot: source.resultRoot })),
     phase: campaign.phase,
     counts: campaign.counts,
@@ -124,11 +115,11 @@ function campaignDocument(campaign, sources) {
   };
 }
 
-async function writeIndex(campaign, sources) {
+async function writeIndex(campaign, sources, policy = {}) {
   const file = path.join(TARGET_RESULT_ROOT, 'campaign-index.json');
   const temporary = `${file}.${process.pid}.tmp`;
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(temporary, `${canonicalJson(campaignDocument(campaign, sources), { space: 2 })}\n`, { mode: 0o600 });
+  await writeFile(temporary, `${canonicalJson(campaignDocument(campaign, sources, policy), { space: 2 })}\n`, { mode: 0o600 });
   await rename(temporary, file);
   return file;
 }
@@ -217,13 +208,15 @@ function finalizeCampaign() {
   });
 }
 
-async function superviseCampaign({ lanes, maxAttempts }) {
+async function superviseCampaign({ lanes, maxAttempts, recoveryReason = null }) {
   return withCampaignLock(async () => {
+    const policy = { maxAttempts, recoveryReason };
+    terminalV5CampaignPolicy(policy);
     configureTerminalV5RuntimeEnvironment();
     const adapter = await import('./terminal-adapter-all.mjs');
     while (true) {
       const loaded = await loadCampaign({ requireLegacy: true });
-      const index = await writeIndex(loaded.campaign, loaded.sources);
+      const index = await writeIndex(loaded.campaign, loaded.sources, policy);
       const batch = selectTerminalV5CampaignBatch(loaded.campaign, { lanes, maxAttempts });
       if (!batch.length) {
         const blocked = loaded.campaign.counts.outstanding > 0;
@@ -255,7 +248,11 @@ const shouldRun = process.argv.includes('--run-next');
 const shouldSupervise = process.argv.includes('--supervise');
 if (shouldRun && shouldSupervise) throw new Error('Choose either --run-next or --supervise');
 const result = shouldSupervise
-  ? await superviseCampaign({ lanes: integerArg('--lanes', 2), maxAttempts: integerArg('--max-attempts', 3) })
+  ? await superviseCampaign({
+      lanes: integerArg('--lanes', 2),
+      maxAttempts: integerArg('--max-attempts', 3),
+      recoveryReason: process.env.AGENTBATTLER_V5_RECOVERY_REASON ?? null,
+    })
   : shouldRun ? await runNext() : await loadCampaign();
 if (!shouldRun && process.argv.includes('--write-index')) result.index = await writeIndex(result.campaign, result.sources);
 const campaign = result.campaign;

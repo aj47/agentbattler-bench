@@ -1,16 +1,20 @@
 import Link from 'next/link';
 
+import { CombinedLeaderboard } from '../components/CombinedLeaderboard';
 import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
+import { TerminalCampaignStudy } from '../components/TerminalCampaignStudy';
 import { TerminalStudy } from '../components/TerminalStudy';
-import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
+import { combinedChallengeEntrants, formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
   const { benchmark, agents } = siteData;
   const fullLeagueAgents = agents.filter((agent) => agent.harness !== 'dotagents-mono');
   const hasPlacement = Boolean(siteData.dotAgentsPlacement);
+  const terminalCampaign = siteData.terminalCampaign;
+  const terminalOfficial = terminalCampaign?.status === 'complete';
   const featured = siteData.latestDecisiveId ? getMatch(siteData.latestDecisiveId) : null;
   const harnessSummary = siteData.harnesses.map((harness) => `${harness.displayName} v${harness.harnessVersion}`).join(' · ');
 
@@ -41,15 +45,15 @@ export default function HomePage() {
           <div className="leaderboard-eligibility">
             <div>
               <span>current ranking policy</span>
-              <strong>Only valid challenge results enter the leaderboard.</strong>
+              <strong>{terminalOfficial ? 'Two valid challenges. One explicit average.' : 'Only sealed challenge results enter the leaderboard.'}</strong>
             </div>
             <dl>
               <div className="eligible-challenge"><dt>Chess</dt><dd>included · published</dd></div>
-              <div className="excluded-challenge"><dt>Mini Ledger V4</dt><dd>excluded · withdrawn</dd></div>
+              <div className={terminalOfficial ? 'eligible-challenge' : 'pending-challenge'}><dt>Mini Ledger V5</dt><dd>{terminalOfficial ? 'included · published' : `${terminalCampaign?.campaign.acceptedRuns ?? 0}/${terminalCampaign?.campaign.expectedRuns ?? 60} · not sealed`}</dd></div>
             </dl>
-            <p>A cross-challenge score will appear when at least two eligible challenge datasets exist. Historical Ledger evidence remains available below for investigation only.</p>
+            <p>{terminalOfficial ? 'Overall = (Chess score + Ledger mean score) ÷ 2. Both inputs are shown; no weighting or Elo conversion is hidden.' : 'V5 remains visible as preliminary evidence while it runs, but it cannot change this official ranking until the campaign and publication hashes are complete.'}</p>
           </div>
-          <HarnessModelLeaderboard entrants={harnessModelEntrants} />
+          {terminalOfficial ? <CombinedLeaderboard entrants={combinedChallengeEntrants} /> : <HarnessModelLeaderboard entrants={harnessModelEntrants} />}
         </div>
       </section>
 
@@ -89,8 +93,8 @@ export default function HomePage() {
             <a className="investigation-row terminal-route" href="#terminal-study">
               <span className="investigation-number">01</span>
               <div><span>long-horizon engineering</span><h3>Mini Ledger</h3></div>
-              <p>A continuous terminal task designed to expose planning, recovery, context, and harness behavior. The V4 study is preserved with a full isolation incident audit.</p>
-              <strong>study + 60 traces <span>↓</span></strong>
+              <p>A 15-turn terminal task designed to expose planning, recovery, context, concurrency, and harness behavior. Open the score, stage failures, tokens, source revision, retries, and trace for every accepted run.</p>
+              <strong>{terminalCampaign ? `${terminalCampaign.campaign.acceptedRuns}/${terminalCampaign.campaign.expectedRuns} runs` : 'publication preparing'} <span>↓</span></strong>
             </a>
             <a className="investigation-row chess-route" href="#chess-challenge">
               <span className="investigation-number">02</span>
@@ -107,6 +111,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {terminalCampaign ? <TerminalCampaignStudy lane={terminalCampaign} /> : null}
 
       {siteData.terminalChallenge ? <TerminalStudy lane={siteData.terminalChallenge} /> : null}
 

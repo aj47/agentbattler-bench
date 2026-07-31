@@ -89,6 +89,8 @@ button, input { font: inherit; }
 .leaderboard-eligibility .excluded-challenge { background: rgba(255,113,106,.045); }
 .leaderboard-eligibility .excluded-challenge dt { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--red); }
 .leaderboard-eligibility .excluded-challenge dd { color: var(--red); }
+.leaderboard-eligibility .pending-challenge { background: rgba(207,138,40,.06); }
+.leaderboard-eligibility .pending-challenge dd { color: #cf8a28; }
 .leaderboard-eligibility > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
 
 .how-it-works { padding: 96px 0; border-top: 1px solid var(--line); }

@@ -11,6 +11,8 @@ AgentBattler separates source code from benchmark evidence.
 
 Neither hosted service is treated as a sole archival guarantee. The snapshot pointer binds both copies by SHA-256 and byte size.
 
+Chess and Mini Ledger have separate latest pointers. [`snapshots/latest.json`](../snapshots/latest.json) names the current chess evidence; `snapshots/latest-terminal.json` is written only after a complete Mini Ledger campaign is uploaded and independently verified. A new terminal release cannot silently replace the chess pointer.
+
 ## Snapshot lifecycle
 
 Package the current Codex-plus-Pi harness suite without changing remote state:
@@ -63,6 +65,25 @@ node scripts/fetch-snapshot.mjs \
 ```
 
 All downloads are written to a temporary path, checked for exact byte size and SHA-256, then atomically moved into the local cache. Mutable Dataset branches such as `main` are never accepted as evidence references.
+
+## Mini Ledger V5 publication
+
+After the V5 campaign reaches 60 accepted logical runs, finalize the three source revisions and build one path-scrubbed, revision-preserving publication package:
+
+```sh
+npm run terminal:campaign:v5:finalize
+npm run terminal:campaign:v5:package
+```
+
+The package contains the campaign index with host paths removed; exact R2/R3/R4 challenge, schedule, summary, and trace-manifest evidence; all accepted run JSON; credential-scanned semantic traces; compact infrastructure-invalid attempt records; normalized run rows; website data; and checksums. Every accepted run keeps its original source revision, challenge hash, schedule hash, and run key.
+
+Manually review every semantic trace and the generated staging tree, then publish and verify both immutable copies:
+
+```sh
+npm run terminal:campaign:v5:publish
+```
+
+The publisher writes `snapshots/latest-terminal.json` only after the Hugging Face objects and immutable GitHub Release archive pass byte-size and SHA-256 verification. The website treats the campaign as provisional until that pointer exists.
 
 ## Trace safety
 

@@ -1,5 +1,5 @@
 import rawData from '../generated/site-data.json';
-import type { Agent, HarnessModelEntrant, Match, SiteData } from './types';
+import type { Agent, CombinedChallengeEntrant, HarnessModelEntrant, Match, SiteData } from './types';
 
 export const siteData = rawData as unknown as SiteData;
 
@@ -113,6 +113,37 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
 }
 
 export const harnessModelEntrants = aggregateHarnessModelEntrants(siteData);
+
+export function aggregateCombinedChallengeEntrants(data: SiteData): CombinedChallengeEntrant[] {
+  if (data.terminalCampaign?.status !== 'complete') return [];
+  const chess = aggregateHarnessModelEntrants(data);
+  const rows = chess.flatMap((entrant) => {
+    const ledger = data.terminalCampaign?.combos.find((combo) => (
+      combo.harness === entrant.harness && combo.modelFamilyId === entrant.familyId
+    ));
+    if (!ledger || ledger.acceptedRuns !== ledger.expectedRuns) return [];
+    return [{
+      id: entrant.id,
+      rank: 0,
+      harness: entrant.harness,
+      harnessDisplayName: entrant.harnessDisplayName,
+      chessHarnessVersion: entrant.harnessVersion,
+      ledgerHarnessVersion: ledger.harnessVersion,
+      familyId: entrant.familyId,
+      familyDisplayName: entrant.familyDisplayName,
+      chessScore: entrant.scorePct,
+      ledgerScore: ledger.averageScore,
+      combinedScore: roundScore((entrant.scorePct + ledger.averageScore) / 2),
+      ledgerRange: { minimum: ledger.minimumScore, maximum: ledger.maximumScore },
+      ledgerRuns: ledger.acceptedRuns,
+    }];
+  });
+  return rows
+    .sort((left, right) => right.combinedScore - left.combinedScore || right.ledgerScore - left.ledgerScore || left.id.localeCompare(right.id))
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
+export const combinedChallengeEntrants = aggregateCombinedChallengeEntrants(siteData);
 
 export function getAgent(id: string): Agent | undefined {
   return siteData.agents.find((agent) => agent.id === id);

@@ -159,12 +159,31 @@ before starting generation 2, then repeats that generation-major order through g
 Completed sealed run keys are skipped. Infrastructure-invalid attempts are deferred until the
 first-coverage pass is complete, then retried by bounded retry passes in the same order. This
 keeps early results representative of the whole matrix instead of oversampling whichever combo
-happens to appear first. Do not regenerate the schedule after execution starts. Once all 60 runs
-pass strict verification, run `npm run terminal:traces:v5`. Published
-traces retain normalized run and per-turn durations, input/cached-input/output/reasoning token
-counts, tool calls, compaction boundaries, Harbor resource summaries, native semantic events,
-and verifier diagnostics. Raw workspaces remain local and ignored because they can contain
-ephemeral credentials and redundant session snapshots.
+happens to appear first. Do not regenerate the schedule after execution starts.
+
+The final V5 campaign may preserve accepted logical runs from compatible R2, R3, and R4
+revisions. R2 established fixed turns and source-only verification, R3 updated DotAgents and
+corrected its cache/usage continuity, and R4 hardened harness stream reliability and
+redaction. These revisions do not change the task, score, models, requested reasoning level,
+or turn limit. `campaign-index.json` records the original source revision for every accepted
+run and any explicit retry-ceiling exception; publication must never relabel those runs as if
+they came from one source implementation.
+
+Once all 60 logical runs pass strict verification, run:
+
+```sh
+npm run terminal:campaign:v5:finalize
+npm run terminal:campaign:v5:package
+# manually inspect the staging tree and every trace
+npm run terminal:campaign:v5:publish
+```
+
+Published traces retain normalized run and per-turn durations,
+input/cached-input/output/reasoning token counts, tool calls, compaction boundaries, Harbor
+resource summaries, native semantic events, and verifier diagnostics. Raw workspaces remain
+local and ignored because they can contain ephemeral credentials and redundant session
+snapshots. Infrastructure-invalid attempts are published as compact failure records and are
+never scored.
 
 ## Mini Ledger v3
 

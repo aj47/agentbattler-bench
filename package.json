@@ -72,6 +72,8 @@
     "terminal:campaign:v5:next": "node scripts/run-terminal-v5-campaign.mjs --run-next",
     "terminal:campaign:v5:supervise": "node scripts/run-terminal-v5-campaign.mjs --supervise --lanes 2 --max-attempts 3",
     "terminal:campaign:v5:finalize": "node scripts/finalize-terminal-v5-campaign.mjs",
+    "terminal:campaign:v5:package": "node scripts/package-terminal-v5-publication.mjs",
+    "terminal:campaign:v5:publish": "node scripts/publish-snapshot.mjs --package-pointer .artifacts/terminal-publication/latest.json --latest-pointer snapshots/latest-terminal.json",
     "terminal:run:v4:sample": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 AGENTBATTLER_TERMINAL_RESULT_TAG=v4-harbor-unbounded node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs --harness codex-cli --generation 1",
     "terminal:run:parallel": "AGENTBATTLER_TERMINAL_CONCURRENCY=4 node scripts/run-terminal-matrix.mjs",
     "terminal:verify": "node scripts/verify-terminal-results.mjs",

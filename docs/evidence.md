@@ -4,6 +4,8 @@
 
 [`snapshots/latest.json`](../snapshots/latest.json) is the compact source-of-truth pointer for the published Codex-plus-Pi harness-suite evidence. It pins a Hugging Face Dataset commit containing normalized tables, raw traces, generated artifacts, all three tournament bodies, and website data, plus an immutable GitHub Release archive of the same staging tree. Consumers verify exact byte sizes and SHA-256 values before use; mutable branches and expiring Actions artifacts are not canonical evidence. The storage lifecycle is documented in [storage.md](storage.md).
 
+Mini Ledger publishes through its own `snapshots/latest-terminal.json` pointer. Its website input does not flatten V5 into a single synthetic protocol: every accepted logical run names R2, R3, or R4; preserves the original challenge, schedule, and run hashes; and links the canonical result and sanitized semantic trace. Infrastructure-invalid attempts remain available for reliability analysis but never enter task scores.
+
 ## What a trusted run records
 
 The checked-in roster and position suite are immutable inputs at a particular commit. The trusted workflow packages:

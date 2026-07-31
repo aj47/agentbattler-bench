@@ -152,6 +152,22 @@ export type HarnessModelEntrant = {
   artifactScore: { minimum: number; median: number; maximum: number };
 };
 
+export type CombinedChallengeEntrant = {
+  id: string;
+  rank: number;
+  harness: string;
+  harnessDisplayName: string;
+  chessHarnessVersion: string;
+  ledgerHarnessVersion: string;
+  familyId: string;
+  familyDisplayName: string;
+  chessScore: number;
+  ledgerScore: number;
+  combinedScore: number;
+  ledgerRange: { minimum: number; maximum: number };
+  ledgerRuns: number;
+};
+
 export type MatchAgent = {
   id: string;
   name: string;
@@ -255,7 +271,204 @@ export type SiteData = {
   matches: Match[];
   latestDecisiveId: string | null;
   dotAgentsPlacement?: DotAgentsPlacement;
+  terminalCampaign?: TerminalCampaignLane | null;
   terminalChallenge?: TerminalChallengeLane | null;
+};
+
+export type TerminalCampaignAttempt = {
+  attempt: number;
+  attemptId: string | null;
+  status: string | null;
+  validity: string | null;
+  error: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationMs: number | null;
+  completedTurns: number | null;
+};
+
+export type TerminalCampaignRun = {
+  logicalKey: string;
+  slug: string;
+  runKey: string;
+  artifactId: string;
+  comboId: string;
+  generationIndex: number;
+  harness: string;
+  harnessDisplayName: string;
+  harnessVersion: string;
+  model: string;
+  modelFamilyId: string;
+  reasoningEffort: string;
+  durationMs: number;
+  startedAt: string;
+  endedAt: string;
+  turns: number | null;
+  toolCalls: number | null;
+  scorePct: number;
+  scorePoints: number;
+  visiblePoints: number;
+  holdoutPoints: number;
+  passedStages: number;
+  totalStages: number;
+  holdoutPassed: number;
+  holdoutTotal: number;
+  usage: {
+    inputTokens: number | null;
+    cachedInputTokens: number | null;
+    outputTokens: number | null;
+    reasoningTokens: number | null;
+    totalTokens: number | null;
+    cacheReadRate: number | null;
+  };
+  stages: Array<{
+    id: string;
+    title: string;
+    points: number;
+    passed: boolean;
+    durationMs: number | null;
+    diagnostic: string | null;
+  }>;
+  source: {
+    id: string;
+    protocolRevision: string;
+    challengeId: string;
+    challengeSha256: string;
+    scheduleId: string;
+    scheduleSha256: string;
+    amendment: string | null;
+  };
+  attempts: TerminalCampaignAttempt[];
+  evidence: {
+    runPath: string;
+    tracePath: string | null;
+    traceSha256: string | null;
+    traceBytes: number | null;
+    runUrl?: string;
+    runDownloadUrl?: string;
+    traceUrl?: string | null;
+  };
+};
+
+export type TerminalCampaignLane = {
+  schemaVersion: 'agentbattler.terminal-campaign-site.v1';
+  siteDataSha256: string;
+  id: string;
+  title: string;
+  updatedAt: string;
+  status: 'provisional' | 'complete';
+  campaign: {
+    phase: string;
+    generatedAt: string;
+    acceptedRuns: number;
+    expectedRuns: number;
+    outstandingRuns: number;
+    infrastructureInvalid: number;
+    policy: {
+      acceptedEvidence: string;
+      concurrency: { lanes: string[]; maxConcurrentRuns: number; perRun: number };
+      maxAttemptsPerLogicalJob: number;
+      ordering: string;
+      retries: string;
+      retryCeilingException?: {
+        authorizedMaxAttempts: number;
+        publishedMaxAttempts: number;
+        reason: string;
+      };
+    };
+    outstanding: Array<{
+      logicalKey: string;
+      harness: string;
+      model: string;
+      generation: number;
+      attemptCount: number;
+      status: string;
+      error: string | null;
+    }>;
+  };
+  matrix: {
+    harnesses: string[];
+    models: string[];
+    generationsPerCombo: number;
+    repeats: number;
+    seeds: number[];
+    expectedRuns: number;
+  };
+  protocol: {
+    humanIntervention: string;
+    maxWallTimeMs: number;
+    maxWorkspaceBytes: number;
+    network: string;
+    sameSession: boolean;
+    sameWorkspace: boolean;
+    turns: number;
+  };
+  scoring: {
+    maxPoints: number;
+    visibleStagePoints: number;
+    holdoutPoints: number;
+    tieTolerancePoints: number;
+    infrastructureInvalid: boolean;
+  };
+  stages: Array<{ id: string; order: number; points: number; title: string }>;
+  sourceRevisions: Array<{
+    id: string;
+    protocolRevision: string;
+    challengeId: string;
+    challengeSha256: string;
+    scheduleId: string;
+    scheduleSha256: string;
+    amendment: string | null;
+    acceptedRuns: number;
+    challengePath: string;
+    schedulePath: string;
+    challengeUrl?: string;
+    scheduleUrl?: string;
+  }>;
+  totals: {
+    inputTokens: number | null;
+    cachedInputTokens: number | null;
+    outputTokens: number | null;
+    reasoningTokens: number | null;
+    totalTokens: number | null;
+    durationMs: number;
+    toolCalls: number | null;
+    failedAttempts: number;
+    cacheReadRate: number | null;
+  };
+  combos: Array<{
+    comboId: string;
+    harness: string;
+    harnessDisplayName: string;
+    harnessVersion: string;
+    model: string;
+    modelFamilyId: string;
+    acceptedRuns: number;
+    expectedRuns: number;
+    averageScore: number;
+    medianScore: number;
+    minimumScore: number;
+    maximumScore: number;
+    averageDurationMs: number;
+    totalDurationMs: number;
+    usage: {
+      inputTokens: number | null;
+      cachedInputTokens: number | null;
+      outputTokens: number | null;
+      totalTokens: number | null;
+      cacheReadRate: number | null;
+    };
+    sourceRevisions: string[];
+    stagePassRates: Array<{ id: string; title: string; passed: number; total: number }>;
+    runs: TerminalCampaignRun[];
+  }>;
+  publication: null | {
+    snapshotId: string;
+    snapshotSha256: string;
+    datasetRevision: string;
+    datasetUrl: string;
+    releaseUrl: string | null;
+  };
 };
 
 export type TerminalChallengeLane = {

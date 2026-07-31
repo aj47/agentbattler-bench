@@ -24,10 +24,12 @@ function invariant(condition, message) {
 }
 
 function parseArguments(argv) {
-  const options = { snapshotRoot: null };
+  const options = { snapshotRoot: null, packagePointer: DEFAULT_POINTER, latestPointer: path.join(ROOT, 'snapshots/latest.json') };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--snapshot-root') options.snapshotRoot = path.resolve(argv[++index]);
+    else if (value === '--package-pointer') options.packagePointer = path.resolve(argv[++index]);
+    else if (value === '--latest-pointer') options.latestPointer = path.resolve(argv[++index]);
     else throw new Error(`Unexpected argument: ${value}`);
   }
   return options;
@@ -113,16 +115,19 @@ async function publishRelease(snapshot, releaseRoot) {
   const existing = await run('gh', ['release', 'view', snapshot.release.tag, '-R', snapshot.release.repository, '--json', 'isDraft,assets'], { capture: true, allowFailure: true });
   if (existing.code !== 0) {
     const notesPath = path.join(releaseRoot, 'release-notes.md');
-    await writeFile(notesPath, [
-      `# AgentBattler ${snapshot.snapshotId}`,
-      '',
-      'Immutable, replayable archive of the exploratory Codex CLI versus Pi Terra, Sol, and Luna chess benchmark snapshot.',
-      '',
-      `Source benchmark commit: \`${snapshot.source.gitCommit}\``,
-      '',
-      'The archive contains native Codex and Pi sessions, original CLI event streams, normalized run/event/match/move tables, all 30 generated agents, three replayable tournament bundles, checksums, and the exact website dataset.',
-      '',
-    ].join('\n'));
+    try {
+      await readFile(notesPath, 'utf8');
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      await writeFile(notesPath, [
+        `# AgentBattler ${snapshot.snapshotId}`,
+        '',
+        snapshot.publication?.description ?? 'Immutable, replayable AgentBattler benchmark evidence.',
+        '',
+        `Source benchmark commit: \`${snapshot.source.gitCommit}\``,
+        '',
+      ].join('\n'));
+    }
     await run('gh', [
       'release', 'create', snapshot.release.tag,
       ...expected,
@@ -130,7 +135,7 @@ async function publishRelease(snapshot, releaseRoot) {
       '--target', snapshot.source.gitCommit,
       '--draft',
       '--latest=false',
-      '--title', `AgentBattler snapshot · ${snapshot.snapshotId}`,
+      '--title', snapshot.publication?.title ?? `AgentBattler snapshot · ${snapshot.snapshotId}`,
       '--notes-file', notesPath,
     ]);
   } else {
@@ -169,7 +174,7 @@ async function verifyRelease(snapshot, scratch) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (!options.snapshotRoot) {
-    const pointer = JSON.parse(await readFile(DEFAULT_POINTER, 'utf8'));
+    const pointer = JSON.parse(await readFile(options.packagePointer, 'utf8'));
     invariant(typeof pointer.snapshotRoot === 'string', 'Publication package pointer is invalid');
     options.snapshotRoot = path.resolve(pointer.snapshotRoot);
   }
@@ -189,8 +194,9 @@ async function main() {
   await verifyRelease(published, scratch);
 
   const namedPath = path.join(ROOT, 'snapshots', `${published.snapshotId}.json`);
-  const latestPath = path.join(ROOT, 'snapshots/latest.json');
+  const latestPath = options.latestPointer;
   await writeSnapshot(namedPath, published);
+  await mkdir(path.dirname(latestPath), { recursive: true });
   await writeFile(latestPath, await readFile(namedPath));
   console.log(`Published and verified ${published.snapshotId}.`);
   console.log(`Hugging Face revision: ${revision}`);

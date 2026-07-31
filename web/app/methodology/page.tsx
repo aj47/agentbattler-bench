@@ -24,7 +24,8 @@ export default function MethodologyPage() {
           <a href="#verification">03 · verification</a>
           <a href="#snapshot">04 · current snapshot</a>
           <a href="#glossary">05 · glossary</a>
-          {siteData.terminalChallenge ? <a href="#terminal">06 · terminal lane</a> : null}
+          {siteData.terminalCampaign ? <a href="#terminal-v5">06 · Mini Ledger V5</a> : null}
+          {siteData.terminalChallenge ? <a href="#terminal-history">07 · withdrawn V4</a> : null}
         </aside>
         <div className="methodology-copy">
           <section id="pipeline">
@@ -71,14 +72,32 @@ export default function MethodologyPage() {
               <div id="generated-engine"><dt>Generated engine</dt><dd>An executable chess program produced by one independent model generation. It is the artifact that plays chess; the language model does not play each game live.</dd></div>
               <div id="generation-turn"><dt>Generation turn</dt><dd>One model interaction reported by the harness while creating an engine. It is not a chess move, ply, or game turn. Per-turn telemetry divides generation totals by these interactions.</dd></div>
               <div id="pooled-score"><dt>Pooled score</dt><dd>The percentage of available chess points earned across all published games for the five engines in a combination: one point for a win, half for a draw, and zero for a loss. Schedule sizes can differ.</dd></div>
+              <div id="combined-score"><dt>Combined challenge score</dt><dd>When both Chess and Mini Ledger V5 are sealed, the official homepage index is the unweighted arithmetic mean of the two displayed 0–100 challenge scores. It is not Elo, and V4 never enters it.</dd></div>
               <div id="reasoning-effort"><dt>Reasoning effort</dt><dd>The reasoning level requested from each harness during generation. “High” records the declared setting; it does not claim identical internal computation or token use across harnesses.</dd></div>
               <div id="telemetry"><dt>Telemetry coverage</dt><dd>How many generated engines have published generation measurements. Token and duration averages use only observed generation turns and do not estimate missing values.</dd></div>
               <div id="verification-badge"><dt>Verification badge</dt><dd>A statement about which evidence checks were completed for this result. It is not an endorsement of general model quality.</dd></div>
             </dl>
           </section>
+          {siteData.terminalCampaign ? (
+            <section id="terminal-v5">
+              <span className="chapter-number">06</span><h2>{siteData.terminalCampaign.title}</h2>
+              <p>Mini Ledger V5 is a predeclared 4 harness × 3 model × 5 generation campaign. Each generation receives 15 sequential instructions in one persistent session and workspace. Every instruction states the sealed {siteData.terminalCampaign.protocol.maxWallTimeMs / 60_000}-minute per-turn limit. After each turn, the verifier copies only the regular candidate source entry point into a fresh candidate-owned workspace; verifier source remains in a separate root-owned container.</p>
+              <dl className="snapshot-list">
+                <div><dt>accepted / expected</dt><dd>{siteData.terminalCampaign.campaign.acceptedRuns} / {siteData.terminalCampaign.campaign.expectedRuns}</dd></div>
+                <div><dt>status</dt><dd>{siteData.terminalCampaign.status}</dd></div>
+                <div><dt>score</dt><dd>{siteData.terminalCampaign.scoring.visibleStagePoints} visible + {siteData.terminalCampaign.scoring.holdoutPoints} holdout</dd></div>
+                <div><dt>agent turns</dt><dd>{siteData.terminalCampaign.protocol.turns} per accepted run</dd></div>
+                <div><dt>human intervention</dt><dd>{siteData.terminalCampaign.protocol.humanIntervention}</dd></div>
+                <div><dt>invalid attempts retained</dt><dd>{siteData.terminalCampaign.totals.failedAttempts}</dd></div>
+              </dl>
+              <p className="method-note">Campaign composition: accepted evidence is preserved from compatible R2, R3, and R4 protocol revisions. Those revisions corrected source-only verification, DotAgents cache continuity/usage accounting, and harness reliability/redaction behavior. They did not change the 15-turn task, score weights, model identities, high reasoning request, or 30-minute per-turn limit. Every run exposes its source revision, challenge hash, schedule hash, and retry history.</p>
+              <p className="method-note">Scoring: a visible stage contributes its declared points only when it passes. Holdout points equal (passed holdout checks ÷ total holdout checks) × {siteData.terminalCampaign.scoring.holdoutPoints}. The condition leaderboard is the mean of five independent run scores; min–max remains visible. Infrastructure-invalid attempts are not scored.</p>
+              <p className="method-note">Telemetry limitation: input, cached-input, output, reasoning, tools, and duration are published as reported. “Cache-read rate” is cached input divided by input tokens. Harness and transport semantics differ, so telemetry is never used to rank conditions and is not presented as provider billing.</p>
+            </section>
+          ) : null}
           {siteData.terminalChallenge ? (
-            <section id="terminal">
-              <span className="chapter-number">06</span><h2>{siteData.terminalChallenge.title}</h2>
+            <section id="terminal-history">
+              <span className="chapter-number">07</span><h2>{siteData.terminalChallenge.title}</h2>
               <p>The terminal lane is versioned separately from chess. Every declared harness/model/generation combination is scheduled before execution, with the prompt, verifier hashes, turn protocol, workspace rules, stage scores, and result hashes bound to the schedule.</p>
               <dl className="snapshot-list">
                 <div><dt>scheduled runs</dt><dd>{formatNumber(siteData.terminalChallenge.expectedRuns)}</dd></div>

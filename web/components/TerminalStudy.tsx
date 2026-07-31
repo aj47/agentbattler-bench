@@ -31,7 +31,7 @@ export function TerminalStudy({ lane }: { lane: TerminalChallengeLane }) {
   if (lane.status === 'withdrawn') {
     const audit = lane.integrityAudit.scope;
     return (
-      <section className={`${styles.study} ${styles.withdrawn}`} id="terminal-study" aria-labelledby="terminal-study-title">
+      <section className={`${styles.study} ${styles.withdrawn}`} id="terminal-history" aria-labelledby="terminal-history-title">
         <div className={`shell ${styles.withdrawnShell}`}>
           <div className={styles.status}>
             <span className={styles.withdrawnMark} aria-hidden="true" />
@@ -40,7 +40,7 @@ export function TerminalStudy({ lane }: { lane: TerminalChallengeLane }) {
           <div className={styles.withdrawnGrid}>
             <div>
               <p className={styles.kicker}>Mini Ledger v4 · benchmark correction</p>
-              <h1 id="terminal-study-title">Vulnerable boundary.<br /><em>Visible evidence.</em></h1>
+              <h1 id="terminal-history-title">Vulnerable boundary.<br /><em>Visible evidence.</em></h1>
             </div>
             <div className={styles.incidentCopy}>
               <strong>All 60 agents could reach the parent repository. Eight captured traces show direct verifier-source access.</strong>

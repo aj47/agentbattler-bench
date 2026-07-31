@@ -28,9 +28,39 @@ export default function ChangelogPage() {
         <p>Invalid protocols remain visible as evidence. They do not quietly become scores.</p>
       </header>
 
+      {siteData.terminalCampaign ? (
+        <article className="incident-entry">
+          <div className="incident-entry-head">
+            <div><span className="chapter-number">01 / V5 campaign composition</span><h2>Keep valid evidence.<br />Name every revision.</h2></div>
+            <aside><span>status</span><strong>{siteData.terminalCampaign.status === 'complete' ? 'sealed campaign' : 'final recovery in progress'}</strong><code>{siteData.terminalCampaign.campaign.acceptedRuns}/{siteData.terminalCampaign.campaign.expectedRuns} accepted</code></aside>
+          </div>
+
+          <div className="incident-prose">
+            <h3>What changed</h3>
+            <div>
+              <p>Mini Ledger V5 uses compatible R2, R3, and R4 source revisions. R2 established fixed turns, the explicit wire contract, and source-only verification. R3 updated DotAgents to v1.1.9 and corrected prompt-cache continuity and cumulative usage accounting. R4 hardened stream completion, failure redaction, and retry reliability.</p>
+              <p>The campaign does not rewrite those results as if they came from one implementation. Every accepted run names its source revision, challenge and schedule hashes, result key, duration, usage, attempts, and trace. The task, scoring, models, requested high reasoning, and 30-minute per-turn limit remain fixed.</p>
+            </div>
+          </div>
+
+          <dl className="incident-counts">
+            {siteData.terminalCampaign.sourceRevisions.map((source) => <div key={source.id}><dt>{source.id} / {source.protocolRevision}</dt><dd>{source.acceptedRuns}</dd></div>)}
+            <div><dt>infrastructure-invalid attempts</dt><dd>{siteData.terminalCampaign.totals.failedAttempts}</dd></div>
+          </dl>
+
+          {siteData.terminalCampaign.campaign.policy.retryCeilingException ? <div className="incident-prose"><h3>Declared exception</h3><div><p>{siteData.terminalCampaign.campaign.policy.retryCeilingException.reason} The fourth attempt keeps the same logical job, task, adapter, model, reasoning level, and timeout. No fifth attempt is authorized.</p></div></div> : null}
+
+          <div className="incident-sources">
+            <strong>Open the record</strong>
+            <a href="https://github.com/aj47/agentbattler-bench/blob/main/docs/incidents/mini-ledger-v5-r4-dotagents-luna-g5.md">recovery incident ↗</a>
+            <Link href="/#terminal-study">inspect V5 runs ↑</Link>
+          </div>
+        </article>
+      ) : null}
+
       <article className="incident-entry">
         <div className="incident-entry-head">
-          <div><span className="chapter-number">01 / verifier lifecycle correction</span><h2>V5-R1 found the container boundary.<br />Then failed inside it.</h2></div>
+          <div><span className="chapter-number">02 / verifier lifecycle correction</span><h2>V5-R1 found the container boundary.<br />Then failed inside it.</h2></div>
           <aside><span>status</span><strong>invalidated before publication</strong><code>replaced by V5-R2</code></aside>
         </div>
 
@@ -62,7 +92,7 @@ export default function ChangelogPage() {
       {lane ? (
         <article className="incident-entry">
           <div className="incident-entry-head">
-            <div><span className="chapter-number">02 / isolation correction</span><h2>Eight observed accesses.<br />Sixty unofficial runs.</h2></div>
+            <div><span className="chapter-number">03 / isolation correction</span><h2>Eight observed accesses.<br />Sixty unofficial runs.</h2></div>
             <aside><span>status</span><strong>withdrawn from official Elo</strong><code>{lane.challengeId}</code></aside>
           </div>
 
@@ -118,7 +148,7 @@ export default function ChangelogPage() {
             <a href="https://github.com/aj47/agentbattler-bench/blob/main/benchmark/incidents/mini-ledger-v4-isolation.json">machine-readable audit ↗</a>
             <a href="https://github.com/aj47/agentbattler-bench/blob/main/docs/incidents/mini-ledger-v4-isolation.md">incident document ↗</a>
             <a href="https://github.com/aj47/agentbattler-bench/tree/main/results/terminal-mini-ledger-v4/traces">all 60 traces ↗</a>
-            <Link href="/#terminal-study">historical result table ↑</Link>
+            <Link href="/#terminal-history">historical result table ↑</Link>
           </div>
         </article>
       ) : null}

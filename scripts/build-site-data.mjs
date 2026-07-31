@@ -20,12 +20,14 @@ import {
 } from '../src/snapshot.mjs';
 import { summarizeModelFamilies } from '../src/model-family-summary.mjs';
 import { summarizeHarnessComparison } from '../src/harness-summary.mjs';
+import { bindTerminalPublication } from '../src/terminal-publication.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'web/generated/site-data.json');
 const PUBLICATION_OUTPUT = path.join(ROOT, 'web/generated/publication.json');
 const SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest.json');
 const RESULTS_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-results.json');
+const TERMINAL_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-terminal.json');
 const gunzipAsync = promisify(gunzip);
 const SUITES = [
   {
@@ -532,8 +534,11 @@ async function preparePublishedSnapshot() {
     await fetchVerified([url, url, url], cache, artifact);
   }
   let data = await readJson(cache);
-  const terminalChallenge = await loadTerminalChallengeLane();
-  if (terminalChallenge) data = { ...data, terminalChallenge };
+  const [terminalCampaign, terminalChallenge] = await Promise.all([
+    loadTerminalCampaignLane(),
+    loadTerminalChallengeLane(),
+  ]);
+  if (terminalCampaign || terminalChallenge) data = { ...data, terminalCampaign, terminalChallenge };
   invariant(data.schemaVersion === 'agentbattler.site-data.v2', 'Published site data has an unsupported schema');
   invariant(data.matches.length === snapshot.totals.matches, 'Published site data match count disagrees with snapshot');
   invariant(data.agents.length === snapshot.totals.runs, 'Published site data agent count disagrees with snapshot');
@@ -827,9 +832,42 @@ async function loadTerminalChallengeLane() {
   }
 }
 
+async function loadTerminalCampaignLane() {
+  const preview = process.env.AGENTBATTLER_TERMINAL_V5_SITE_DATA;
+  if (preview) {
+    const lane = await readJson(path.resolve(ROOT, preview));
+    const { siteDataSha256, ...unsigned } = lane;
+    invariant(lane.schemaVersion === 'agentbattler.terminal-campaign-site.v1', 'Unsupported terminal campaign site-data schema');
+    invariant(siteDataSha256 === canonicalJsonSha256(unsigned), 'Terminal campaign site-data hash mismatch');
+    return lane;
+  }
+  let snapshot;
+  try {
+    snapshot = await readSnapshot(TERMINAL_SNAPSHOT_PATH);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+  const lane = await readPublishedJson(snapshot, snapshot.dataset.siteData);
+  const { siteDataSha256, ...unsigned } = lane;
+  invariant(lane.schemaVersion === 'agentbattler.terminal-campaign-site.v1', 'Unsupported terminal campaign site-data schema');
+  invariant(siteDataSha256 === canonicalJsonSha256(unsigned), 'Terminal campaign site-data hash mismatch');
+  return bindTerminalPublication(lane, {
+    snapshotId: snapshot.snapshotId,
+    snapshotSha256: snapshot.snapshotSha256,
+    datasetRepo: snapshot.dataset.repoId,
+    datasetRevision: snapshot.dataset.revision,
+    datasetRoot: snapshot.dataset.root,
+    releaseUrl: `https://github.com/${snapshot.release.repository}/releases/tag/${snapshot.release.tag}`,
+  });
+}
+
 async function main() {
   if (await preparePublishedSnapshot()) return;
-  const terminalChallenge = await loadTerminalChallengeLane();
+  const [terminalCampaign, terminalChallenge] = await Promise.all([
+    loadTerminalCampaignLane(),
+    loadTerminalChallengeLane(),
+  ]);
   const loadedSuites = await Promise.all(SUITES.map(async (descriptor) => {
     const [manifest, suite, tournament] = await Promise.all([
       readJson(descriptor.manifest),
@@ -971,6 +1009,7 @@ async function main() {
     agents,
     matches,
     latestDecisiveId: latestDecisive?.id ?? null,
+    terminalCampaign,
     terminalChallenge,
   };
 

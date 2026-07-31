@@ -150,6 +150,14 @@ export type HarnessModelEntrant = {
   points: number;
   scorePct: number;
   artifactScore: { minimum: number; median: number; maximum: number };
+  generation: {
+    reportedTokenArtifacts: number;
+    reportedDurationArtifacts: number;
+    totalTokens: number | null;
+    medianTokens: number | null;
+    totalDurationMs: number | null;
+    medianDurationMs: number | null;
+  };
 };
 
 export type CombinedChallengeEntrant = {

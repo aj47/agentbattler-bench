@@ -28,7 +28,8 @@ function median(values: number[]): number {
 
 export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntrant[] {
   const harnesses = new Map(data.harnesses.map((harness) => [harness.id, harness]));
-  const buckets = new Map<string, Omit<HarnessModelEntrant, 'rank' | 'artifactScore' | 'scorePct'>>();
+  const buckets = new Map<string, Omit<HarnessModelEntrant, 'rank' | 'artifactScore' | 'scorePct' | 'generation'>>();
+  const generationTelemetry = new Map<string, { tokens: number[]; durations: number[] }>();
   const controlledStats = new Map<string, { games: number; wins: number; draws: number; losses: number; points: number }>();
 
   for (const match of data.matches) {
@@ -92,11 +93,17 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
     bucket.losses += stats.losses;
     bucket.points += stats.points;
     buckets.set(key, bucket);
+
+    const telemetry = generationTelemetry.get(key) ?? { tokens: [], durations: [] };
+    if (agent.generation.totalTokens != null) telemetry.tokens.push(agent.generation.totalTokens);
+    if (agent.generation.durationMs != null) telemetry.durations.push(agent.generation.durationMs);
+    generationTelemetry.set(key, telemetry);
   }
 
   return [...buckets.values()]
     .map((bucket) => {
       const scores = bucket.artifacts.map((artifact) => artifact.scorePct);
+      const telemetry = generationTelemetry.get(bucket.id) ?? { tokens: [], durations: [] };
       return {
         ...bucket,
         rank: 0,
@@ -105,6 +112,14 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
           minimum: Math.min(...scores),
           median: roundScore(median(scores)),
           maximum: Math.max(...scores),
+        },
+        generation: {
+          reportedTokenArtifacts: telemetry.tokens.length,
+          reportedDurationArtifacts: telemetry.durations.length,
+          totalTokens: telemetry.tokens.length > 0 ? telemetry.tokens.reduce((sum, value) => sum + value, 0) : null,
+          medianTokens: telemetry.tokens.length > 0 ? median(telemetry.tokens) : null,
+          totalDurationMs: telemetry.durations.length > 0 ? telemetry.durations.reduce((sum, value) => sum + value, 0) : null,
+          medianDurationMs: telemetry.durations.length > 0 ? median(telemetry.durations) : null,
         },
       };
     })

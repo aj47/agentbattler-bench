@@ -65,8 +65,8 @@ export function TerminalCampaignStudy({ lane }: { lane: TerminalCampaignLane }) 
           <div><dt>invalid attempts</dt><dd>{lane.totals.failedAttempts}<small>retained separately · never scored</small></dd></div>
         </dl>
 
-        <div className={styles.boardIntro}>
-          <div><span>01 / {official ? 'official leaderboard' : 'preliminary results'}</span><h3>{official ? 'The campaign has a winner. The runs explain why.' : 'The shape is visible. The ranking is not sealed.'}</h3></div>
+        <div className={styles.boardIntro} id="ledger-leaderboard">
+          <div><span>01 / {official ? 'official leaderboard' : 'preliminary results'}</span><h3>{official ? 'Mini Ledger leaderboard. The runs explain why.' : 'The shape is visible. The ranking is not sealed.'}</h3></div>
           <p>Mean score ranks each condition. The rail is its run-to-run range; every marker opens a generation with its stage breakdown, source revision, telemetry, attempts, and trace.</p>
         </div>
 
@@ -81,10 +81,12 @@ export function TerminalCampaignStudy({ lane }: { lane: TerminalCampaignLane }) 
                   <i className={styles.track} />
                   <i className={styles.range} style={{ '--left': `${combo.minimumScore}%`, '--width': `${combo.maximumScore - combo.minimumScore}%` } as CSSProperties} />
                   {combo.runs.map((run) => <Link className={styles.point} href={`/ledger/runs/${run.slug}/`} key={run.runKey} style={{ '--score': `${run.scorePct}%` } as CSSProperties} title={`Generation ${run.generationIndex}: ${score(run.scorePct)}`} />)}
+                  <small>{score(combo.minimumScore)}–{score(combo.maximumScore)}</small>
                 </span>
                 <strong className={styles.mean}>{score(combo.averageScore)}</strong>
                 <span className={styles.time}>{duration(combo.averageDurationMs)}</span>
                 <span className={styles.tokens}>{compactNumber(combo.usage.totalTokens)}</span>
+                <span className={styles.mobileMeta}>range {score(combo.minimumScore)}–{score(combo.maximumScore)} · {compactNumber(combo.usage.totalTokens)} reported tokens</span>
                 <span className={styles.chevron} aria-hidden="true">+</span>
               </summary>
               <div className={styles.runs}>

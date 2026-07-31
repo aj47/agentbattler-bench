@@ -3,29 +3,26 @@
 .heading span { color: var(--accent); font: 650 9px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .heading h2 { max-width: 630px; margin-top: 13px; font-size: clamp(28px, 4vw, 52px); line-height: .98; letter-spacing: -.045em; }
 .heading p { max-width: 470px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
-.head, .row { display: grid; grid-template-columns: minmax(250px, 1.55fr) .55fr .6fr .6fr .8fr; gap: 18px; align-items: center; }
+.head, .row { display: grid; grid-template-columns: minmax(250px, 1fr) auto; gap: 28px; align-items: center; }
 .head { min-height: 38px; padding: 0 16px; border-block: 1px solid var(--line); color: var(--dim); font: 550 8px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .row { min-height: 92px; padding: 15px 16px; border-bottom: 1px solid var(--line); }
 .row:hover { background: var(--surface); }
 .identity { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; min-width: 0; }
 .identity > span { color: var(--dim); font: 500 12px/1 var(--mono); }
-.identity div, .challengeScore, .range { display: grid; gap: 6px; }
+.identity div { display: grid; gap: 6px; }
 .identity strong { font-size: 15px; line-height: 1.2; }
-.identity small, .challengeScore small, .range small { color: var(--dim); font: 500 8px/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
-.overall { color: var(--accent); font: 700 25px/1 var(--mono); }
-.challengeScore, .range { font: 600 13px/1 var(--mono); }
+.overall { color: var(--accent); font: 700 30px/1 var(--mono); text-align: right; }
 .foot { display: flex; justify-content: space-between; gap: 20px; padding-top: 18px; color: var(--dim); font: 500 9px/1.5 var(--mono); }
-.foot a { color: var(--accent); }
+.foot nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 18px; }
+.foot a { color: var(--accent); white-space: nowrap; }
 @media (max-width: 800px) {
   .heading { grid-template-columns: 1fr; gap: 20px; }
-  .head, .row { grid-template-columns: minmax(190px, 1.5fr) .55fr .65fr .75fr; }
-  .head > :nth-child(5), .row > :nth-child(5) { display: none; }
 }
 @media (max-width: 560px) {
-  .head, .row { grid-template-columns: minmax(170px, 1.5fr) .6fr .65fr; gap: 8px; padding-inline: 7px; }
-  .head > :nth-child(3), .row > :nth-child(3), .head > :nth-child(5), .row > :nth-child(5) { display: none; }
+  .head, .row { grid-template-columns: minmax(170px, 1fr) auto; gap: 8px; padding-inline: 7px; }
   .identity { grid-template-columns: 28px 1fr; gap: 6px; }
   .identity strong { font-size: 13px; }
-  .overall { font-size: 20px; }
+  .overall { font-size: 23px; }
   .foot { display: grid; }
+  .foot nav { justify-content: flex-start; }
 }

@@ -1,11 +1,19 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 
+import { formatDuration, formatNumber } from '../lib/data';
 import type { HarnessModelEntrant } from '../lib/types';
 import styles from './HarnessModelLeaderboard.module.css';
 
 function formatScore(value: number) {
   return `${value.toFixed(2).replace(/\.?0+$/, '')}%`;
+}
+
+function compactNumber(value: number | null) {
+  if (value == null) return '—';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return formatNumber(value);
 }
 
 export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEntrant[] }) {
@@ -17,18 +25,18 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
   const includesPlacement = entrants.some((entrant) => entrant.harness === 'dotagents-mono');
 
   return (
-    <section className={styles.section} aria-labelledby="harness-model-leaderboard-title">
+    <section className={styles.section} id="chess-leaderboard" aria-labelledby="harness-model-leaderboard-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">primary leaderboard · {entrants.length} benchmark entrants</span>
-          <h2 id="harness-model-leaderboard-title">Harness × model leaderboard</h2>
+          <span className="eyebrow">chess leaderboard · {entrants.length} benchmark entrants</span>
+          <h2 id="harness-model-leaderboard-title">Generated engines, ranked by battle.</h2>
         </div>
         <span className="provisional-label">controlled same-model score · {scheduleLabel}</span>
       </div>
       <p className={styles.intro}>Each row is one harness and model combination, pooling its {artifactLabel}. Scores use same-model cross-harness games so model identity stays fixed; the dots keep generation variance visible. <Link className={styles.methodLink} href="/methodology/#pooled-score">How pooled score works →</Link></p>
 
       <div className={styles.header} aria-hidden="true">
-        <span>rank / entrant</span><span>pooled score</span><span>five-engine distribution</span><span>record</span>
+        <span>rank / entrant</span><span>pooled score</span><span>five-engine range</span><span>generation telemetry</span><span>record</span>
       </div>
       <div className={styles.body}>
         {entrants.map((entrant) => {
@@ -68,6 +76,16 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
                 </div>
                 <small>median {formatScore(entrant.artifactScore.median)} · range {formatScore(entrant.artifactScore.minimum)}—{formatScore(entrant.artifactScore.maximum)}</small>
               </div>
+              <div className={styles.telemetry}>
+                <span>
+                  <strong>{entrant.generation.medianDurationMs == null ? '—' : formatDuration(entrant.generation.medianDurationMs)}</strong>
+                  <small>{entrant.generation.reportedDurationArtifacts > 0 ? `median time · ${entrant.generation.reportedDurationArtifacts}/${entrant.artifacts.length}` : 'time not reported'}</small>
+                </span>
+                <span>
+                  <strong>{compactNumber(entrant.generation.totalTokens)}</strong>
+                  <small>{entrant.generation.reportedTokenArtifacts > 0 ? `reported tokens · ${entrant.generation.reportedTokenArtifacts}/${entrant.artifacts.length}` : 'tokens not reported'}</small>
+                </span>
+              </div>
               <div className={styles.record}>
                 <strong>{entrant.wins}–{entrant.draws}–{entrant.losses}</strong>
                 <small>W–D–L</small>
@@ -78,7 +96,7 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
       </div>
       <div className={styles.legend}>
         <span>{balancedSchedule ? 'Pooled score ranks entrants because every entrant plays the same-sized schedule.' : includesPlacement ? 'Pooled score ranks all entrants; DotAgents uses targeted placement while established combinations also retain their immutable same-model games.' : 'Pooled score ranks entrants; schedule size is shown for each row.'} <Link className={styles.methodLink} href="/methodology/#pooled-score">method →</Link></span>
-        <span>Each dot opens one generated engine dossier.</span>
+        <span>Telemetry describes engine generation, never rank. Missing capture is labeled—not estimated. Each dot opens one engine dossier.</span>
       </div>
     </section>
   );

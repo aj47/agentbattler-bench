@@ -51,7 +51,7 @@ export default function HomePage() {
               <div className="eligible-challenge"><dt>Chess</dt><dd>included · published</dd></div>
               <div className={terminalOfficial ? 'eligible-challenge' : 'pending-challenge'}><dt>Mini Ledger V5</dt><dd>{terminalOfficial ? 'included · published' : `${terminalCampaign?.campaign.acceptedRuns ?? 0}/${terminalCampaign?.campaign.expectedRuns ?? 60} · not sealed`}</dd></div>
             </dl>
-            <p>{terminalOfficial ? 'Overall = (Chess score + Ledger mean score) ÷ 2. Both inputs are shown; no weighting or Elo conversion is hidden.' : 'V5 remains visible as preliminary evidence while it runs, but it cannot change this official ranking until the campaign and publication hashes are complete.'}</p>
+            <p>{terminalOfficial ? 'Overall = (Chess score + Ledger mean score) ÷ 2. Open either challenge leaderboard below to inspect its score, range, telemetry, and evidence.' : 'V5 remains visible as preliminary evidence while it runs, but it cannot change this official ranking until the campaign and publication hashes are complete.'}</p>
           </div>
           {terminalOfficial ? <CombinedLeaderboard entrants={combinedChallengeEntrants} /> : <HarnessModelLeaderboard entrants={harnessModelEntrants} />}
         </div>

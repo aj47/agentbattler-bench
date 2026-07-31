@@ -11,27 +11,28 @@ export function CombinedLeaderboard({ entrants }: { entrants: CombinedChallengeE
   return (
     <section className={styles.section} aria-labelledby="combined-board-title">
       <div className={styles.heading}>
-        <div><span>official overall · {entrants.length} complete conditions</span><h2 id="combined-board-title">Two challenges. One visible calculation.</h2></div>
-        <p>The overall score is the simple, unweighted mean of Chess and Mini Ledger V5. Both challenge scores already use a 0–100 scale. It is a comparison index—not Elo.</p>
+        <div><span>official overall · {entrants.length} complete conditions</span><h2 id="combined-board-title">Overall leaderboard.</h2></div>
+        <p>The overall score is the simple, unweighted mean of Chess and Mini Ledger V5. It is a cross-challenge comparison index—not Elo. The challenge leaderboards below expose every input and diagnostic.</p>
       </div>
-      <div className={styles.head} aria-hidden="true"><span>rank / harness × model</span><span>overall</span><span>chess score</span><span>ledger score</span><span>ledger range</span></div>
+      <div className={styles.head} aria-hidden="true"><span>rank / harness × model</span><span>overall score</span></div>
       <div className={styles.rows}>
         {entrants.map((entrant) => (
           <article className={styles.row} key={entrant.id}>
             <div className={styles.identity}>
               <span>{String(entrant.rank).padStart(2, '0')}</span>
-              <div><strong>{entrant.harnessDisplayName} × {entrant.familyDisplayName.replace('GPT-5.6 ', '')}</strong><small>{entrant.ledgerRuns} accepted Ledger runs</small></div>
+              <div><strong>{entrant.harnessDisplayName} × {entrant.familyDisplayName.replace('GPT-5.6 ', '')}</strong></div>
             </div>
             <strong className={styles.overall}>{score(entrant.combinedScore)}</strong>
-            <span className={styles.challengeScore}>{score(entrant.chessScore)}<small>agent harness v{entrant.chessHarnessVersion}</small></span>
-            <span className={styles.challengeScore}>{score(entrant.ledgerScore)}<small>agent harness v{entrant.ledgerHarnessVersion}</small></span>
-            <span className={styles.range}>{score(entrant.ledgerRange.minimum)}—{score(entrant.ledgerRange.maximum)}<small>five generations</small></span>
           </article>
         ))}
       </div>
       <div className={styles.foot}>
-        <span>Version labels are coding-agent harness packages. Challenge revisions live in run provenance. No withdrawn V4 score enters this table.</span>
-        <Link href="/methodology/#combined-score">inspect the calculation →</Link>
+        <span>Overall = (Chess score + Ledger mean score) ÷ 2. No withdrawn V4 score enters this table.</span>
+        <nav aria-label="Inspect challenge leaderboards">
+          <a href="#ledger-leaderboard">Ledger details ↓</a>
+          <a href="#chess-leaderboard">Chess details ↓</a>
+          <Link href="/methodology/#combined-score">calculation →</Link>
+        </nav>
       </div>
     </section>
   );

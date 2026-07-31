@@ -15,6 +15,34 @@ function invariant(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function normalizeHostPaths(value) {
+  if (typeof value === 'string') {
+    return value.replace(/\/(?:Users|home)\/[A-Za-z0-9._-]+(?=\/|\b)/g, '$HOME');
+  }
+  if (Array.isArray(value)) return value.map((entry) => normalizeHostPaths(entry));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalizeHostPaths(child)]));
+  }
+  return value;
+}
+
+export function normalizeTerminalRunForPublication(run) {
+  const { resultSha256: sourceResultSha256, ...sourceUnsigned } = run;
+  invariant(
+    typeof sourceResultSha256 === 'string' && sourceResultSha256 === canonicalJsonSha256(sourceUnsigned),
+    `${run.artifactId ?? run.runKey ?? 'Terminal run'} source result hash mismatch`,
+  );
+  const normalized = normalizeHostPaths(sourceUnsigned);
+  const publicUnsigned = {
+    ...normalized,
+    publicationProjection: {
+      sourceResultSha256,
+      hostPathNormalization: '/Users/<name> and /home/<name> prefixes are represented as $HOME',
+    },
+  };
+  return { ...publicUnsigned, resultSha256: canonicalJsonSha256(publicUnsigned) };
+}
+
 async function exists(file) {
   try {
     await access(file);

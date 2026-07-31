@@ -4,14 +4,34 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { canonicalJson } from '../src/provenance.mjs';
+import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
-import { buildTerminalCampaignSiteData } from '../src/terminal-publication.mjs';
+import {
+  buildTerminalCampaignSiteData,
+  normalizeTerminalRunForPublication,
+} from '../src/terminal-publication.mjs';
 
 async function writeJson(file, value) {
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, `${canonicalJson(value, { space: 2 })}\n`);
 }
+
+test('normalizes host paths while preserving and re-sealing source run provenance', () => {
+  const sourceUnsigned = {
+    schemaVersion: 'agentbattler.terminal-run.v1',
+    artifactId: 'terminal-codex-cli-luna-01',
+    adapter: {
+      trialUri: 'file:///Users/aj/Development/AgentBattler/results/trial',
+    },
+  };
+  const source = { ...sourceUnsigned, resultSha256: canonicalJsonSha256(sourceUnsigned) };
+  const published = normalizeTerminalRunForPublication(source);
+  const { resultSha256, ...publishedUnsigned } = published;
+  assert.equal(published.adapter.trialUri, 'file://$HOME/Development/AgentBattler/results/trial');
+  assert.equal(published.publicationProjection.sourceResultSha256, source.resultSha256);
+  assert.equal(resultSha256, canonicalJsonSha256(publishedUnsigned));
+  assert.equal(source.adapter.trialUri, sourceUnsigned.adapter.trialUri);
+});
 
 function challenge(revision) {
   return createMiniLedgerChallenge({

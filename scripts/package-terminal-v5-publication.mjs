@@ -17,6 +17,7 @@ import { fileArtifact, SNAPSHOT_SCHEMA, writeSnapshot } from '../src/snapshot.mj
 import {
   buildTerminalCampaignSiteData,
   materializeTerminalSnapshotPaths,
+  normalizeTerminalRunForPublication,
 } from '../src/terminal-publication.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -264,7 +265,9 @@ async function main() {
       const source = sources.get(accepted.source.sourceId);
       const runSource = path.join(source.root, 'runs', `${accepted.source.runKey}.json`);
       const runTarget = path.join(stagingRoot, 'runs', `${runRecord.slug}.json`);
-      await copy(runSource, runTarget);
+      const publicRun = normalizeTerminalRunForPublication(await readJson(runSource));
+      await mkdir(path.dirname(runTarget), { recursive: true });
+      await writeFile(runTarget, `${canonicalJson(publicRun, { space: 2 })}\n`);
       await inspectText(runTarget);
       const trace = source.traceManifest.traces.find((entry) => entry.runKey === accepted.source.runKey);
       invariant(trace, `Missing trace for ${runRecord.logicalKey}`);

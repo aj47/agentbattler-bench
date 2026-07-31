@@ -21,7 +21,7 @@ const workRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_WORK_ROOT ?? pat
 const outputRoot = path.join(resultRoot, 'traces');
 const allowIncomplete = process.argv.includes('--allow-incomplete');
 
-const SECRET_KEY = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|oauth|credential|secret|thinking[_-]?signature|encrypted[_-]?content)/i;
+const SECRET_KEY = /(?:^thinking$|api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|oauth|credential|secret|thinking[_-]?signature|encrypted[_-]?content)/i;
 const SECRET_VALUE = /(?:Bearer\s+[A-Za-z0-9._~+\/-]{16,}|\bsk-[A-Za-z0-9_-]{16,}|\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/gi;
 const SECRET_ASSIGNMENT = /\b([A-Z0-9_]*(?:API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIAL)[A-Z0-9_]*)=[^\s,;]+/gi;
 const SECRET_CONTENT = /((?:(?:access|refresh)[_-]?token|api[_-]?key|authorization|password|oauth|credential|secret)\s*["'=:\s]+(?:bearer\s+)?)[A-Za-z0-9_./+\-]{20,}/gi;

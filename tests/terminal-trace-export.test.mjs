@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { gunzipSync } from 'node:zlib';
 
 function runExporter(root) {
   return new Promise((resolve, reject) => {
@@ -53,13 +54,25 @@ test('trace exporter packages completed runs from an incomplete external result 
       turns: [],
     })}\n`);
     for (let turn = 1; turn <= 15; turn += 1) {
-      await writeFile(path.join(root, 'work', runKey, `turn-${turn}.jsonl`), `${JSON.stringify({ type: 'done', turn })}\n`);
+      await writeFile(path.join(root, 'work', runKey, `turn-${turn}.jsonl`), `${JSON.stringify({
+        type: 'done',
+        turn,
+        thinking: 'hidden reasoning must not be published',
+        thinkingSignature: 'hidden-signature',
+        encryptedContent: 'hidden-encrypted-content',
+      })}\n`);
     }
     await runExporter(root);
     const manifest = JSON.parse(await readFile(path.join(root, 'trace-manifest.json'), 'utf8'));
     assert.equal(manifest.totals.runs, 1);
     assert.equal(manifest.totals.turns, 15);
     assert.equal(manifest.traces[0].runKey, runKey);
+    const trace = gunzipSync(await readFile(path.join(root, 'traces', 'terminal-codex-cli-luna-01.jsonl.gz'))).toString('utf8');
+    assert.doesNotMatch(trace, /hidden reasoning|hidden-signature|hidden-encrypted-content/);
+    const done = trace.trim().split('\n').map((line) => JSON.parse(line)).find((entry) => entry.type === 'done');
+    assert.equal(done.thinking, '[REDACTED]');
+    assert.equal(done.thinkingSignature, '[REDACTED]');
+    assert.equal(done.encryptedContent, '[REDACTED]');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

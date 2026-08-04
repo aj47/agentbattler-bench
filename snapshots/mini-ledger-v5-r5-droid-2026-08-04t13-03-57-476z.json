@@ -1,0 +1,45 @@
+{
+  "createdAt": "2026-08-04T13:03:57.476Z",
+  "dataset": {
+    "manifest": {
+      "path": "snapshots/mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z/manifest.json",
+      "sha256": "3f793594a4ed977ed9d7903791c4630b3d0422444bcfe74658cc25f60874e311",
+      "sizeBytes": 12169
+    },
+    "repoId": "techfren/agentbattler-bench",
+    "repoType": "dataset",
+    "revision": "722086b06d9b9a03b8a7acef5bc53f0102e4ac41",
+    "root": "snapshots/mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z",
+    "siteData": {
+      "path": "snapshots/mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z/site/terminal-campaign.json",
+      "sha256": "6ba7e5e5200585e4e72a487ec526557d2fd45b627167ab2bc5ed35923be52f1e",
+      "sizeBytes": 108340
+    }
+  },
+  "publication": {
+    "description": "Immutable Mini Ledger evidence: full accepted results, semantic traces, source revisions, retry records, checksums, and analysis data.",
+    "title": "AgentBattler Mini Ledger v5 · 15 runs"
+  },
+  "release": {
+    "archive": {
+      "path": "agentbattler-mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z.tar.gz",
+      "sha256": "459182d84e84179c20eaad56845633b9a9b57598b670322a32e097f3e3196235",
+      "sizeBytes": 10224116
+    },
+    "repository": "aj47/agentbattler-bench",
+    "tag": "snapshot-mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z"
+  },
+  "schemaVersion": "agentbattler.snapshot.v1",
+  "snapshotId": "mini-ledger-v5-r5-droid-2026-08-04t13-03-57-476z",
+  "snapshotSha256": "d401311a0b4d82bfd9565d07420210f01f676e03696e8bfa143c15dd403345cf",
+  "source": {
+    "gitCommit": "975948dfec0104f0a50187ec97ef574a090084da"
+  },
+  "totals": {
+    "failedAttempts": 0,
+    "runs": 15,
+    "tokens": 4178289,
+    "toolCalls": 1696,
+    "turns": 225
+  }
+}

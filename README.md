@@ -169,6 +169,44 @@ npm run league:run:dotagents
 
 The placement plan gives each DotAgents model combo targeted same-model matches against Codex CLI, Pi, and Claude Code. One cyclic artifact rotation across five generations, six positions, and both colors produces 180 games per model and 540 games total. The run command executes missing schedules in parallel, replays existing result bundles, and refreshes the plan. The league ledger reuses any game whose immutable game ID already exists instead of rerunning it.
 
+## Droid suite
+
+The optional Droid harness pins Droid 0.186.0 and sends the same Terra, Sol, and Luna generation
+tasks through custom OpenAI-compatible models. On the M4, sourcing the existing CLIProxyAPI
+`benchmark.env` automatically selects CLIProxy and its canonical `gpt-5.6-*` names. Without
+CLIProxy variables, Droid defaults to local 9Router at `http://127.0.0.1:20128/v1` and maps to
+`cx/gpt-5.6-*`. Explicit `AGENTBATTLER_DROID_BASE_URL` and `AGENTBATTLER_DROID_API_KEY`
+overrides take precedence; set `AGENTBATTLER_DROID_MODEL_PREFIX` when that route uses a model
+namespace other than the default `cx/` (including an empty value for canonical model names).
+
+Every generation receives an empty home and workspace. Host Factory settings and sessions are
+not inherited; builtin skills, hooks, cloud session sync, and model fallbacks are disabled. The
+configuration records a 272,000-token raw context window, a 258,400-token effective window,
+native compaction at 206,720 tokens, and a 32,768-token maximum output. Compaction stays on the
+active model and reasoning is fixed to high.
+
+```sh
+npm run droid:routing:smoke
+npm run droid:live:smoke
+npm run droid:m4:preflight
+npm run generate:droid-suite
+npm run validate:droid-suite
+npm run benchmark:droid-suite
+npm run replay:droid-suite
+npm run build:harness-suite
+```
+
+The routing smoke uses a local mock and spends no model tokens. The separate live smoke makes
+two minimal turns to prove the configured router model and native session resume. Generating the
+Droid manifest adds `factory-droid` automatically to the balanced harness suite; no Droid rows
+are scheduled until that complete three-model manifest exists.
+
+For a clean M4 run, install the pinned Droid CLI, start and source the same persistent CLIProxy
+runtime used by Claude and DotAgents, run `npm run droid:m4:preflight`, then generate the Droid
+suite. `npm run terminal:matrix:v5:droid`, `npm run terminal:run:v5:droid`, and
+`npm run terminal:verify:v5:droid` keep the new 15-run lane under the distinct `v5-r5-droid`
+result identity instead of modifying a previously sealed V5 schedule.
+
 ## Resumable and publishable results
 
 Every benchmark run writes per-game atomic checkpoints beside its output. An interrupted run resumes automatically only when its manifest, position suite, pairing, and deterministic game IDs match exactly. Inspect its machine-readable progress with `node bin/agentbattler.mjs status --output results/example`; use `--fresh` only for a new run after moving any completed output.

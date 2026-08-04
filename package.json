@@ -46,6 +46,14 @@
     "validate:dotagents-suite": "node bin/agentbattler.mjs validate --manifest agents/dotagents-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model",
     "benchmark:dotagents-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/dotagents-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model --output results/dotagents-model-suite/matches --no-smoke",
     "replay:dotagents-suite": "node bin/agentbattler.mjs replay results/dotagents-model-suite/matches/result.json",
+    "generate:droid-suite": "node scripts/generate-droid-suite.mjs",
+    "generate:droid-suite:resume": "AGENTBATTLER_RESUME=1 node scripts/generate-droid-suite.mjs",
+    "validate:droid-suite": "node bin/agentbattler.mjs validate --manifest agents/droid-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model",
+    "benchmark:droid-suite": "AGENTBATTLER_CONCURRENCY=6 node bin/agentbattler.mjs run --manifest agents/droid-model-suite/manifest.json --positions benchmark/positions/v2.json --pairing cross-model --output results/droid-model-suite/matches --no-smoke",
+    "replay:droid-suite": "node bin/agentbattler.mjs replay results/droid-model-suite/matches/result.json",
+    "droid:routing:smoke": "node scripts/validate-droid-routing.mjs",
+    "droid:live:smoke": "node scripts/validate-droid-live.mjs",
+    "droid:m4:preflight": "AGENTBATTLER_DROID_REQUIRE_CLIPROXY=1 node scripts/validate-droid-live.mjs",
     "league:place:dotagents": "node scripts/create-dotagents-placement.mjs",
     "league:run:dotagents": "node scripts/run-dotagents-placement.mjs",
     "build:harness-suite": "node scripts/build-harness-suite.mjs",
@@ -58,6 +66,7 @@
     "terminal:matrix:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v5:dotagents-latest": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r3-dotagents-v1-1-9 AGENTBATTLER_TERMINAL_HARNESSES=dotagents-mono node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v5:reliability": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r4 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r4 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r4-reliability node scripts/build-terminal-schedule.mjs",
+    "terminal:matrix:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid AGENTBATTLER_TERMINAL_HARNESSES=factory-droid node scripts/build-terminal-schedule.mjs",
     "terminal:harbor:build": "node scripts/build-harbor-terminal-task.mjs",
     "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",
@@ -68,6 +77,7 @@
     "terminal:run:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/run-terminal-matrix-all.mjs",
     "terminal:run:v5:gated": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/run-terminal-v5-gated.mjs",
     "terminal:run:v5:dotagents-latest": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r3-dotagents-v1-1-9 node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs --harness dotagents-mono --concurrency 1 --retry-invalid",
+    "terminal:run:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid node scripts/run-terminal-matrix.mjs --adapter scripts/terminal-adapter-all.mjs --harness factory-droid --concurrency 1 --retry-invalid",
     "terminal:campaign:v5:status": "node scripts/run-terminal-v5-campaign.mjs --write-index",
     "terminal:campaign:v5:next": "node scripts/run-terminal-v5-campaign.mjs --run-next",
     "terminal:campaign:v5:supervise": "node scripts/run-terminal-v5-campaign.mjs --supervise --lanes 2 --max-attempts 3",
@@ -82,8 +92,10 @@
     "terminal:verify:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/verify-terminal-results.mjs",
     "terminal:verify:v5:dotagents-latest": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r3-dotagents-v1-1-9 node scripts/verify-terminal-results.mjs",
     "terminal:verify:v5:reliability": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r4 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r4-reliability node scripts/verify-terminal-results.mjs",
+    "terminal:verify:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid node scripts/verify-terminal-results.mjs",
     "terminal:traces:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 AGENTBATTLER_TERMINAL_RESULT_TAG=v4-harbor-unbounded node scripts/export-terminal-traces.mjs",
     "terminal:traces:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/export-terminal-traces.mjs",
-    "terminal:calibrate:claude": "node scripts/validate-claude-compaction.mjs"
+    "terminal:calibrate:claude": "node scripts/validate-claude-compaction.mjs",
+    "terminal:calibrate:droid": "node scripts/validate-droid-compaction.mjs"
   }
 }

@@ -2,6 +2,7 @@ export const SEALED_TERMINAL_HARNESS_VERSIONS = Object.freeze({
   'claude-code': '2.1.220',
   'codex-cli': '0.144.0',
   'dotagents-mono': '1.1.9',
+  'factory-droid': '0.186.0',
   'pi-coding-agent': '0.80.7',
 });
 

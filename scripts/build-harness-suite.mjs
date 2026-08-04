@@ -11,6 +11,7 @@ const INPUT_SPECS = [
   { path: path.join(ROOT, 'agents/pi-model-suite/manifest.json'), harness: 'pi-coding-agent', required: true },
   { path: path.join(ROOT, 'agents/claude-code-model-suite/manifest.json'), harness: 'claude-code', required: false },
   { path: path.join(ROOT, 'agents/dotagents-model-suite/manifest.json'), harness: 'dotagents-mono', required: false },
+  { path: path.join(ROOT, 'agents/droid-model-suite/manifest.json'), harness: 'factory-droid', required: false },
 ];
 const OUTPUT_DIR = path.join(ROOT, 'agents/harness-suite');
 const OUTPUT = path.join(OUTPUT_DIR, 'manifest.json');

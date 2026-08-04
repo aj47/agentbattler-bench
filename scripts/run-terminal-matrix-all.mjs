@@ -20,6 +20,7 @@ const configuredJobs = [
   // DotAgents is deliberately single-filed: the container is memory-heavy and
   // its stateful trace can be very large even when the trace is streamed.
   { harness: 'dotagents-mono', adapter: v4Adapter ?? 'scripts/terminal-adapter-dotagents.mjs', concurrency: process.env.AGENTBATTLER_DOTAGENTS_CONCURRENCY ?? '1' },
+  { harness: 'factory-droid', adapter: v4Adapter ?? 'scripts/terminal-adapter-droid.mjs', concurrency: process.env.AGENTBATTLER_DROID_CONCURRENCY ?? '1' },
   // Claude's ChatGPT OAuth refresh token is single-use and is brokered for the
   // lifetime of a gateway, so Claude jobs must be serialized.
   { harness: 'claude-code', adapter: v4Adapter ?? 'scripts/terminal-adapter-claude.mjs', concurrency: process.env.AGENTBATTLER_CLAUDE_CONCURRENCY ?? '1' },

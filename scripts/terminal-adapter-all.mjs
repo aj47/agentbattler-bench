@@ -5,23 +5,25 @@ import { fileURLToPath } from 'node:url';
 import { sha256File } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [harbor, codex, pi, claude, dotagents] = await Promise.all([
+const [harbor, codex, pi, claude, dotagents, droid] = await Promise.all([
   import('./terminal-adapter-harbor.mjs'),
   import('./terminal-adapter-codex.mjs'),
   import('./terminal-adapter-pi.mjs'),
   import('./terminal-adapter-claude.mjs'),
   import('./terminal-adapter-dotagents.mjs'),
+  import('./terminal-adapter-droid.mjs'),
 ]);
 
-const legacyByHarness = new Map([codex, pi, claude, dotagents].flatMap((adapter) => adapter.harnesses.map((harness) => [harness, adapter])));
+const legacyByHarness = new Map([codex, pi, claude, dotagents, droid].flatMap((adapter) => adapter.harnesses.map((harness) => [harness, adapter])));
 const harborByHarness = new Map(harbor.harnesses.map((harness) => [harness, harbor]));
 export const harnesses = [...legacyByHarness.keys()].sort();
 
 async function verifyHarborAdapters(challenge, harness) {
   const expected = challenge.execution?.adapters;
   if (!expected) throw new Error('V4 challenge does not bind adapter source');
-  const kind = harborByHarness.has(harness) ? 'harbor' : 'dotagents';
+  const kind = harborByHarness.has(harness) ? 'harbor' : harness === 'dotagents-mono' ? 'dotagents' : 'droid';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
+  if (kind === 'droid') common.push('droidHarness', 'droidJsonRpc', 'droidRouting', 'droidRuntime');
   for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions']) {
     if (expected[optional]) common.push(optional);
   }

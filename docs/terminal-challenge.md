@@ -139,20 +139,43 @@ uncommitted working tree with rsync. Before launching, confirm that `git status 
 is empty and record `git rev-parse HEAD` alongside the challenge and schedule IDs.
 
 Initialize and start the pinned CLIProxyAPI runtime, then source its generated environment
-in the same login shell that launches the benchmark. CLIProxyAPI is used by Claude Code and
-DotAgents; Codex and Pi use the local Codex ChatGPT subscription credentials directly.
+in the same login shell that launches the benchmark. CLIProxyAPI is used by Claude Code,
+DotAgents, and Droid; Codex and Pi use the local Codex ChatGPT subscription credentials
+directly. Droid runs natively on the M4, while its per-run home, settings, workspace, and
+JSON-RPC session remain isolated by the adapter.
 
 ```sh
 node scripts/manage-cliproxy.mjs init ~/AgentBattlerRuntime/cliproxy-v5
 node scripts/manage-cliproxy.mjs login ~/AgentBattlerRuntime/cliproxy-v5 # only when auth is absent/expired
 node scripts/manage-cliproxy.mjs start ~/AgentBattlerRuntime/cliproxy-v5
-source /private/tmp/agentbattler-cliproxy-v5/benchmark.env
+source ~/AgentBattlerRuntime/cliproxy-v5/benchmark.env
 export AGENTBATTLER_CLIPROXY_HARNESSES=claude-code
 npm run terminal:matrix:v5
 npm run terminal:verify:v5 -- --allow-incomplete
 nohup caffeinate -dimsu npm run terminal:run:v5 > terminal-v5.log 2>&1 &
 echo $! > terminal-v5.pid
 ```
+
+The Droid addition is a new schedule, not an append to the sealed R4 campaign. In the clean
+checkout containing the Droid integration, install Factory's Apple Silicon CLI and confirm the
+pinned version, then source the same CLIProxy environment:
+
+```sh
+curl -fsSL https://app.factory.ai/cli | sh
+droid --version # must print 0.186.0
+source ~/AgentBattlerRuntime/cliproxy-v5/benchmark.env
+npm run droid:m4:preflight
+npm run generate:droid-suite
+npm run build:harness-suite
+npm run terminal:matrix:v5:droid
+npm run terminal:run:v5:droid
+npm run terminal:verify:v5:droid
+```
+
+The M4 preflight requires CLIProxy selection and makes two minimal turns to prove the canonical
+model route, one persistent Droid session, the restricted tool catalog, and the 206,720-token
+runtime context limit. The R5 schedule contains only the 15 Droid combinations and writes to
+`results/terminal-mini-ledger-v5-r5-droid`.
 
 The runner is resumable and breadth-first. It gives every harness/model combo generation 1
 before starting generation 2, then repeats that generation-major order through generation 5.

@@ -9,6 +9,7 @@ import { createServer } from 'node:http';
 import * as all from '../scripts/terminal-adapter-all.mjs';
 import * as claude from '../scripts/terminal-adapter-claude.mjs';
 import * as dotagents from '../scripts/terminal-adapter-dotagents.mjs';
+import * as droid from '../scripts/terminal-adapter-droid.mjs';
 import * as harbor from '../scripts/terminal-adapter-harbor.mjs';
 import { candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
 import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
@@ -16,10 +17,11 @@ import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
-  assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'pi-coding-agent']);
+  assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'factory-droid', 'pi-coding-agent']);
   assert.deepEqual(claude.harnesses, ['claude-code']);
   assert.deepEqual(harbor.harnesses, ['claude-code', 'codex-cli', 'pi-coding-agent']);
   assert.deepEqual(dotagents.harnesses, ['dotagents-mono']);
+  assert.deepEqual(droid.harnesses, ['factory-droid']);
 });
 
 test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
@@ -42,6 +44,7 @@ test('terminal schedules bind declared harness versions to launched runtimes', (
     'claude-code': '2.1.220',
     'codex-cli': '0.144.0',
     'dotagents-mono': '1.1.9',
+    'factory-droid': '0.186.0',
     'pi-coding-agent': '0.80.7',
   });
   const rebound = bindTerminalHarnessRuntime({ provenance: { harness: 'claude-code', harnessVersion: '2.1.211' } });
@@ -294,6 +297,11 @@ test('generated Harbor V5 R4 task declares the harness reliability revision', as
   const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
   assert.match(candidateProcess, /removeCandidateWorkspace/);
   assert.match(candidateProcess, /cleanup deferred/);
+});
+
+test('generated Harbor V5 R5 task declares the Droid harness revision', async () => {
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'scripts', 'build-harbor-terminal-task.mjs'), 'utf8');
+  assert.match(source, /protocolRevision === 'r5' \? '5\.4\.0'/);
 });
 
 test('candidate verifier process identity is opt-in and validated', () => {

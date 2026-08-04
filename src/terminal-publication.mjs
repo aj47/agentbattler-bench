@@ -8,6 +8,7 @@ const HARNESS_NAMES = {
   'claude-code': 'Claude Code',
   'codex-cli': 'Codex CLI',
   'dotagents-mono': 'DotAgents',
+  'factory-droid': 'Droid',
   'pi-coding-agent': 'Pi',
 };
 

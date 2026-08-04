@@ -1,8 +1,8 @@
 # Terminal challenge lane
 
-The chess lane remains the original head-to-head game benchmark. The long-running
-terminal lane is a separate, versioned experiment so a coding-task score cannot be
-mistaken for a chess win or silently change existing ratings.
+The chess lane and its Elo are deprecated historical evidence. The long-running terminal
+lane is the active, separately versioned benchmark; its coding-task scores cannot be mistaken
+for chess wins or silently change the preserved chess ratings.
 
 The active baseline challenge is [`benchmark/challenges/mini-ledger-v2.md`](../benchmark/challenges/mini-ledger-v2.md).
 Its sealed manifest binds the prompt, public verifier, holdout verifier, protocol, stage
@@ -18,8 +18,10 @@ The unit of comparison is a challenge combo:
 (challenge, harness, harness version, model, reasoning effort, generation settings)
 ```
 
-Generation number identifies an independent artifact within a combo. The schedule
-generator refuses missing harness/model combinations or unbalanced generation counts.
+Replicate number identifies an independent run within a combo. Historical schedules borrowed
+that number from generated chess artifacts. Terminal-native schedules set
+`generationIndexIsArtifact` to `false` and create fresh runtime identities without chess source
+files. The schedule generator refuses missing harness/model combinations or unbalanced counts.
 The published schedule therefore shows both the expected matrix and every concrete run
 key before execution.
 
@@ -165,8 +167,6 @@ curl -fsSL https://app.factory.ai/cli | sh
 droid --version # must print 0.186.0
 source ~/AgentBattlerRuntime/cliproxy-v5/benchmark.env
 npm run droid:m4:preflight
-npm run generate:droid-suite
-npm run build:harness-suite
 npm run terminal:matrix:v5:droid
 npm run terminal:run:v5:droid
 npm run terminal:verify:v5:droid
@@ -174,8 +174,9 @@ npm run terminal:verify:v5:droid
 
 The M4 preflight requires CLIProxy selection and makes two minimal turns to prove the canonical
 model route, one persistent Droid session, the restricted tool catalog, and the 206,720-token
-runtime context limit. The R5 schedule contains only the 15 Droid combinations and writes to
-`results/terminal-mini-ledger-v5-r5-droid`.
+runtime context limit. The R5 schedule creates its 15 Droid identities directly as five fresh
+terminal runs for each of the three models; it does not generate or consume chess artifacts.
+It writes to `results/terminal-mini-ledger-v5-r5-droid`.
 
 The runner is resumable and breadth-first. It gives every harness/model combo generation 1
 before starting generation 2, then repeats that generation-major order through generation 5.

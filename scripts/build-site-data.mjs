@@ -310,7 +310,8 @@ async function composeDotAgentsPlacementSiteData({ data, results, resultsSnapsho
     schemaVersion: 'agentbattler.site-data.v4',
     benchmark: {
       ...data.benchmark,
-      description: 'Same models and prompt across four agent harnesses, with DotAgents entering through targeted same-model placement games.',
+      description: 'Deprecated historical chess evidence across four agent harnesses, with DotAgents entering through targeted same-model placement games.',
+      status: 'deprecated-historical',
       updatedAt: placement.updatedAt,
       resultSha256: combinedResultSha256,
       resultSha256Short: shortHash(combinedResultSha256),
@@ -476,7 +477,8 @@ async function composeThreeHarnessSiteData({ baseData, baseSnapshot, resultsSnap
     benchmark: {
       ...baseData.benchmark,
       version: crossResult.inputs.manifestId,
-      description: 'Same models, same prompt, three agent harnesses. Every engine, checksum, and chess match is inspectable.',
+      description: 'Deprecated historical chess evidence across three agent harnesses. Every engine, checksum, and match remains inspectable.',
+      status: 'deprecated-historical',
       updatedAt: crossResult.execution.completedAt,
       manifestId: crossResult.inputs.manifestId,
       manifestSha256: crossResult.inputs.manifestSha256,
@@ -974,8 +976,8 @@ async function main() {
     benchmark: {
       name: 'AgentBattler Bench',
       version: crossTournament.result.inputs.manifestId,
-      description: 'Same models, same prompt, two agent harnesses. Every engine, trace, and chess match is inspectable.',
-      status: 'exploratory-local',
+      description: 'Deprecated historical chess evidence across two agent harnesses. Every engine, trace, and match remains inspectable.',
+      status: 'deprecated-historical',
       updatedAt: crossTournament.result.execution.completedAt,
       manifestId: crossTournament.result.inputs.manifestId,
       manifestSha256: crossTournament.result.inputs.manifestSha256,

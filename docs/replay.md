@@ -1,6 +1,9 @@
 # Replaying a result
 
-## Published harness-suite snapshot
+## Deprecated chess harness-suite snapshot
+
+Chess Elo is no longer an active ranking. Its immutable evidence and replay path remain
+supported so published results can still be independently verified.
 
 The public snapshot contains three independently replayable tournaments. Download, verify, extract, and replay all of them with:
 

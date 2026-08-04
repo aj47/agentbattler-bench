@@ -11,8 +11,8 @@ export function CombinedLeaderboard({ entrants }: { entrants: CombinedChallengeE
   return (
     <section className={styles.section} aria-labelledby="combined-board-title">
       <div className={styles.heading}>
-        <div><span>official overall · {entrants.length} complete conditions</span><h2 id="combined-board-title">Overall leaderboard.</h2></div>
-        <p>The overall score is the simple, unweighted mean of Chess and Mini Ledger V5. It is a cross-challenge comparison index—not Elo. The challenge leaderboards below expose every input and diagnostic.</p>
+        <div><span>retired historical index · {entrants.length} complete conditions</span><h2 id="combined-board-title">Former combined leaderboard.</h2></div>
+        <p>This archived calculation averaged Chess and Mini Ledger V5. It is no longer an official ranking because chess Elo has been deprecated.</p>
       </div>
       <div className={styles.head} aria-hidden="true"><span>rank / harness × model</span><span>overall score</span></div>
       <div className={styles.rows}>
@@ -27,7 +27,7 @@ export function CombinedLeaderboard({ entrants }: { entrants: CombinedChallengeE
         ))}
       </div>
       <div className={styles.foot}>
-        <span>Overall = (Chess score + Ledger mean score) ÷ 2. No withdrawn V4 score enters this table.</span>
+        <span>Historical formula = (Chess score + Ledger mean score) ÷ 2. Mini Ledger now stands alone.</span>
         <nav aria-label="Inspect challenge leaderboards">
           <a href="#ledger-leaderboard">Ledger details ↓</a>
           <a href="#chess-leaderboard">Chess details ↓</a>

@@ -7,6 +7,10 @@ The first release intentionally focuses on one narrow proof: can different harne
 given the same model and prompt, reliably produce a legal chess agent under a 50 KB
 JavaScript constraint?
 
+Status amendment (August 2026): Mini Ledger is now the active benchmark. The chess lane and
+its Elo are deprecated; the chess requirements below remain the historical contract for replaying
+and auditing the immutable Phase 1 evidence, not a requirement for new terminal campaigns.
+
 The product has two layers:
 
 - **Experiment runner:** executes agents, records evidence, grades games, and publishes

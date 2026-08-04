@@ -2,7 +2,7 @@
   "name": "agentbattler-bench",
   "version": "0.1.0",
   "private": true,
-  "description": "Public, replayable chess-agent harness benchmark proof loop",
+  "description": "Public, replayable long-horizon coding-agent harness benchmark",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -66,7 +66,7 @@
     "terminal:matrix:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v5:dotagents-latest": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r3 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r3-dotagents-v1-1-9 AGENTBATTLER_TERMINAL_HARNESSES=dotagents-mono node scripts/build-terminal-schedule.mjs",
     "terminal:matrix:v5:reliability": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r4 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r4 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r4-reliability node scripts/build-terminal-schedule.mjs",
-    "terminal:matrix:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid AGENTBATTLER_TERMINAL_HARNESSES=factory-droid node scripts/build-terminal-schedule.mjs",
+    "terminal:matrix:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 npm run terminal:harbor:build && AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid AGENTBATTLER_TERMINAL_HARNESSES=factory-droid AGENTBATTLER_TERMINAL_RUNTIME_ROSTER=1 node scripts/build-terminal-schedule.mjs",
     "terminal:harbor:build": "node scripts/build-harbor-terminal-task.mjs",
     "terminal:matrix:unbounded": "AGENTBATTLER_TERMINAL_MAX_WALL_TIME_MS=0 node scripts/build-terminal-schedule.mjs",
     "terminal:run": "node scripts/run-terminal-matrix.mjs",

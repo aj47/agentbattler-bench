@@ -2,9 +2,19 @@
 
 ## Current published snapshot
 
-[`snapshots/latest.json`](../snapshots/latest.json) is the compact source-of-truth pointer for the published Codex-plus-Pi harness-suite evidence. It pins a Hugging Face Dataset commit containing normalized tables, raw traces, generated artifacts, all three tournament bodies, and website data, plus an immutable GitHub Release archive of the same staging tree. Consumers verify exact byte sizes and SHA-256 values before use; mutable branches and expiring Actions artifacts are not canonical evidence. The storage lifecycle is documented in [storage.md](storage.md).
+[`snapshots/latest.json`](../snapshots/latest.json) is the compact source-of-truth pointer for the
+final published Codex-plus-Pi chess evidence. Chess Elo is deprecated and this pointer is retained
+for historical replay rather than active ranking. It pins a Hugging Face Dataset commit containing
+normalized tables, raw traces, generated artifacts, all three tournament bodies, and website data,
+plus an immutable GitHub Release archive of the same staging tree. Consumers verify exact byte
+sizes and SHA-256 values before use; mutable branches and expiring Actions artifacts are not
+canonical evidence. The storage lifecycle is documented in [storage.md](storage.md).
 
-Mini Ledger publishes through its own `snapshots/latest-terminal.json` pointer. Its website input does not flatten V5 into a single synthetic protocol: every accepted logical run names R2, R3, or R4; preserves the original challenge, schedule, and run hashes; and links the canonical result and sanitized semantic trace. Infrastructure-invalid attempts remain available for reliability analysis but never enter task scores.
+Mini Ledger is the active benchmark and publishes through its own
+`snapshots/latest-terminal.json` pointer. Its website input does not flatten V5 into a single
+synthetic protocol: every accepted logical run names its source revision; preserves the original
+challenge, schedule, and run hashes; and links the canonical result and sanitized semantic trace.
+Infrastructure-invalid attempts remain available for reliability analysis but never enter task scores.
 
 ## What a trusted run records
 
@@ -35,5 +45,6 @@ The Pi generation lane follows that boundary under `agents/pi-model-suite/` and 
 - The public position suite is suitable for Phase 1 plumbing and legality coverage, not for a broad or secret benchmark.
 - Fixture-vs-reference ratings must be labeled provisional and must not be interpreted as harness comparisons.
 - Draws are currently deterministic stalemate or `maxPlies` adjudications; threefold repetition, insufficient material, and the fifty-move rule are deferred grader work.
+- Chess limitations are frozen historical caveats; they are not active benchmark roadmap items.
 
 These are deliberate, visible gaps. A later publication step must preserve a result immutably at a stable public URL and link it to the exact workflow run without weakening the trusted-run boundary.

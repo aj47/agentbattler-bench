@@ -12,7 +12,7 @@ export function Leaderboard({ agents, title = `All ${agents.length} generated en
           <span className="eyebrow">artifact drill-down</span>
           <h2 id="leaderboard-title">{title}</h2>
         </div>
-        <span className="provisional-label">individual engine Elo · provisional</span>
+        <span className="provisional-label">historical engine Elo · deprecated</span>
       </div>
       <div className="leaderboard-head" aria-hidden="true">
         <span>rank</span><span>harness / artifact</span><span>model</span><span>verification</span><span>record</span><span>elo</span>

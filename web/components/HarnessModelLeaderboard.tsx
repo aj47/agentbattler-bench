@@ -28,12 +28,12 @@ export function HarnessModelLeaderboard({ entrants }: { entrants: HarnessModelEn
     <section className={styles.section} id="chess-leaderboard" aria-labelledby="harness-model-leaderboard-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">chess leaderboard · {entrants.length} benchmark entrants</span>
-          <h2 id="harness-model-leaderboard-title">Generated engines, ranked by battle.</h2>
+          <span className="eyebrow">historical chess standings · {entrants.length} archived entrants</span>
+          <h2 id="harness-model-leaderboard-title">Generated engines, preserved for audit.</h2>
         </div>
-        <span className="provisional-label">controlled same-model score · {scheduleLabel}</span>
+        <span className="provisional-label">deprecated ranking · {scheduleLabel}</span>
       </div>
-      <p className={styles.intro}>Each row is one harness and model combination, pooling its {artifactLabel}. Scores use same-model cross-harness games so model identity stays fixed; the dots keep generation variance visible. <Link className={styles.methodLink} href="/methodology/#pooled-score">How pooled score works →</Link></p>
+      <p className={styles.intro}>Each row preserves one harness and model combination, pooling its {artifactLabel}. Scores use same-model cross-harness games so model identity stays fixed; they are historical evidence and do not enter the active Mini Ledger ranking. <Link className={styles.methodLink} href="/methodology/#pooled-score">How the archived score worked →</Link></p>
 
       <div className={styles.header} aria-hidden="true">
         <span>rank / entrant</span><span>pooled score</span><span>five-engine range</span><span>generation telemetry</span><span>record</span>

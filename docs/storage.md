@@ -11,7 +11,10 @@ AgentBattler separates source code from benchmark evidence.
 
 Neither hosted service is treated as a sole archival guarantee. The snapshot pointer binds both copies by SHA-256 and byte size.
 
-Chess and Mini Ledger have separate latest pointers. [`snapshots/latest.json`](../snapshots/latest.json) names the current chess evidence; `snapshots/latest-terminal.json` is written only after a complete Mini Ledger campaign is uploaded and independently verified. A new terminal release cannot silently replace the chess pointer.
+Historical chess and active Mini Ledger evidence have separate pointers.
+[`snapshots/latest.json`](../snapshots/latest.json) names the final deprecated chess evidence;
+`snapshots/latest-terminal.json` is written only after a complete Mini Ledger campaign is uploaded
+and independently verified. A terminal release cannot replace or rewrite the chess pointer.
 
 ## Snapshot lifecycle
 

@@ -81,6 +81,7 @@ export function createMiniLedgerChallenge({
   scoring = null,
   network = 'disabled',
   execution = null,
+  generationIndexIsArtifact = true,
 } = {}) {
   nonEmpty(promptSha256, 'promptSha256');
   nonEmpty(publicVerifierSha256, 'publicVerifierSha256');
@@ -96,6 +97,7 @@ export function createMiniLedgerChallenge({
   invariant(normalizedStages.every((stage) => Number.isSafeInteger(stage.points) && stage.points > 0), 'stage points must be positive integers');
   invariant(Number.isSafeInteger(turns) && turns >= normalizedStages.length, 'turns must cover all stages');
   invariant(Number.isSafeInteger(holdoutCases) && holdoutCases > 0, 'holdoutCases must be positive');
+  invariant(typeof generationIndexIsArtifact === 'boolean', 'generationIndexIsArtifact must be boolean');
   const visibleStagePoints = normalizedStages.reduce((total, stage) => total + stage.points, 0);
   const score = scoring ?? {
     visibleStagePoints,
@@ -130,7 +132,8 @@ export function createMiniLedgerChallenge({
     scoring: score,
     fairness: {
       exhaustiveMatrixRequired: true,
-      generationIndexIsArtifact: true,
+      generationIndexIsArtifact,
+      replicateIdentity: generationIndexIsArtifact ? 'generated-source-artifact' : 'fresh-independent-run',
       comparableFields: ['promptSha256', 'verifiers', 'protocol', 'reasoningEffort', 'generationSettings'],
       publish: ['challenge', 'schedule', 'manifests', 'run-results', 'pairwise-comparisons', 'checksums'],
       redact: ['credentials', 'hostPaths', 'privateTraces', 'unrelatedFiles'],
@@ -149,6 +152,8 @@ export function validateMiniLedgerChallenge(challenge) {
   invariant(challenge.stages.length > 0, 'Terminal challenge stage count is invalid');
   invariant(challenge.stages.every((stage, index) => stage.order === index + 1 && Number.isSafeInteger(stage.points) && stage.points > 0), 'Terminal challenge stage metadata changed');
   invariant(challenge.protocol.turns >= challenge.stages.length, 'Terminal challenge turns do not cover stages');
+  invariant(typeof challenge.fairness?.generationIndexIsArtifact === 'boolean', 'Terminal replicate identity policy is invalid');
+  invariant(challenge.fairness.replicateIdentity === (challenge.fairness.generationIndexIsArtifact ? 'generated-source-artifact' : 'fresh-independent-run'), 'Terminal replicate identity label is invalid');
   invariant(challenge.scoring.visibleStagePoints === challenge.stages.reduce((total, stage) => total + stage.points, 0), 'Terminal challenge visible scoring mismatch');
   invariant(Number.isSafeInteger(challenge.verifiers.holdout.cases) && challenge.verifiers.holdout.cases > 0, 'Terminal holdout case count is invalid');
   return challenge;

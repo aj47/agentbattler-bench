@@ -1,10 +1,26 @@
 # AgentBattler Bench
 
-## Published benchmark data
+## Benchmark status
 
-Raw generation traces and tournament result bodies are not stored in Git history. The current sealed pointer is [`snapshots/latest.json`](snapshots/latest.json): it pins the public [Hugging Face Dataset](https://huggingface.co/datasets/techfren/agentbattler-bench) by immutable commit and mirrors the same evidence tree in a tag-scoped GitHub Release. `npm run replay:snapshot` downloads the Release archive, verifies its size and SHA-256, and replays every published tournament. See [docs/storage.md](docs/storage.md) for the publication and retention contract.
+Mini Ledger is the active AgentBattler benchmark. The chess lane and its Elo were deprecated
+in August 2026: no new chess generation or tournament is required for terminal campaigns, and
+chess ratings must be presented only as historical results. Existing immutable snapshots,
+generated agents, match bodies, and replay commands remain supported so the evidence is not
+lost or rewritten.
 
-AgentBattler Bench is a public, reproducible experiment for comparing coding-agent harnesses. Phase 1 proves the evidence loop with a narrow task: self-contained JavaScript chess agents must read one FEN from standard input and print exactly one legal UCI move.
+## Historical chess benchmark data
+
+Raw generation traces and tournament result bodies are not stored in Git history. The final
+sealed chess pointer is [`snapshots/latest.json`](snapshots/latest.json): it pins the public
+[Hugging Face Dataset](https://huggingface.co/datasets/techfren/agentbattler-bench) by immutable
+commit and mirrors the same evidence tree in a tag-scoped GitHub Release.
+`npm run replay:snapshot` downloads the Release archive, verifies its size and SHA-256, and
+replays every published tournament. See [docs/storage.md](docs/storage.md) for the publication
+and retention contract.
+
+AgentBattler began with a narrow chess proof loop: self-contained JavaScript agents read one
+FEN from standard input and print exactly one legal UCI move. Those results now serve as
+historical evidence for the runner and publication pipeline, not as the active harness ranking.
 
 The previous [`terminal-mini-ledger-v4`](results/terminal-mini-ledger-v4/README.md) result set is
 withdrawn from ranking and retained as diagnostic evidence. An isolation audit found that native
@@ -59,7 +75,7 @@ full contract and scoring rules.
 
 The default runner roster remains an intentionally small fixture set: one human reference and two clearly labeled, hand-authored non-reference fixtures. The public generated suites use separate manifests under `agents/model-suite/`, `agents/pi-model-suite/`, and `agents/harness-suite/`. See [PRD.md](PRD.md) for the product boundary and each manifest for exact provenance.
 
-## Run locally
+## Replay the legacy chess runner locally
 
 Node.js 20 or newer is the only prerequisite. There are no runtime or development dependencies to download.
 
@@ -80,7 +96,10 @@ printf '%s\n' 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' \
   | node agents/reference-baseline.js
 ```
 
-## Codex model suite
+The remaining chess generation and tournament commands are retained for historical
+reproduction. They are not prerequisites for Mini Ledger.
+
+## Legacy Codex chess model suite
 
 The local model suite generates Terra, Sol, and Luna with one fixed prompt, Codex CLI 0.144.0, and high reasoning. Each generation starts in an empty temporary workspace with a temporary `CODEX_HOME`; only authentication is copied in. User config and rules are ignored; apps, hooks, subagents, MCP servers, web search, shell snapshots, and persistent sessions are disabled. The isolated home starts without a skills directory. The raw JSONL trace is retained so turns, duration, tokens, and tool calls can be audited.
 
@@ -100,7 +119,7 @@ The balanced round-robin schedules 72 games: three model pairings, six versioned
 
 These are exploratory local model-comparison results. They are not yet the public, immutable GitHub Actions evidence required by the PRD.
 
-## Pi model suite using the Codex subscription
+## Legacy Pi chess model suite using the Codex subscription
 
 Pi is the second generation harness. It uses the same Terra, Sol, and Luna model IDs, fixed challenge prompt, high reasoning setting, five-generation sampling, legality probes, and match runner as the Codex CLI suite. Authentication is Pi's `openai-codex` OAuth provider, backed by the same ChatGPT Plus/Pro account used by Codex—not an API key.
 
@@ -134,7 +153,7 @@ npm run replay:harness-suite
 
 `cross-harness-all` pairs every Pi artifact with every Codex artifact. With 15 engines per harness, that is 225 artifact pairs and 2,700 color-balanced games over the six v2 positions. The website reports all of them, while its controlled harness score filters to the 900 equal-model games so the model identity is held constant.
 
-## Claude Code gateway suite (experimental)
+## Legacy Claude Code chess gateway suite (experimental)
 
 The optional third harness runs Claude Code through a locally built, loopback-only third-party Messages gateway to the ChatGPT Codex backend. This is not an Anthropic-supported use of Claude Code or an Anthropic model comparison. The launcher requires an audited adapter binary and its recorded source identifiers; it creates a fresh `HOME`, workspace, adapter configuration, and 0600 temporary OAuth token file for the suite, enables Claude's `--bare --safe-mode` isolation, disables telemetry/error reporting/updating, allows only the `Write` tool, and never uses an Anthropic credential or `OPENAI_API_KEY`.
 
@@ -153,7 +172,7 @@ npm run build:harness-suite
 
 Generated output remains outside Git under `results/claude-code-model-suite/`; the roster and manifest are separate under `agents/claude-code-model-suite/`. When this manifest exists, `build:harness-suite` automatically makes the three-harness roster (675 artifact pairs / 8,100 color-balanced games); without it, legacy two-harness artifacts remain unchanged.
 
-## DotAgents suite
+## Legacy DotAgents chess suite
 
 The optional DotAgents harness uses the same GPT-5.6 Terra, Sol, and Luna models at high reasoning, with five independent generations per model. It builds a pinned DotAgents commit in Docker, copies ChatGPT OAuth into an ephemeral container home, and keeps the DotAgents configuration separate from the empty chess workspace. Skills and external MCP servers are disabled.
 
@@ -169,17 +188,17 @@ npm run league:run:dotagents
 
 The placement plan gives each DotAgents model combo targeted same-model matches against Codex CLI, Pi, and Claude Code. One cyclic artifact rotation across five generations, six positions, and both colors produces 180 games per model and 540 games total. The run command executes missing schedules in parallel, replays existing result bundles, and refreshes the plan. The league ledger reuses any game whose immutable game ID already exists instead of rerunning it.
 
-## Droid suite
+## Droid terminal harness
 
-The optional Droid harness pins Droid 0.186.0 and sends the same Terra, Sol, and Luna generation
-tasks through custom OpenAI-compatible models. On the M4, sourcing the existing CLIProxyAPI
+The Droid harness pins Droid 0.186.0 and sends Terra, Sol, and Luna terminal turns through
+custom OpenAI-compatible models. On the M4, sourcing the existing CLIProxyAPI
 `benchmark.env` automatically selects CLIProxy and its canonical `gpt-5.6-*` names. Without
 CLIProxy variables, Droid defaults to local 9Router at `http://127.0.0.1:20128/v1` and maps to
 `cx/gpt-5.6-*`. Explicit `AGENTBATTLER_DROID_BASE_URL` and `AGENTBATTLER_DROID_API_KEY`
 overrides take precedence; set `AGENTBATTLER_DROID_MODEL_PREFIX` when that route uses a model
 namespace other than the default `cx/` (including an empty value for canonical model names).
 
-Every generation receives an empty home and workspace. Host Factory settings and sessions are
+Every terminal run receives an empty home and workspace. Host Factory settings and sessions are
 not inherited; builtin skills, hooks, cloud session sync, and model fallbacks are disabled. The
 configuration records a 272,000-token raw context window, a 258,400-token effective window,
 native compaction at 206,720 tokens, and a 32,768-token maximum output. Compaction stays on the
@@ -189,23 +208,24 @@ active model and reasoning is fixed to high.
 npm run droid:routing:smoke
 npm run droid:live:smoke
 npm run droid:m4:preflight
-npm run generate:droid-suite
-npm run validate:droid-suite
-npm run benchmark:droid-suite
-npm run replay:droid-suite
-npm run build:harness-suite
+npm run terminal:matrix:v5:droid
+npm run terminal:run:v5:droid
+npm run terminal:verify:v5:droid
 ```
 
 The routing smoke uses a local mock and spends no model tokens. The separate live smoke makes
-two minimal turns to prove the configured router model and native session resume. Generating the
-Droid manifest adds `factory-droid` automatically to the balanced harness suite; no Droid rows
-are scheduled until that complete three-model manifest exists.
+two minimal turns to prove the configured router model and native session resume. The R5 matrix
+builds a terminal-native roster of five fresh independent runs for each model. It does not
+generate a Droid chess agent or read `agents/harness-suite/manifest.json`.
 
 For a clean M4 run, install the pinned Droid CLI, start and source the same persistent CLIProxy
-runtime used by Claude and DotAgents, run `npm run droid:m4:preflight`, then generate the Droid
-suite. `npm run terminal:matrix:v5:droid`, `npm run terminal:run:v5:droid`, and
+runtime used by Claude and DotAgents, then run `npm run droid:m4:preflight`.
+`npm run terminal:matrix:v5:droid`, `npm run terminal:run:v5:droid`, and
 `npm run terminal:verify:v5:droid` keep the new 15-run lane under the distinct `v5-r5-droid`
 result identity instead of modifying a previously sealed V5 schedule.
+
+The `generate:droid-suite`, `validate:droid-suite`, `benchmark:droid-suite`, and
+`replay:droid-suite` commands remain available only to reproduce the deprecated chess lane.
 
 ## Resumable and publishable results
 

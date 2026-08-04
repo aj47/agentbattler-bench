@@ -129,6 +129,7 @@ export function aggregateHarnessModelEntrants(data: SiteData): HarnessModelEntra
 
 export const harnessModelEntrants = aggregateHarnessModelEntrants(siteData);
 
+/** @deprecated Chess no longer enters the active ranking; retained for historical inspection only. */
 export function aggregateCombinedChallengeEntrants(data: SiteData): CombinedChallengeEntrant[] {
   if (data.terminalCampaign?.status !== 'complete') return [];
   const chess = aggregateHarnessModelEntrants(data);

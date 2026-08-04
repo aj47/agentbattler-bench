@@ -71,6 +71,18 @@ test('challenge can seal an unbounded turn policy', () => {
   assert.equal(unbounded.protocol.maxWallTimeMs, null);
 });
 
+test('challenge distinguishes runtime replicates from generated source artifacts', () => {
+  const runtime = createMiniLedgerChallenge({
+    promptSha256: HASH,
+    publicVerifierSha256: 'b'.repeat(64),
+    holdoutVerifierSha256: 'c'.repeat(64),
+    generationIndexIsArtifact: false,
+  });
+  assert.equal(runtime.fairness.generationIndexIsArtifact, false);
+  assert.equal(runtime.fairness.replicateIdentity, 'fresh-independent-run');
+  assert.equal(validateTerminalChallenge(runtime), runtime);
+});
+
 test('V5 preserves V4 requirements and tells agents about the fixed turn limit', () => {
   assert.equal(MINI_LEDGER_V5_TURN_LIMIT_MS, 1_800_000);
   assert.equal(MINI_LEDGER_V5_TURN_PROMPTS.length, MINI_LEDGER_V4_TURN_PROMPTS.length);

@@ -36,7 +36,7 @@ export default async function SubmissionPage({ params }: PageProps) {
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">leaderboard</Link><span>/</span><span>{agent.id}</span></nav>
       <header className="detail-hero">
         <div>
-          <span className="eyebrow">submission dossier · rank {String(agent.standing.rank).padStart(2, '0')}</span>
+          <span className="eyebrow">historical submission dossier · archived rank {String(agent.standing.rank).padStart(2, '0')}</span>
           <h1>{harnessDisplayName}<br /><span className="harness-version">v{agent.harnessVersion}</span><br /><span>{agent.model}</span></h1>
           <p>{agent.displayName} is an executable artifact generated with a declared high reasoning setting, then probed and run through the local chess suite. <Link className="inline-method-link" href="/methodology/#reasoning-effort">What that setting means →</Link></p>
         </div>
@@ -47,7 +47,7 @@ export default async function SubmissionPage({ params }: PageProps) {
       </header>
 
       <section className="metrics-strip detail-metrics">
-        <Metric label="provisional Elo" value={agent.standing.elo} detail={isPlacementAgent ? `rank ${agent.standing.rank} of 5 in model placement` : `rank ${agent.standing.rank} of ${siteData.agents.length - (siteData.dotAgentsPlacement ? 15 : 0)}`} />
+        <Metric label="historical Elo · deprecated" value={agent.standing.elo} detail={isPlacementAgent ? `archived rank ${agent.standing.rank} of 5 in model placement` : `archived rank ${agent.standing.rank} of ${siteData.agents.length - (siteData.dotAgentsPlacement ? 15 : 0)}`} />
         <Metric label={isPlacementAgent ? 'placement record' : 'cross-harness record'} value={`${agent.standing.wins}–${agent.standing.draws}–${agent.standing.losses}`} detail={`${agent.standing.points} points · ${agent.standing.games} games`} />
         <Metric label="generation time" value={agent.generation.durationMs === null ? 'not published' : formatDuration(agent.generation.durationMs)} detail={agent.generation.turns === null ? 'aggregate suite timing available' : `${agent.generation.turns} generation turns`} />
         <Metric label="tokens used" value={agent.generation.totalTokens === null ? 'not published' : formatNumber(agent.generation.totalTokens)} detail={agent.generation.totalTokens === null ? 'aggregate suite tokens available' : agent.generation.reasoningTokens === null ? 'reasoning split not reported' : `${formatNumber(agent.generation.reasoningTokens)} reasoning`} />

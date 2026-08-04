@@ -12,6 +12,7 @@ import {
 } from '../src/terminal-challenge.mjs';
 import { MINI_LEDGER_V5_TURN_LIMIT_MS } from '../src/terminal-prompts-v5.mjs';
 import { bindTerminalHarnessRuntime } from '../src/terminal-harness-versions.mjs';
+import { createTerminalRuntimeRoster } from '../src/terminal-roster.mjs';
 import { canonicalJson, canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,6 +29,8 @@ const outputRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const harborTaskVersion = challengeVersion === 'v5' ? `v5-${protocolRevision}` : 'v4';
 const harborTaskRoot = path.join(ROOT, `benchmark/harbor/mini-ledger-${harborTaskVersion}`);
 const manifestPath = path.resolve(ROOT, process.env.AGENTBATTLER_TERMINAL_MANIFEST ?? 'agents/harness-suite/manifest.json');
+const useRuntimeRoster = process.env.AGENTBATTLER_TERMINAL_RUNTIME_ROSTER === '1';
+if (useRuntimeRoster && challengeVersion !== 'v5') throw new Error('The terminal runtime roster is available only for V5 schedules');
 function selection(name) {
   return (process.env[name] ?? '').split(',').map((value) => value.trim()).filter(Boolean);
 }
@@ -79,13 +82,14 @@ const executionAdapters = isHarborChallenge ? {
   challengeRuntime: { path: 'src/terminal-challenge-runtime.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-challenge-runtime.mjs')) },
   terminalPrompts: { path: challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs', sha256: await sha256File(path.join(ROOT, challengeVersion === 'v5' ? 'src/terminal-prompts-v5.mjs' : 'src/terminal-prompts-v4.mjs')) },
   harnessVersions: { path: 'src/terminal-harness-versions.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-harness-versions.mjs')) },
+  terminalRoster: { path: 'src/terminal-roster.mjs', sha256: await sha256File(path.join(ROOT, 'src/terminal-roster.mjs')) },
 } : null;
 
 const [promptSha256, publicVerifierSha256, holdoutVerifierSha256, manifest] = await Promise.all([
   sha256File(path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeVersion}.md`)),
   sha256File(path.join(challengeRoot, 'public-verifier.mjs')),
   sha256File(path.join(challengeRoot, 'holdout-verifier.mjs')),
-  readFile(manifestPath, 'utf8').then(JSON.parse),
+  useRuntimeRoster ? Promise.resolve(createTerminalRuntimeRoster()) : readFile(manifestPath, 'utf8').then(JSON.parse),
 ]);
 const challenge = createMiniLedgerChallenge({
   challengeId,
@@ -99,6 +103,7 @@ const challenge = createMiniLedgerChallenge({
   ...(isHarborChallenge ? { stages: MINI_LEDGER_V4_STAGES, turns: 15, holdoutCases: 11, network: 'agent-public; verifier-and-candidate-offline', execution: { substrate: 'harbor', version: '0.20.0', taskPath: `benchmark/harbor/mini-ledger-${harborTaskVersion}`, taskSha256: harborTaskSha256, adapters: executionAdapters, ...(challengeVersion === 'v5' ? { predecessor: 'terminal-mini-ledger-v4', protocolRevision, amendment: protocolRevision === 'r5' ? 'factory-droid-cli-harness-and-cliproxy-route' : protocolRevision === 'r4' ? 'harness-reliability-redaction-cleanup-and-streaming-fixes' : protocolRevision === 'r3' ? 'dotagents-v1.1.9-prompt-cache-continuity-and-cumulative-usage-fix' : 'fixed-turns-explicit-wire-contract-source-only-verification' } : {}) }, scoring: { visibleStagePoints: 70, holdoutPoints: 30, maxPoints: 100, tieTolerancePoints: 1, regressionPenalty: 0, infrastructureInvalid: true } } : {}),
   ...(challengeVersion === 'v3' ? { stages: MINI_LEDGER_V3_STAGES, turns: 12 } : {}),
   ...(maxWallTimeMs === undefined ? {} : { maxWallTimeMs }),
+  generationIndexIsArtifact: !useRuntimeRoster,
 });
 const availableHarnesses = manifest.comparison?.harnesses ?? [...new Set(manifest.agents.map((agent) => agent.provenance.harness))];
 const availableModels = manifest.comparison?.models ?? [...new Set(manifest.agents.map((agent) => agent.provenance.modelRequested))];
@@ -108,7 +113,7 @@ for (const harness of expectedHarnesses) if (!availableHarnesses.includes(harnes
 for (const model of expectedModels) if (!availableModels.includes(model)) throw new Error(`Requested terminal model is absent from the manifest: ${model}`);
 const generationsPerCombo = manifest.comparison?.generationsPerHarnessModel ?? Math.max(...manifest.agents.map((agent) => agent.generationIndex ?? agent.provenance.generationIndex ?? 0));
 const terminalAgents = manifest.agents.filter((agent) => expectedHarnesses.includes(agent.provenance.harness) && expectedModels.includes(agent.provenance.modelRequested)).map((sourceAgent) => {
-  const agent = bindTerminalHarnessRuntime(sourceAgent);
+  const agent = useRuntimeRoster ? sourceAgent : bindTerminalHarnessRuntime(sourceAgent);
   return {
     ...agent,
     id: `terminal-${agent.provenance.harness}-${agent.provenance.modelFamilyId}-${String(agent.generationIndex ?? agent.provenance.generationIndex).padStart(2, '0')}`,
@@ -144,4 +149,5 @@ await writeFile(path.join(outputRoot, 'schedule.json'), `${canonicalJson(schedul
 console.log(`Challenge: ${challenge.id} (${challenge.challengeId})`);
 console.log(`Turn wall-time policy: ${challenge.protocol.maxWallTimeMs === null ? 'unbounded' : `${challenge.protocol.maxWallTimeMs} ms maximum`}`);
 console.log(`Matrix: ${expectedHarnesses.length} harnesses × ${expectedModels.length} models × ${generationsPerCombo} generations = ${schedule.jobs.length} runs`);
+console.log(`Roster: ${useRuntimeRoster ? 'fresh terminal runtime replicates' : manifestPath}`);
 console.log(`Schedule: ${path.join(outputRoot, 'schedule.json')}`);

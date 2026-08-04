@@ -1,12 +1,11 @@
 import Link from 'next/link';
 
-import { CombinedLeaderboard } from '../components/CombinedLeaderboard';
 import { HarnessModelLeaderboard } from '../components/HarnessModelLeaderboard';
 import { Leaderboard } from '../components/Leaderboard';
 import { Metric } from '../components/Metric';
 import { TerminalCampaignStudy } from '../components/TerminalCampaignStudy';
 import { TerminalStudy } from '../components/TerminalStudy';
-import { combinedChallengeEntrants, formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
+import { formatDate, formatNumber, getMatch, harnessModelEntrants, resultLabel, siteData } from '../lib/data';
 import { publication } from '../lib/publication';
 
 export default function HomePage() {
@@ -45,15 +44,14 @@ export default function HomePage() {
           <div className="leaderboard-eligibility">
             <div>
               <span>current ranking policy</span>
-              <strong>{terminalOfficial ? 'Two valid challenges. One explicit average.' : 'Only sealed challenge results enter the leaderboard.'}</strong>
+              <strong>Mini Ledger is the active benchmark.</strong>
             </div>
             <dl>
-              <div className="eligible-challenge"><dt>Chess</dt><dd>included · published</dd></div>
               <div className={terminalOfficial ? 'eligible-challenge' : 'pending-challenge'}><dt>Mini Ledger V5</dt><dd>{terminalOfficial ? 'included · published' : `${terminalCampaign?.campaign.acceptedRuns ?? 0}/${terminalCampaign?.campaign.expectedRuns ?? 60} · not sealed`}</dd></div>
+              <div className="pending-challenge"><dt>Chess Elo</dt><dd>deprecated · historical only</dd></div>
             </dl>
-            <p>{terminalOfficial ? 'Overall = (Chess score + Ledger mean score) ÷ 2. Open either challenge leaderboard below to inspect its score, range, telemetry, and evidence.' : 'V5 remains visible as preliminary evidence while it runs, but it cannot change this official ranking until the campaign and publication hashes are complete.'}</p>
+            <p>{terminalOfficial ? 'The sealed Mini Ledger mean score determines the active ranking. Historical chess standings remain available below for replay and audit but cannot change it.' : 'V5 remains visible as preliminary evidence while it runs. Historical chess standings cannot substitute for a sealed terminal result.'}</p>
           </div>
-          {terminalOfficial ? <CombinedLeaderboard entrants={combinedChallengeEntrants} /> : <HarnessModelLeaderboard entrants={harnessModelEntrants} />}
         </div>
       </section>
 
@@ -98,7 +96,7 @@ export default function HomePage() {
             </a>
             <a className="investigation-row chess-route" href="#chess-challenge">
               <span className="investigation-number">02</span>
-              <div><span>generated-agent competition</span><h3>Chess</h3></div>
+              <div><span>deprecated historical benchmark</span><h3>Chess archive</h3></div>
               <p>Each combination writes an engine from the same prompt. Generated programs then compete from deterministic positions with replayable move logs.</p>
               <strong>{formatNumber(benchmark.totals.matches)} games <span>↓</span></strong>
             </a>
@@ -120,9 +118,9 @@ export default function HomePage() {
         <div className="shell">
           <div className="status-line">
             <span className="live-dot" />
-            <span>challenge 02 / chess</span>
+            <span>historical challenge / chess</span>
             <span className="status-separator">/</span>
-            <span>updated {formatDate(benchmark.updatedAt)}</span>
+            <span>deprecated · final snapshot {formatDate(benchmark.updatedAt)}</span>
           </div>
           <div className="hero-grid">
             <div>
@@ -131,7 +129,7 @@ export default function HomePage() {
               <p className="hero-copy">Chess tests a different kind of agency. Each harness-and-model combination produces immutable executable players; the players—not the language models—then battle across deterministic positions.</p>
             </div>
             <div className="hero-aside" aria-label="Chess benchmark status">
-              <span className="hero-aside-label">published snapshot</span>
+              <span className="hero-aside-label">immutable historical snapshot</span>
               <strong>{benchmark.version}</strong>
               <span>result {benchmark.resultSha256Short}</span>
               <Link href="/methodology/">read the protocol →</Link>
@@ -150,8 +148,8 @@ export default function HomePage() {
 
       <section className="notice-band">
         <div className="shell notice-inner">
-          <strong>Exploratory chess suite</strong>
-          <p>All {benchmark.totals.agents} engines used the same prompt and requested high reasoning. The leaderboard compares same-model games across {benchmark.totals.harnesses} harnesses — {harnessSummary} — and shows each combo’s schedule size; independent Harbor reproduction is not claimed.</p>
+          <strong>Deprecated chess suite</strong>
+          <p>These standings and Elo values are frozen historical evidence, not the active AgentBattler ranking. All {benchmark.totals.agents} engines used the same prompt and requested high reasoning; independent Harbor reproduction is not claimed.</p>
           <div className="notice-links"><Link href="/methodology/#reasoning-effort">reasoning setting →</Link><Link href="/methodology/#verification">verification levels →</Link></div>
         </div>
       </section>

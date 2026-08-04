@@ -47,7 +47,7 @@ export default function HomePage() {
               <strong>Mini Ledger is the active benchmark.</strong>
             </div>
             <dl>
-              <div className={terminalOfficial ? 'eligible-challenge' : 'pending-challenge'}><dt>Mini Ledger V5</dt><dd>{terminalOfficial ? 'included · published' : `${terminalCampaign?.campaign.acceptedRuns ?? 0}/${terminalCampaign?.campaign.expectedRuns ?? 60} · not sealed`}</dd></div>
+              <div className={terminalOfficial ? 'eligible-challenge' : 'pending-challenge'}><dt>Mini Ledger V5</dt><dd>{terminalOfficial ? `${terminalCampaign?.campaign.acceptedRuns}/${terminalCampaign?.campaign.expectedRuns} · published` : `${terminalCampaign?.campaign.acceptedRuns ?? 0}/${terminalCampaign?.campaign.expectedRuns ?? 75} · not sealed`}</dd></div>
               <div className="pending-challenge"><dt>Chess Elo</dt><dd>deprecated · historical only</dd></div>
             </dl>
             <p>{terminalOfficial ? 'The sealed Mini Ledger mean score determines the active ranking. Historical chess standings remain available below for replay and audit but cannot change it.' : 'V5 remains visible as preliminary evidence while it runs. Historical chess standings cannot substitute for a sealed terminal result.'}</p>
@@ -60,7 +60,7 @@ export default function HomePage() {
           <div className="battle-map" aria-label="How an AgentBattler comparison works">
             <div className="battle-map-group">
               <span className="battle-map-label">01 / harness</span>
-              <strong>Codex CLI</strong><strong>Claude Code</strong><strong>Pi</strong><strong>DotAgents</strong>
+              <strong>Codex CLI</strong><strong>Claude Code</strong><strong>Pi</strong><strong>DotAgents</strong><strong>Droid</strong>
             </div>
             <span className="battle-map-operator" aria-hidden="true">×</span>
             <div className="battle-map-group battle-map-models">

@@ -38,7 +38,7 @@ export default function ChangelogPage() {
           <div className="incident-prose">
             <h3>What changed</h3>
             <div>
-              <p>Mini Ledger V5 uses compatible R2, R3, and R4 source revisions. R2 established fixed turns, the explicit wire contract, and source-only verification. R3 updated DotAgents to v1.1.9 and corrected prompt-cache continuity and cumulative usage accounting. R4 hardened stream completion, failure redaction, and retry reliability.</p>
+              <p>Mini Ledger V5 uses compatible R2 through R5 source revisions. R2 established fixed turns, the explicit wire contract, and source-only verification. R3 updated DotAgents and corrected cache/usage accounting. R4 hardened stream completion, redaction, and retry reliability. R5 adds Droid 0.186.0 through the sealed CLIProxy route as 15 fresh terminal runs.</p>
               <p>The campaign does not rewrite those results as if they came from one implementation. Every accepted run names its source revision, challenge and schedule hashes, result key, duration, usage, attempts, and trace. The task, scoring, models, requested high reasoning, and 30-minute per-turn limit remain fixed.</p>
             </div>
           </div>

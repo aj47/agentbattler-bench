@@ -420,3 +420,96 @@ export function materializeTerminalSnapshotPaths(lane, snapshotId) {
   };
   return { ...unsigned, siteDataSha256: canonicalJsonSha256(unsigned) };
 }
+
+function sumPublishedTotals(lanes, field) {
+  const values = lanes.map((lane) => lane.totals[field]);
+  return values.every(Number.isFinite) ? values.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values)].sort();
+}
+
+export function mergeTerminalCampaignLanes(lanes) {
+  invariant(Array.isArray(lanes) && lanes.length > 0, 'At least one terminal campaign lane is required');
+  for (const lane of lanes) {
+    const { siteDataSha256, ...unsigned } = lane;
+    invariant(lane.schemaVersion === 'agentbattler.terminal-campaign-site.v1', 'Unsupported terminal campaign site-data schema');
+    invariant(siteDataSha256 === canonicalJsonSha256(unsigned), `Terminal campaign site-data hash mismatch for ${lane.id}`);
+  }
+  if (lanes.length === 1) return lanes[0];
+
+  const primary = lanes[0];
+  const taskContract = canonicalJson({
+    id: primary.id,
+    title: primary.title,
+    protocol: primary.protocol,
+    scoring: primary.scoring,
+    stages: primary.stages,
+    models: primary.matrix.models,
+    generationsPerCombo: primary.matrix.generationsPerCombo,
+    repeats: primary.matrix.repeats,
+    seeds: primary.matrix.seeds,
+  });
+  for (const lane of lanes.slice(1)) {
+    invariant(canonicalJson({
+      id: lane.id,
+      title: lane.title,
+      protocol: lane.protocol,
+      scoring: lane.scoring,
+      stages: lane.stages,
+      models: lane.matrix.models,
+      generationsPerCombo: lane.matrix.generationsPerCombo,
+      repeats: lane.matrix.repeats,
+      seeds: lane.matrix.seeds,
+    }) === taskContract, `${lane.id} changes the active terminal leaderboard contract`);
+  }
+
+  const combos = lanes.flatMap((lane) => lane.combos);
+  invariant(new Set(combos.map((combo) => combo.comboId)).size === combos.length, 'Terminal publication lanes contain duplicate combos');
+  const runs = combos.flatMap((combo) => combo.runs);
+  invariant(new Set(runs.map((run) => run.logicalKey)).size === runs.length, 'Terminal publication lanes contain duplicate logical runs');
+  const sourceRevisions = lanes.flatMap((lane) => lane.sourceRevisions);
+  invariant(new Set(sourceRevisions.map((source) => source.id)).size === sourceRevisions.length, 'Terminal publication lanes contain duplicate source revision IDs');
+  const publications = lanes.flatMap((lane) => lane.publications ?? (lane.publication ? [lane.publication] : []));
+  const inputTokens = sumPublishedTotals(lanes, 'inputTokens');
+  const cachedInputTokens = sumPublishedTotals(lanes, 'cachedInputTokens');
+  const mergedUnsigned = {
+    ...primary,
+    updatedAt: lanes.map((lane) => lane.updatedAt).sort().at(-1),
+    status: lanes.every((lane) => lane.status === 'complete') ? 'complete' : 'provisional',
+    campaign: {
+      ...primary.campaign,
+      phase: lanes.every((lane) => lane.campaign.phase === 'complete') ? 'complete' : 'running',
+      generatedAt: lanes.map((lane) => lane.campaign.generatedAt).sort().at(-1),
+      acceptedRuns: lanes.reduce((sum, lane) => sum + lane.campaign.acceptedRuns, 0),
+      expectedRuns: lanes.reduce((sum, lane) => sum + lane.campaign.expectedRuns, 0),
+      outstandingRuns: lanes.reduce((sum, lane) => sum + lane.campaign.outstandingRuns, 0),
+      infrastructureInvalid: lanes.reduce((sum, lane) => sum + lane.campaign.infrastructureInvalid, 0),
+      outstanding: lanes.flatMap((lane) => lane.campaign.outstanding),
+    },
+    matrix: {
+      ...primary.matrix,
+      harnesses: uniqueSorted(lanes.flatMap((lane) => lane.matrix.harnesses)),
+      models: uniqueSorted(lanes.flatMap((lane) => lane.matrix.models)),
+      expectedRuns: lanes.reduce((sum, lane) => sum + lane.matrix.expectedRuns, 0),
+    },
+    sourceRevisions: sourceRevisions.sort((left, right) => left.protocolRevision.localeCompare(right.protocolRevision)),
+    totals: {
+      inputTokens,
+      cachedInputTokens,
+      outputTokens: sumPublishedTotals(lanes, 'outputTokens'),
+      reasoningTokens: sumPublishedTotals(lanes, 'reasoningTokens'),
+      totalTokens: sumPublishedTotals(lanes, 'totalTokens'),
+      durationMs: lanes.reduce((sum, lane) => sum + lane.totals.durationMs, 0),
+      toolCalls: sumPublishedTotals(lanes, 'toolCalls'),
+      failedAttempts: lanes.reduce((sum, lane) => sum + lane.totals.failedAttempts, 0),
+      cacheReadRate: inputTokens && cachedInputTokens != null ? round((cachedInputTokens / inputTokens) * 100) : null,
+    },
+    combos: combos.sort((left, right) => right.averageScore - left.averageScore || left.comboId.localeCompare(right.comboId)),
+    publication: primary.publication,
+    publications,
+  };
+  const { siteDataSha256: _oldHash, ...hashable } = mergedUnsigned;
+  return { ...hashable, siteDataSha256: canonicalJsonSha256(hashable) };
+}

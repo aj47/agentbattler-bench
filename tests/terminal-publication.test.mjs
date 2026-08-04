@@ -8,6 +8,7 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge } from '../src/terminal-challenge.mjs';
 import {
   buildTerminalCampaignSiteData,
+  mergeTerminalCampaignLanes,
   normalizeTerminalRunForPublication,
 } from '../src/terminal-publication.mjs';
 
@@ -135,4 +136,45 @@ test('normalizes a complete multi-revision terminal campaign without relabeling 
   assert.equal(lane.combos[0].runs[0].source.protocolRevision, 'r2');
   assert.equal(lane.combos[0].runs[0].attempts[0].error, 'upstream disconnected');
   assert.equal(lane.totals.failedAttempts, 1);
+
+  const { siteDataSha256: _sourceHash, ...droidUnsigned } = structuredClone(lane);
+  droidUnsigned.updatedAt = '2026-08-01T00:00:00.000Z';
+  droidUnsigned.campaign = {
+    ...droidUnsigned.campaign,
+    generatedAt: droidUnsigned.updatedAt,
+    policy: { kind: 'single-sealed-source-lane' },
+  };
+  droidUnsigned.matrix = { ...droidUnsigned.matrix, harnesses: ['factory-droid'] };
+  droidUnsigned.sourceRevisions = droidUnsigned.sourceRevisions.slice(0, 1).map((source) => ({ ...source, id: 'R5', protocolRevision: 'r5' }));
+  droidUnsigned.combos = droidUnsigned.combos.map((combo) => ({
+    ...combo,
+    comboId: 'factory-droid|gpt-5.6-luna',
+    harness: 'factory-droid',
+    harnessDisplayName: 'Droid',
+    runs: combo.runs.map((item) => ({
+      ...item,
+      logicalKey: 'factory-droid|gpt-5.6-luna|1|1|1',
+      slug: 'factory-droid-luna-g1',
+      runKey: 'droid-run-key',
+      harness: 'factory-droid',
+      harnessDisplayName: 'Droid',
+      source: { ...item.source, id: 'R5', protocolRevision: 'r5' },
+    })),
+  }));
+  droidUnsigned.publication = {
+    snapshotId: 'droid-snapshot',
+    snapshotSha256: 'd'.repeat(64),
+    datasetRevision: 'e'.repeat(40),
+    datasetUrl: 'https://example.test/droid',
+    releaseUrl: 'https://example.test/droid-release',
+  };
+  const droidLane = { ...droidUnsigned, siteDataSha256: canonicalJsonSha256(droidUnsigned) };
+  const merged = mergeTerminalCampaignLanes([lane, droidLane]);
+  assert.equal(merged.status, 'complete');
+  assert.equal(merged.campaign.acceptedRuns, 2);
+  assert.equal(merged.matrix.expectedRuns, 2);
+  assert.deepEqual(merged.matrix.harnesses, ['codex-cli', 'factory-droid']);
+  assert.equal(merged.combos.length, 2);
+  assert.equal(merged.publications.length, 1);
+  assert.equal(merged.sourceRevisions.at(-1).id, 'R5');
 });

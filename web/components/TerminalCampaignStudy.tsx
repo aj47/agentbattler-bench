@@ -35,6 +35,9 @@ export function TerminalCampaignStudy({ lane }: { lane: TerminalCampaignLane }) 
     combo.maximumScore - combo.minimumScore > best.maximumScore - best.minimumScore ? combo : best
   ));
   const official = lane.status === 'complete';
+  const harnessCount = new Set(lane.combos.map((combo) => combo.harness)).size;
+  const modelCount = new Set(lane.combos.map((combo) => combo.model)).size;
+  const publications = lane.publications ?? (lane.publication ? [lane.publication] : []);
 
   return (
     <section className={styles.study} id="terminal-study" aria-labelledby="terminal-v5-title">
@@ -53,8 +56,8 @@ export function TerminalCampaignStudy({ lane }: { lane: TerminalCampaignLane }) 
           </div>
           <div className={styles.heroCopy}>
             <strong>One evolving codebase. A hard 30-minute limit on every agent turn. Fresh, source-only verification after each step.</strong>
-            <p>Four harnesses and three models build the same crash-safe event ledger across persistence, recovery, concurrency, compaction, validation, and scale. The table is the start of the investigation—not the end.</p>
-            {lane.publication ? <a href={lane.publication.datasetUrl}>browse the immutable dataset ↗</a> : <span>publication package is prepared after the final accepted run</span>}
+            <p>{harnessCount} harnesses and {modelCount} models build the same crash-safe event ledger across persistence, recovery, concurrency, compaction, validation, and scale. The table is the start of the investigation—not the end.</p>
+            {publications.length ? publications.map((publication) => <a href={publication.datasetUrl} key={publication.snapshotId}>{publication.snapshotId.includes('droid') ? 'browse Droid R5 evidence ↗' : 'browse core V5 evidence ↗'}</a>) : <span>publication package is prepared after the final accepted run</span>}
           </div>
         </div>
 
@@ -120,7 +123,7 @@ export function TerminalCampaignStudy({ lane }: { lane: TerminalCampaignLane }) 
           <div>
             <span>03 / source revisions</span>
             <h3>Compatible revisions stay named.</h3>
-            <p>V5 preserves accepted evidence by reference. R2, R3, and R4 kept the task, score, models, requested high reasoning, and 30-minute turn limit fixed while correcting harness reliability and telemetry. Every run records the exact challenge and schedule hashes that produced it.</p>
+            <p>V5 preserves accepted evidence by reference. R2 through R5 keep the task, score, models, requested high reasoning, and 30-minute turn limit fixed. R5 adds Droid as its own sealed runtime lane; every run retains the exact challenge and schedule hashes that produced it.</p>
             {lane.campaign.policy.retryCeilingException ? <p className={styles.exception}><strong>Declared retry exception:</strong> {lane.campaign.policy.retryCeilingException.reason}</p> : null}
           </div>
           <ol>

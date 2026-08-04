@@ -20,7 +20,7 @@ import {
 } from '../src/snapshot.mjs';
 import { summarizeModelFamilies } from '../src/model-family-summary.mjs';
 import { summarizeHarnessComparison } from '../src/harness-summary.mjs';
-import { bindTerminalPublication } from '../src/terminal-publication.mjs';
+import { bindTerminalPublication, mergeTerminalCampaignLanes } from '../src/terminal-publication.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'web/generated/site-data.json');
@@ -28,6 +28,7 @@ const PUBLICATION_OUTPUT = path.join(ROOT, 'web/generated/publication.json');
 const SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest.json');
 const RESULTS_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-results.json');
 const TERMINAL_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-terminal.json');
+const TERMINAL_DROID_SNAPSHOT_PATH = path.join(ROOT, 'snapshots/latest-terminal-droid.json');
 const gunzipAsync = promisify(gunzip);
 const SUITES = [
   {
@@ -834,18 +835,10 @@ async function loadTerminalChallengeLane() {
   }
 }
 
-async function loadTerminalCampaignLane() {
-  const preview = process.env.AGENTBATTLER_TERMINAL_V5_SITE_DATA;
-  if (preview) {
-    const lane = await readJson(path.resolve(ROOT, preview));
-    const { siteDataSha256, ...unsigned } = lane;
-    invariant(lane.schemaVersion === 'agentbattler.terminal-campaign-site.v1', 'Unsupported terminal campaign site-data schema');
-    invariant(siteDataSha256 === canonicalJsonSha256(unsigned), 'Terminal campaign site-data hash mismatch');
-    return lane;
-  }
+async function loadPublishedTerminalCampaignLane(snapshotPath) {
   let snapshot;
   try {
-    snapshot = await readSnapshot(TERMINAL_SNAPSHOT_PATH);
+    snapshot = await readSnapshot(snapshotPath);
   } catch (error) {
     if (error?.code === 'ENOENT') return null;
     throw error;
@@ -862,6 +855,22 @@ async function loadTerminalCampaignLane() {
     datasetRoot: snapshot.dataset.root,
     releaseUrl: `https://github.com/${snapshot.release.repository}/releases/tag/${snapshot.release.tag}`,
   });
+}
+
+async function loadTerminalCampaignLane() {
+  const preview = process.env.AGENTBATTLER_TERMINAL_V5_SITE_DATA;
+  if (preview) {
+    const lane = await readJson(path.resolve(ROOT, preview));
+    const { siteDataSha256, ...unsigned } = lane;
+    invariant(lane.schemaVersion === 'agentbattler.terminal-campaign-site.v1', 'Unsupported terminal campaign site-data schema');
+    invariant(siteDataSha256 === canonicalJsonSha256(unsigned), 'Terminal campaign site-data hash mismatch');
+    return lane;
+  }
+  const lanes = (await Promise.all([
+    loadPublishedTerminalCampaignLane(TERMINAL_SNAPSHOT_PATH),
+    loadPublishedTerminalCampaignLane(TERMINAL_DROID_SNAPSHOT_PATH),
+  ])).filter(Boolean);
+  return lanes.length ? mergeTerminalCampaignLanes(lanes) : null;
 }
 
 async function main() {

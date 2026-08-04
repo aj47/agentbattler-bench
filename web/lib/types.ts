@@ -477,6 +477,13 @@ export type TerminalCampaignLane = {
     datasetUrl: string;
     releaseUrl: string | null;
   };
+  publications?: Array<{
+    snapshotId: string;
+    snapshotSha256: string;
+    datasetRevision: string;
+    datasetUrl: string;
+    releaseUrl: string | null;
+  }>;
 };
 
 export type TerminalChallengeLane = {

@@ -16,9 +16,9 @@ import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
-  assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'pi-coding-agent']);
+  assert.deepEqual(all.harnesses, ['amp-code', 'claude-code', 'codex-cli', 'dotagents-mono', 'pi-coding-agent']);
   assert.deepEqual(claude.harnesses, ['claude-code']);
-  assert.deepEqual(harbor.harnesses, ['claude-code', 'codex-cli', 'pi-coding-agent']);
+  assert.deepEqual(harbor.harnesses, ['amp-code', 'claude-code', 'codex-cli', 'pi-coding-agent']);
   assert.deepEqual(dotagents.harnesses, ['dotagents-mono']);
 });
 
@@ -39,6 +39,7 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
 
 test('terminal schedules bind declared harness versions to launched runtimes', () => {
   assert.deepEqual(SEALED_TERMINAL_HARNESS_VERSIONS, {
+    'amp-code': '0.0.1785846794-g0de1fc',
     'claude-code': '2.1.220',
     'codex-cli': '0.144.0',
     'dotagents-mono': '1.1.9',
@@ -48,6 +49,46 @@ test('terminal schedules bind declared harness versions to launched runtimes', (
   assert.equal(rebound.provenance.harnessVersion, '2.1.220');
   assert.equal(rebound.provenance.sourceArtifactHarnessVersion, '2.1.211');
   assert.throws(() => bindTerminalHarnessRuntime({ provenance: { harness: 'new-harness', harnessVersion: '1.0.0' } }), /No sealed terminal runtime version/);
+});
+
+test('Harbor Amp uses only AMP_API_KEY and the pinned non-interactive native adapter', async () => {
+  const args = harbor.buildHarborArgs({
+    job: { harness: 'amp-code', model: 'amp-high', maxWallTimeMs: 1_800_000 },
+    trialsDir: '/tmp/trials',
+    trialName: 'amp-check',
+    ampApiKey: 'test-amp-api-key',
+  });
+  assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.amp_agent:AgentBattlerAmp');
+  assert.ok(args.includes('version=0.0.1785846794-g0de1fc'));
+  assert.deepEqual(args.filter((value, index) => args[index - 1] === '--agent-env'), ['AMP_API_KEY=test-amp-api-key']);
+  assert.throws(() => harbor.buildHarborArgs({ job: { harness: 'amp-code', model: 'amp-high' }, trialsDir: '/tmp/trials', trialName: 'missing-auth', ampApiKey: '' }), /AMP_API_KEY is required/);
+  const source = await readFile(path.resolve('benchmark', 'harbor', 'amp_agent.py'), 'utf8');
+  assert.match(source, /amp --execute --stream-json/);
+  assert.match(source, /amp threads continue .* --execute --stream-json/);
+  assert.match(source, /AMP_SKIP_UPDATE_CHECK=1 amp --version/);
+  assert.match(source, /"cli_version": AMP_PACKAGE_VERSION/);
+  assert.doesNotMatch(source, /amp --no-tui|\bamp\s+["']?$/m);
+  assert.match(source, /env -i PATH=/);
+  assert.match(source, /set\(configured\) != \{"AMP_API_KEY"\}/);
+  assert.match(source, /rm -rf \/app\/\.amp \/app\/\.agents \/app\/\.claude/);
+  assert.match(source, /"\*thread\*"/);
+  assert.match(source, /"\*plugin\*"/);
+  assert.match(source, /"\*skill\*"/);
+  assert.match(source, /"\*mcp\*"/);
+  assert.match(source, /"list_\*"/);
+  assert.match(source, /setpriv --reuid=1000 --regid=1000 --clear-groups/);
+  assert.match(source, /chown -R 1000:1000 \/app/);
+  assert.match(source, /chown -R root:root \{_HOME\} \{_CONTROL\}/);
+  assert.match(source, /_CONTROL = "\/opt\/agentbattler\/amp-runtime"/);
+  assert.match(source, /_EXPORT = "\/logs\/agent\/amp-runtime"/);
+  assert.match(source, /restart_after_preinit_timeout/);
+  assert.match(source, /install -m 0600 \{_STREAM\} \{_STDERR\} \{_EXIT\} \{_EXPORT\}/);
+  assert.match(source, /pgrep -u 1000/);
+  assert.match(source, /Amp candidate processes survived cleanup/);
+  assert.match(source, /chmod 0500 \{_PARSER_PATH\}/);
+  assert.match(source, /chmod 0444 \{_SETTINGS\}/);
+  assert.match(source, /asyncio\.CancelledError/);
+  assert.match(source, /kill -TERM -- \\"-\$pid\\"/);
 });
 
 test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', async () => {
@@ -367,6 +408,32 @@ test('Harbor importer proves resume and does not double-count cumulative traces'
     assert.equal(imported.adapter.timedOutTurns, 1);
     assert.equal(imported.toolCalls, 15);
     assert.equal(imported.holdout.passed, 9);
+    const ampSteps = structuredClone(stepResults);
+    const ampSession = 'T-12345678-1234-1234-1234-123456789abc';
+    for (let index = 0; index < stageIds.length; index += 1) {
+      const stepName = ampSteps[index].step_name;
+      const runtime = path.join(root, 'steps', stepName, 'agent', 'amp-runtime');
+      await mkdir(runtime, { recursive: true });
+      ampSteps[index].exception_info = index === 0 ? { exception_type: 'AgentTimeoutError', exception_message: 'timed out before init' } : null;
+      const events = index === 0 ? [] : [
+        { type: 'system', subtype: 'init', session_id: ampSession, agent_mode: 'high', tools: ['Read'], mcp_servers: [] },
+        { type: 'result', subtype: 'success', is_error: false, session_id: ampSession, duration_ms: 10, result: 'ok' },
+      ];
+      await writeFile(path.join(runtime, 'amp.jsonl'), events.map(JSON.stringify).join('\n'));
+      await writeFile(path.join(runtime, 'amp.stderr'), '');
+      if (index > 0) await writeFile(path.join(runtime, 'amp-exit-code.txt'), '0\n');
+    }
+    const ampImported = await harbor.importHarborResult({
+      raw: { started_at: '2026-01-01T00:00:00Z', finished_at: '2026-01-01T00:01:00Z', trial_uri: 'file:///trial', step_results: ampSteps },
+      trialRoot: root,
+      challenge: { stages: stageIds.map((id) => ({ id })), verifiers: { holdout: { cases: 11 } } },
+      job: { harness: 'amp-code', model: 'amp-high', challengeStageIds: stageIds },
+      harnessVersion: '0.test',
+    });
+    assert.equal(ampImported.turns[0].timedOut, true);
+    assert.equal(ampImported.turns[0].sessionId, null);
+    assert.equal(ampImported.sessionId, ampSession);
+    assert.equal(ampImported.sameSessionProof, true);
     const broken = structuredClone(stepResults);
     broken[7].exception_info = { exception_type: 'EnvironmentError', exception_message: 'container disappeared' };
     await assert.rejects(harbor.importHarborResult({

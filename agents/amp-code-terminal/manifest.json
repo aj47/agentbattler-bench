@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "agentbattler.agent-manifest.v1",
+  "manifestId": "amp-code-terminal-high-generation-1",
+  "description": "One-generation terminal-only Amp Code high-mode benchmark manifest.",
+  "comparison": {
+    "kind": "terminal-harness-smoke",
+    "harnesses": [
+      "amp-code"
+    ],
+    "models": [
+      "amp-high"
+    ],
+    "generationsPerHarnessModel": 1,
+    "reasoningEffort": "high"
+  },
+  "agents": [
+    {
+      "id": "amp-code-high-01",
+      "displayName": "Amp Code High #1",
+      "generationIndex": 1,
+      "modelFamilyId": "amp-high",
+      "role": "terminal-challenger",
+      "provenance": {
+        "kind": "amp-code-terminal-runtime",
+        "generatedByHarness": true,
+        "isFixture": false,
+        "harness": "amp-code",
+        "harnessVersion": "0.0.1785846794-g0de1fc",
+        "modelRequested": "amp-high",
+        "modelFamilyId": "amp-high",
+        "generationIndex": 1,
+        "reasoningEffort": "high",
+        "generationSettings": {
+          "agentMode": "high",
+          "streamFormat": "amp-stream-json"
+        }
+      }
+    }
+  ]
+}

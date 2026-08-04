@@ -15,14 +15,14 @@ const [harbor, codex, pi, claude, dotagents] = await Promise.all([
 
 const legacyByHarness = new Map([codex, pi, claude, dotagents].flatMap((adapter) => adapter.harnesses.map((harness) => [harness, adapter])));
 const harborByHarness = new Map(harbor.harnesses.map((harness) => [harness, harbor]));
-export const harnesses = [...legacyByHarness.keys()].sort();
+export const harnesses = [...new Set([...legacyByHarness.keys(), ...harborByHarness.keys()])].sort();
 
 async function verifyHarborAdapters(challenge, harness) {
   const expected = challenge.execution?.adapters;
   if (!expected) throw new Error('V4 challenge does not bind adapter source');
   const kind = harborByHarness.has(harness) ? 'harbor' : 'dotagents';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
-  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions']) {
+  for (const optional of ['ampHarbor', 'ampStream', 'candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions']) {
     if (expected[optional]) common.push(optional);
   }
   for (const name of common) {

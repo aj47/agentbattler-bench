@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
+import { parseAmpEventStream } from '../src/amp-stream.mjs';
 import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry, compactionDelta } from '../src/claude-compaction.mjs';
 import { terminalHarnessVersion } from '../src/terminal-harness-versions.mjs';
@@ -14,11 +15,14 @@ const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
 const RESOURCE_SAMPLE_INTERVAL_MS = 5_000;
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const AMP_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'amp_agent.py');
+const AMP_STREAM_PATH = path.join(REPO_ROOT, 'src', 'amp-stream.mjs');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
 const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_agent.py');
 const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
 const ANTHROPIC_OVERFLOW_COMPAT_PATH = path.join(REPO_ROOT, 'src', 'anthropic-overflow-compat.mjs');
 const HARBOR_BY_HARNESS = Object.freeze({
+  'amp-code': { agent: 'benchmark.harbor.amp_agent:AgentBattlerAmp', version: terminalHarnessVersion('amp-code'), kwargs: [] },
   'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: terminalHarnessVersion('claude-code'), kwargs: ['reasoning_effort=high'] },
   'codex-cli': { agent: 'codex', version: terminalHarnessVersion('codex-cli'), kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
   'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: terminalHarnessVersion('pi-coding-agent'), kwargs: [] },
@@ -201,11 +205,15 @@ function harborModel(harness, model) {
   return harness === 'pi-coding-agent' && !model.includes('/') ? `openai-codex/${model}` : model;
 }
 
-export function buildHarborArgs({ job, taskRoot = path.join(REPO_ROOT, 'benchmark', 'harbor', 'mini-ledger-v4'), trialsDir, trialName, claudeProviderRoot = null }) {
+export function buildHarborArgs({ job, taskRoot = path.join(REPO_ROOT, 'benchmark', 'harbor', 'mini-ledger-v4'), trialsDir, trialName, claudeProviderRoot = null, ampApiKey = process.env.AMP_API_KEY }) {
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
   const args = ['--from', `harbor==${HARBOR_VERSION}`, 'harbor', 'trial', 'start', '--path', taskRoot, '--agent', config.agent, '--model', harborModel(job.harness, job.model ?? job.modelRequested), '--trial-name', trialName, '--trials-dir', trialsDir, '--env', 'docker', '--resume-trajectory', '--delete'];
   for (const kwarg of [...config.kwargs, `version=${config.version}`]) args.push('--agent-kwarg', kwarg);
-  const proxyEnv = proxyAgentEnv(job.harness, claudeProviderRoot);
+  if (job.harness === 'amp-code') {
+    invariant(typeof ampApiKey === 'string' && ampApiKey.length > 0, 'AMP_API_KEY is required for Amp Code');
+    args.push('--agent-env', `AMP_API_KEY=${ampApiKey}`);
+  }
+  const proxyEnv = job.harness === 'amp-code' ? [] : proxyAgentEnv(job.harness, claudeProviderRoot);
   if (job.harness === 'codex-cli' && proxyEnv.length === 0) {
     // Do not use CODEX_FORCE_AUTH_JSON=true here. Harbor 0.20.0 registers
     // agent-env values as secrets, and redacting the generic value "true"
@@ -291,6 +299,24 @@ async function nativePiEvidence(trialRoot, stepName) {
   } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 }, providerErrors: [] }; }
 }
 
+async function nativeAmpEvidence(trialRoot, stepName, expectedSessionId = null, timedOut = false) {
+  const agentRoot = path.join(trialRoot, 'steps', stepName, 'agent', 'amp-runtime');
+  const streamPath = path.join(agentRoot, 'amp.jsonl');
+  const stderrPath = path.join(agentRoot, 'amp.stderr');
+  const exitCodePath = path.join(agentRoot, 'amp-exit-code.txt');
+  try {
+    const evidence = parseAmpEventStream(await readFile(streamPath, 'utf8'), { expectedSessionId, allowIncomplete: timedOut });
+    const [stderr, exitCode] = await Promise.all([
+      readFile(stderrPath, 'utf8').catch(() => ''),
+      readFile(exitCodePath, 'utf8').then((value) => /^\d+$/.test(value.trim()) ? Number(value.trim()) : null).catch(() => null),
+    ]);
+    invariant(timedOut || exitCode === 0, `Amp CLI exited ${exitCode ?? 'without a code'}: ${stderr.slice(-500)}`);
+    return { ...evidence, exitCode, stderrBytes: Buffer.byteLength(stderr) };
+  } catch (error) {
+    throw new Error(`Amp evidence is invalid for ${stepName}: ${error.message}`);
+  }
+}
+
 async function nativeClaudeEvidence(trialRoot, stepName) {
   const projectRoot = path.join(trialRoot, 'steps', stepName, 'agent', 'sessions', 'projects');
   try {
@@ -338,7 +364,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
   invariant(!raw.exception_info, `Harbor trial failed: ${raw.exception_info?.exception_message ?? 'unknown error'}`);
   const expectedStages = job.challengeStageIds ?? challenge.stages.map((stage) => stage.id);
   invariant(raw.step_results?.length === expectedStages.length, `Harbor returned ${raw.step_results?.length ?? 0}/${expectedStages.length} steps`);
-  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; const compactionSamples = []; let holdout = null; let nativeToolCalls = 0;
+  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; const compactionSamples = []; const ampModels = new Set(); let holdout = null; let nativeToolCalls = 0;
   for (let index = 0; index < raw.step_results.length; index += 1) {
     const step = raw.step_results[index];
     const timedOut = step.exception_info?.exception_type === 'AgentTimeoutError';
@@ -347,27 +373,33 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
     const context = step.agent_result ?? {};
     const nativeEvidence = await nativePiEvidence(trialRoot, step.step_name);
+    const nativeAmp = job.harness === 'amp-code' ? await nativeAmpEvidence(trialRoot, step.step_name, sessionIds[0] ?? null, timedOut) : null;
+    for (const model of nativeAmp?.models ?? []) ampModels.add(model);
     const nativeCompaction = job.harness === 'claude-code' ? await nativeClaudeEvidence(trialRoot, step.step_name) : { count: 0, boundaries: [] };
     compactionSamples.push(nativeCompaction);
-    const sessionId = await sessionIdForStep(trialRoot, step.step_name, nativeEvidence.sessionId); sessionIds.push(sessionId);
-    nativeToolCalls += nativeEvidence.toolCalls;
+    const sessionId = job.harness === 'amp-code'
+      ? nativeAmp.sessionId
+      : await sessionIdForStep(trialRoot, step.step_name, nativeEvidence.sessionId);
+    sessionIds.push(sessionId);
+    nativeToolCalls += nativeAmp?.toolCalls ?? nativeEvidence.toolCalls;
     let trajectory = null;
     try {
       trajectory = JSON.parse(await readFile(path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json'), 'utf8'));
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     trajectories.push(trajectory);
-    const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
-    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'pi-coding-agent' && nativeEvidence.providerErrors.length ? { providerErrors: nativeEvidence.providerErrors } : {}), ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
+    const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : nativeAmp?.usage ?? tokenCounts(context, trajectory); usageSamples.push(turnUsage);
+    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : nativeAmp?.exitCode ?? 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: nativeAmp?.durationMs || milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'pi-coding-agent' && nativeEvidence.providerErrors.length ? { providerErrors: nativeEvidence.providerErrors } : {}), ...(nativeAmp ? { stream: { format: 'amp-stream-json', events: nativeAmp.eventCount, stdout: 'amp.jsonl', stderr: 'amp.stderr', stderrBytes: nativeAmp.stderrBytes }, modelMetadata: { agentMode: nativeAmp.agentMode, models: nativeAmp.models } } : {}), ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');
   const observedSessions = sessionIds.filter(Boolean);
-  const sameSessionProof = observedSessions.length === expectedStages.length && new Set(observedSessions).size === 1;
+  const missingSessionTurnsAreTimeouts = sessionIds.every((sessionId, index) => sessionId || turns[index].timedOut);
+  const sameSessionProof = observedSessions.length > 0 && new Set(observedSessions).size === 1 && missingSessionTurnsAreTimeouts;
   invariant(sameSessionProof, 'Harbor did not prove one resumed native session across all steps');
   const stepCounts = trajectories.map((trajectory) => trajectory?.steps?.length ?? 0);
   const cumulativeTrajectories = stepCounts.every((count, index) => index === 0 || count >= stepCounts[index - 1])
     && stepCounts.some((count, index) => index > 0 && count > stepCounts[index - 1]);
-  const usage = combineUsage(usageSamples, cumulativeTrajectories);
-  if (cumulativeTrajectories) {
+  const usage = combineUsage(usageSamples, job.harness === 'amp-code' ? false : cumulativeTrajectories);
+  if (cumulativeTrajectories && job.harness !== 'amp-code') {
     for (let index = usageSamples.length - 1; index >= 0; index -= 1) {
       const previous = usageSamples[index - 1] ?? {};
       turns[index].usage = Object.fromEntries(Object.entries(usageSamples[index]).map(([field, value]) => [field, Math.max(0, value - Number(previous[field] ?? 0))]));
@@ -389,6 +421,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     durationMs: Math.max(0, Date.parse(raw.finished_at) - Date.parse(raw.started_at)),
     turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
+    ...(job.harness === 'amp-code' ? { modelMetadata: { requestedMode: 'high', observedModels: [...ampModels].sort() } } : {}),
     ...(compaction ? { compaction } : {}),
     adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, providerErrorTurns: turns.filter((turn) => turn.providerErrors?.length).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
   };
@@ -398,6 +431,8 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(challenge.id === 'terminal-mini-ledger-v4' || challenge.id === 'terminal-mini-ledger-v5', `Harbor adapter only supports terminal-mini-ledger-v4/v5, received ${challenge.id}`);
   invariant(challenge.execution?.substrate === 'harbor' && challenge.execution?.version === HARBOR_VERSION, 'Challenge does not bind the expected Harbor execution substrate');
   invariant(challenge.execution?.adapters?.harbor?.sha256 === await sha256File(fileURLToPath(import.meta.url)), 'Harbor adapter source does not match the sealed challenge');
+  if (job.harness === 'amp-code') invariant(challenge.execution?.adapters?.ampHarbor?.sha256 === await sha256File(AMP_AGENT_PATH), 'Harbor Amp agent source does not match the sealed challenge');
+  if (job.harness === 'amp-code') invariant(challenge.execution?.adapters?.ampStream?.sha256 === await sha256File(AMP_STREAM_PATH), 'Amp stream parser source does not match the sealed challenge');
   if (job.harness === 'pi-coding-agent') invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
   invariant(challenge.execution?.adapters?.claudeCompaction?.sha256 === await sha256File(CLAUDE_COMPACTION_PATH), 'Claude compaction policy source does not match the sealed challenge');
   invariant(challenge.execution?.adapters?.anthropicOverflowCompat?.sha256 === await sha256File(ANTHROPIC_OVERFLOW_COMPAT_PATH), 'Anthropic overflow compatibility source does not match the sealed challenge');
@@ -408,7 +443,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
   const trialsDir = path.join(runDirectory, 'harbor-trials'); await rm(trialsDir, { recursive: true, force: true }); await mkdir(trialsDir, { recursive: true });
   const trialName = `agentbattler-${job.runKey.slice(0, 16)}`;
-  const proxy = proxyConnection(job.harness);
+  const proxy = job.harness === 'amp-code' ? null : proxyConnection(job.harness);
   let overflowCompat = null;
   if (job.harness === 'claude-code' && proxy) {
     overflowCompat = await startAnthropicOverflowCompat({

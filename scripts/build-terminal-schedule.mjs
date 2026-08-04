@@ -63,6 +63,8 @@ const harborTaskSha256 = isHarborChallenge
 const executionAdapters = isHarborChallenge ? {
   dispatcher: { path: 'scripts/terminal-adapter-all.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-all.mjs')) },
   harbor: { path: 'scripts/terminal-adapter-harbor.mjs', sha256: await sha256File(path.join(ROOT, 'scripts/terminal-adapter-harbor.mjs')) },
+  ampHarbor: { path: 'benchmark/harbor/amp_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/amp_agent.py')) },
+  ampStream: { path: 'src/amp-stream.mjs', sha256: await sha256File(path.join(ROOT, 'src/amp-stream.mjs')) },
   piHarbor: { path: 'benchmark/harbor/pi_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/pi_agent.py')) },
   claudeHarbor: { path: 'benchmark/harbor/claude_agent.py', sha256: await sha256File(path.join(ROOT, 'benchmark/harbor/claude_agent.py')) },
   claudeCompaction: { path: 'src/claude-compaction.mjs', sha256: await sha256File(path.join(ROOT, 'src/claude-compaction.mjs')) },

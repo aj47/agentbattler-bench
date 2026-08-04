@@ -15,6 +15,7 @@ const passes = Number.parseInt(process.env.AGENTBATTLER_TERMINAL_RETRY_PASSES ??
 if (!Number.isSafeInteger(passes) || passes < 1) throw new Error('AGENTBATTLER_TERMINAL_RETRY_PASSES must be a positive integer');
 
 const configuredJobs = [
+  { harness: 'amp-code', adapter: v4Adapter ?? 'scripts/terminal-adapter-all.mjs', concurrency: process.env.AGENTBATTLER_AMP_CONCURRENCY ?? '1' },
   { harness: 'codex-cli', adapter: v4Adapter ?? 'scripts/terminal-adapter-codex.mjs', concurrency: process.env.AGENTBATTLER_CODEX_CONCURRENCY ?? '2' },
   { harness: 'pi-coding-agent', adapter: v4Adapter ?? 'scripts/terminal-adapter-pi.mjs', concurrency: process.env.AGENTBATTLER_PI_CONCURRENCY ?? '2' },
   // DotAgents is deliberately single-filed: the container is memory-heavy and

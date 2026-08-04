@@ -1,4 +1,5 @@
 export const SEALED_TERMINAL_HARNESS_VERSIONS = Object.freeze({
+  'amp-code': '0.0.1785846794-g0de1fc',
   'claude-code': '2.1.220',
   'codex-cli': '0.144.0',
   'dotagents-mono': '1.1.9',

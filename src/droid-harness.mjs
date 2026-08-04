@@ -75,7 +75,6 @@ export function createDroidSettings({
     maxOutputTokens: DROID_CONTEXT_POLICY.maxOutputTokens,
     noImageSupport: true,
     extraArgs: {
-      reasoning_effort: DROID_REASONING_EFFORT,
       max_output_tokens: DROID_CONTEXT_POLICY.maxOutputTokens,
     },
   }));

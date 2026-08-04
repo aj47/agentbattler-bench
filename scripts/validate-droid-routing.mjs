@@ -108,7 +108,7 @@ try {
   invariant(captured.method === 'POST' && captured.url === '/v1/responses', `Unexpected Droid route: ${captured.method} ${captured.url}`);
   invariant(captured.body.model === 'gpt-5.6-terra', `Droid sent model ${captured.body.model}`);
   invariant(captured.body.max_output_tokens === DROID_CONTEXT_POLICY.maxOutputTokens, `Droid max_output_tokens was ${captured.body.max_output_tokens}`);
-  invariant(captured.body.reasoning?.effort === 'high' && captured.body.reasoning_effort === 'high', `Droid reasoning effort was ${captured.body.reasoning?.effort ?? captured.body.reasoning_effort}`);
+  invariant(captured.body.reasoning?.effort === 'high' && captured.body.reasoning_effort === undefined, `Droid reasoning effort was ${captured.body.reasoning?.effort ?? captured.body.reasoning_effort}`);
   const requestedTools = (captured.body.tools ?? []).map((tool) => tool.function?.name ?? tool.name).filter(Boolean).sort();
   invariant(JSON.stringify(requestedTools) === JSON.stringify([...DROID_RESTRICTED_TOOLS].sort()), `Droid sent unexpected tool schemas: ${requestedTools.join(', ')}`);
   invariant(captured.headers.authorization === `Bearer ${route.apiKey}`, 'Droid did not expand the API key environment reference');
@@ -121,7 +121,7 @@ try {
     route: captured.url,
     upstreamModel: captured.body.model,
     maxOutputTokens: captured.body.max_output_tokens,
-    reasoningEffort: captured.body.reasoning_effort,
+    reasoningEffort: captured.body.reasoning.effort,
     compactionPolicy: DROID_CONTEXT_POLICY,
     restrictedTools: DROID_RESTRICTED_TOOLS,
     sessionId: summary.sessionId,

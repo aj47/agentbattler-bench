@@ -32,7 +32,7 @@ test('Droid settings pin the 9Router model IDs, output budget, and compaction po
   assert.ok(settings.customModels.every((model) => model.apiKey === '${AGENTBATTLER_DROID_API_KEY}'));
   assert.ok(settings.customModels.every((model) => model.maxContextLimit === 272_000));
   assert.ok(settings.customModels.every((model) => model.maxOutputTokens === 32_768));
-  assert.ok(settings.customModels.every((model) => model.extraArgs.reasoning_effort === 'high'));
+  assert.ok(settings.customModels.every((model) => model.extraArgs.reasoning_effort === undefined));
   assert.ok(settings.customModels.every((model) => model.extraArgs.max_output_tokens === 32_768));
   assert.ok(settings.customModels.every((model) => model.provider === 'openai'));
   assert.equal(droidUpstreamModel('gpt-5.6-sol'), 'cx/gpt-5.6-sol');

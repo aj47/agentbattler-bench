@@ -184,6 +184,7 @@ sanitized trace, then publish it under its own immutable snapshot pointer:
 ```sh
 npm run terminal:finalize:v5:droid
 npm run terminal:package:v5:droid
+npm run terminal:audit:v5:droid
 npm run terminal:publish:v5:droid
 ```
 

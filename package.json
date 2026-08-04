@@ -96,6 +96,7 @@
     "terminal:traces:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid node scripts/export-terminal-traces.mjs",
     "terminal:finalize:v5:droid": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r5 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r5-droid AGENTBATTLER_TERMINAL_SOURCE_ID=R5 node scripts/finalize-terminal-lane.mjs",
     "terminal:package:v5:droid": "node scripts/package-terminal-v5-publication.mjs --campaign-root results/terminal-mini-ledger-v5-r5-droid --output .artifacts/terminal-publication-droid --snapshot-prefix mini-ledger-v5-r5-droid",
+    "terminal:audit:v5:droid": "node scripts/audit-terminal-publication.mjs --package-pointer .artifacts/terminal-publication-droid/latest.json",
     "terminal:publish:v5:droid": "node scripts/publish-snapshot.mjs --package-pointer .artifacts/terminal-publication-droid/latest.json --latest-pointer snapshots/latest-terminal-droid.json",
     "terminal:traces:v4": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v4 AGENTBATTLER_TERMINAL_RESULT_TAG=v4-harbor-unbounded node scripts/export-terminal-traces.mjs",
     "terminal:traces:v5": "AGENTBATTLER_TERMINAL_CHALLENGE_VERSION=v5 AGENTBATTLER_TERMINAL_PROTOCOL_REVISION=r2 AGENTBATTLER_TERMINAL_RESULT_TAG=v5-r2 node scripts/export-terminal-traces.mjs",

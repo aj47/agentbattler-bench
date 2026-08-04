@@ -178,6 +178,18 @@ runtime context limit. The R5 schedule creates its 15 Droid identities directly 
 terminal runs for each of the three models; it does not generate or consume chess artifacts.
 It writes to `results/terminal-mini-ledger-v5-r5-droid`.
 
+After strict verification succeeds, export and seal the complete Droid lane, inspect every
+sanitized trace, then publish it under its own immutable snapshot pointer:
+
+```sh
+npm run terminal:finalize:v5:droid
+npm run terminal:package:v5:droid
+npm run terminal:publish:v5:droid
+```
+
+The publisher writes `snapshots/latest-terminal-droid.json`. It does not replace the main
+60-run `snapshots/latest-terminal.json` campaign pointer or the deprecated chess pointer.
+
 The runner is resumable and breadth-first. It gives every harness/model combo generation 1
 before starting generation 2, then repeats that generation-major order through generation 5.
 Completed sealed run keys are skipped. Infrastructure-invalid attempts are deferred until the

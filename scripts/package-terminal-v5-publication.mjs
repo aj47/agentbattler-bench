@@ -37,6 +37,7 @@ function parseArguments(argv) {
     datasetRepo: 'techfren/agentbattler-bench',
     releaseRepository: 'aj47/agentbattler-bench',
     snapshotId: null,
+    snapshotPrefix: 'mini-ledger-v5',
     allowIncomplete: false,
     sourceRoots: {},
   };
@@ -47,6 +48,7 @@ function parseArguments(argv) {
     else if (value === '--dataset-repo') options.datasetRepo = argv[++index];
     else if (value === '--release-repository') options.releaseRepository = argv[++index];
     else if (value === '--snapshot-id') options.snapshotId = argv[++index];
+    else if (value === '--snapshot-prefix') options.snapshotPrefix = argv[++index];
     else if (value === '--source-r2') options.sourceRoots.R2 = path.resolve(argv[++index]);
     else if (value === '--source-r3') options.sourceRoots.R3 = path.resolve(argv[++index]);
     else if (value === '--source-r4') options.sourceRoots.R4 = path.resolve(argv[++index]);
@@ -110,10 +112,11 @@ async function inspectText(file, { allowHostPaths = false } = {}) {
   }
 }
 
-function safeSnapshotId(updatedAt) {
+function safeSnapshotId(updatedAt, prefix) {
   const date = new Date(updatedAt);
   invariant(!Number.isNaN(date.valueOf()), 'Terminal campaign has an invalid updatedAt');
-  return `mini-ledger-v5-${date.toISOString().toLowerCase().replace(/[:.]/g, '-')}`;
+  invariant(/^[a-z0-9][a-z0-9.-]*$/.test(prefix), 'Invalid snapshot prefix');
+  return `${prefix}-${date.toISOString().toLowerCase().replace(/[:.]/g, '-')}`;
 }
 
 function sourceRoot(campaignSource, overrides) {
@@ -159,6 +162,10 @@ function sanitizedCampaign(campaign) {
 
 function readme(snapshotId, lane, datasetRepo) {
   const failed = lane.totals.failedAttempts;
+  const revisions = lane.sourceRevisions.map((source) => source.id).join(', ');
+  const sourceDescription = lane.sourceRevisions.length === 1
+    ? `This is a standalone sealed ${revisions} lane. Every run records the exact challenge, schedule, harness, model, and runtime-replicate identity that produced it.`
+    : `This compatibility-audited campaign preserves evidence from ${revisions}. Every normalized run retains its original source revision and hashes.`;
   return [
     '---',
     'pretty_name: AgentBattler Mini Ledger V5',
@@ -174,7 +181,7 @@ function readme(snapshotId, lane, datasetRepo) {
     '',
     '# AgentBattler Mini Ledger V5',
     '',
-    `Immutable evidence for ${lane.campaign.acceptedRuns}/${lane.campaign.expectedRuns} accepted Mini Ledger V5 runs across 12 harness × model conditions.`,
+    `Immutable evidence for ${lane.campaign.acceptedRuns}/${lane.campaign.expectedRuns} accepted Mini Ledger V5 runs across ${lane.combos.length} harness × model conditions.`,
     '',
     '## What is here',
     '',
@@ -183,11 +190,13 @@ function readme(snapshotId, lane, datasetRepo) {
     `- \`snapshots/${snapshotId}/runs/\`: full accepted run records.`,
     `- \`snapshots/${snapshotId}/traces/\`: credential-redacted semantic traces containing visible messages, tool calls, results, usage events, and stderr; no hidden chain-of-thought.`,
     `- \`snapshots/${snapshotId}/attempts/\`: compact records for ${failed} infrastructure-invalid attempts retained for reliability analysis.`,
-    `- \`snapshots/${snapshotId}/sources/\`: the exact R2, R3, and R4 challenge, schedule, summary, and trace manifests.`,
+    `- \`snapshots/${snapshotId}/sources/\`: the exact ${revisions} challenge, schedule, summary, and trace manifests.`,
     '',
     '## Interpretation',
     '',
-    'V5 is a compatibility-audited campaign assembled from preserved R2, R3, and R4 evidence. Every normalized run records its source revision and hashes. Revisions changed harness reliability or telemetry—not the 15-turn task, scoring contract, 30-minute per-turn budget, model, or requested high reasoning setting. Scores use 70 visible stage points plus 30 points spread evenly across 11 holdout checks.',
+    sourceDescription,
+    '',
+    'Scores use 70 visible stage points plus 30 points spread evenly across 11 holdout checks. Terminal replicate numbers identify fresh independent runs, not generated chess artifacts.',
     '',
     'Token and cache fields are the values reported by each harness. Cache-read rate is cached-input divided by input tokens. It is published for inspection and is not used for ranking because harness reporting semantics differ.',
     '',
@@ -221,7 +230,7 @@ async function main() {
     sourceRoots: options.sourceRoots,
     allowIncomplete: options.allowIncomplete,
   });
-  const snapshotId = options.snapshotId ?? safeSnapshotId(lane.updatedAt);
+  const snapshotId = options.snapshotId ?? safeSnapshotId(lane.updatedAt, options.snapshotPrefix);
   invariant(/^[a-z0-9][a-z0-9.-]*$/.test(snapshotId), 'Invalid snapshot ID');
   const snapshotRoot = path.join(options.outputRoot, snapshotId);
   const datasetRoot = path.join(snapshotRoot, 'dataset');
@@ -345,8 +354,8 @@ async function main() {
       archive: await fileArtifact(archivePath, archiveName),
     },
     publication: {
-      title: `AgentBattler Mini Ledger V5 · ${materializedLane.campaign.acceptedRuns} runs`,
-      description: 'Immutable Mini Ledger V5 campaign evidence: full accepted results, semantic traces, source revisions, retry records, checksums, and website analysis data.',
+      title: `AgentBattler ${materializedLane.title} · ${materializedLane.campaign.acceptedRuns} runs`,
+      description: 'Immutable Mini Ledger evidence: full accepted results, semantic traces, source revisions, retry records, checksums, and analysis data.',
     },
     totals: {
       runs: materializedLane.campaign.acceptedRuns,

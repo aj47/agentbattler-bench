@@ -7,6 +7,7 @@ web/generated/site-data.json
 web/tsconfig.tsbuildinfo
 .wrangler/
 trials/
+/AGENTS.md
 results/latest/
 results/*/
 !results/terminal-mini-ledger-v4/

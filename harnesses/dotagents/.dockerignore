@@ -1,2 +1,3 @@
 *
 !runtime-tools-sandbox.patch
+!enable-max-reasoning.mjs

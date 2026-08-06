@@ -31,8 +31,11 @@ class AgentBattlerPi(Pi):
     async def install(self, environment: BaseEnvironment) -> None:
         await self.exec_as_root(
             environment,
-            command="apt-get update && apt-get install -y bubblewrap curl ripgrep",
-            env={"DEBIAN_FRONTEND": "noninteractive"},
+            command=(
+                "command -v bwrap >/dev/null && "
+                "command -v curl >/dev/null && "
+                "command -v rg >/dev/null"
+            ),
         )
         version_spec = f"@{self._version}" if self._version else "@latest"
         await self.exec_as_agent(

@@ -140,6 +140,8 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /upload_file/);
   assert.match(source, /pi_sandbox_extension\.mjs/);
   assert.match(source, /--extension/);
+  assert.match(source, /command -v bwrap/);
+  assert.doesNotMatch(source, /apt-get/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
   const sandbox = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_sandbox_extension.mjs'), 'utf8');
   assert.match(sandbox, /'--unshare-net'/);
@@ -398,8 +400,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.3\.0"/);
-  assert.match(config, /protocol_revision = "r4"/);
+  assert.match(config, /version = "6\.4\.0"/);
+  assert.match(config, /protocol_revision = "r5"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
@@ -410,6 +412,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const agentImage = await readFile(path.join(taskRoot, 'environment', 'Dockerfile'), 'utf8');
   assert.match(agentImage, /bubblewrap/);
   assert.match(agentImage, /socat/);
+  assert.match(agentImage, /@openai\/codex@0\.144\.0/);
+  assert.match(agentImage, /@anthropic-ai\/claude-code@2\.1\.220/);
   const agentCompose = await readFile(path.join(taskRoot, 'environment', 'docker-compose.yaml'), 'utf8');
   assert.match(agentCompose, /SYS_ADMIN/);
   assert.match(agentCompose, /NET_ADMIN/);

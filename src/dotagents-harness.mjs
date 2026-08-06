@@ -5,7 +5,7 @@ import { terminalHarnessVersion } from './terminal-harness-versions.mjs';
 
 export const DOTAGENTS_COMMIT = 'fd76e502e551d5266ce50a5ed4b1536ed7323e26';
 export const DOTAGENTS_VERSION = terminalHarnessVersion('dotagents-mono');
-export const DOTAGENTS_SANDBOX_REVISION = 'r4';
+export const DOTAGENTS_SANDBOX_REVISION = 'r5';
 export const DOTAGENTS_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}-${DOTAGENTS_SANDBOX_REVISION}`;
 export const DOTAGENTS_PROFILE_ID = 'agentbattler-benchmark';
 export const DOTAGENTS_RUNTIME_TOOLS = Object.freeze(['execute_command', 'mark_work_complete']);

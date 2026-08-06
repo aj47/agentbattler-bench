@@ -3,4 +3,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap ca-c
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app \
     && chmod 0777 /app
+RUN npm install -g @openai/codex@0.144.0 @anthropic-ai/claude-code@2.1.220
 WORKDIR /app

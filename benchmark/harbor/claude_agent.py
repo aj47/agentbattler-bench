@@ -216,9 +216,12 @@ class AgentBattlerClaude(ClaudeCode):
                 environment,
                 command=(
                     "set -euo pipefail; "
-                    'real="$HOME/.local/bin/claude"; '
-                    'test -e "$real"; '
-                    'mv "$real" "$HOME/.local/bin/claude-agentbattler-real"; '
+                    'mkdir -p "$HOME/.local/bin"; '
+                    'real="$(command -v claude)"; '
+                    'resolved="$(readlink -f "$real")"; '
+                    'test -x "$resolved"; '
+                    'ln -sf "$resolved" '
+                    '"$HOME/.local/bin/claude-agentbattler-real"; '
                     "mv /tmp/agentbattler-claude-wrapper $HOME/.local/bin/claude; "
                     "chmod 0755 $HOME/.local/bin/claude "
                     "$HOME/.local/bin/claude-agentbattler-real"

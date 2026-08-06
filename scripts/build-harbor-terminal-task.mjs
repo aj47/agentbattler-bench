@@ -6,17 +6,18 @@ import { fileURLToPath } from 'node:url';
 import { MINI_LEDGER_V4_TURN_PROMPTS } from '../src/terminal-prompts-v4.mjs';
 import { MINI_LEDGER_V5_TURN_PROMPTS } from '../src/terminal-prompts-v5.mjs';
 import { MINI_LEDGER_V6_TURN_LIMIT_MINUTES, MINI_LEDGER_V6_TURN_PROMPTS } from '../src/terminal-prompts-v6.mjs';
+import { terminalHarnessVersion } from '../src/terminal-harness-versions.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!['v4', 'v5', 'v6'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4, V5, and V6');
 const protocolRevision = challengeVersion === 'v5'
   ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
-  : challengeVersion === 'v6' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r4' : null;
+  : challengeVersion === 'v6' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r5' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_PROMPTS : challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
 const versionNumber = challengeVersion === 'v6'
-  ? protocolRevision === 'r4' ? '6.3.0' : '6.2.0'
+  ? protocolRevision === 'r5' ? '6.4.0' : protocolRevision === 'r4' ? '6.3.0' : '6.2.0'
   : challengeVersion === 'v5'
   ? protocolRevision === 'r5' ? '5.4.0' : protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
   : '4.2.0';
@@ -210,7 +211,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap ca-c
     && rm -rf /var/lib/apt/lists/* \\
     && mkdir -p /app \\
     && chmod 0777 /app
-WORKDIR /app
+${challengeVersion === 'v6' ? `RUN npm install -g @openai/codex@${terminalHarnessVersion('codex-cli')} @anthropic-ai/claude-code@${terminalHarnessVersion('claude-code')}
+` : ''}WORKDIR /app
 `);
 if (challengeVersion === 'v6') await writeFile(path.join(output, 'environment', 'docker-compose.yaml'), `services:
   main:
@@ -271,5 +273,5 @@ await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersio
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? `\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction. ${protocolRevision === 'r4' ? 'R4 gives the trusted harness parent only the capabilities needed to create per-command mount, PID, and network namespaces; every model command starts after all capabilities are dropped, with a minimal non-secret environment and no network. Trace checks remain defense-in-depth.' : 'R3 supplies the complete command grammar on every turn and verifies turn 2 without requiring the turn 3 query command.'}\n` : ''}`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? `\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction. ${protocolRevision === 'r5' ? 'R5 preserves the R4 command sandbox while preinstalling pinned provider CLIs outside the runtime capability boundary and extending the pinned DotAgents OpenAI schema to forward Luna max reasoning.' : protocolRevision === 'r4' ? 'R4 gives the trusted harness parent only the capabilities needed to create per-command mount, PID, and network namespaces; every model command starts after all capabilities are dropped, with a minimal non-secret environment and no network. Trace checks remain defense-in-depth.' : 'R3 supplies the complete command grammar on every turn and verifies turn 2 without requiring the turn 3 query command.'}\n` : ''}`);
 console.log(output);

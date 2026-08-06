@@ -23,6 +23,10 @@ npm run terminal:traces:v6
 See [the terminal protocol](docs/terminal-challenge.md#v6-lunamax-campaign) and
 [the V6 task contract](benchmark/challenges/mini-ledger-v6.md).
 
+Adding a harness or preparing a contribution? Start with the [AgentBattler V6 agent
+guide](docs/agent-guide.md), or use the hosted [agent guide](https://agentbattler.com/agent-guide/)
+as a link from your agent or harness project.
+
 ## Historical chess benchmark data
 
 Raw generation traces and tournament result bodies are not stored in Git history. The final

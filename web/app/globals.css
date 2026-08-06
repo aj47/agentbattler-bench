@@ -395,6 +395,54 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
 .submission-cta > div strong { font-size: 19px; }
 .submission-cta .primary-action { flex-shrink: 0; font-size: 10px; }
 
+.agent-guide-page { padding-bottom: 130px; }
+.agent-guide-hero { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 90px; align-items: end; padding: 72px 0 95px; border-bottom: 1px solid var(--line); }
+.agent-guide-hero h1 { max-width: 900px; margin: 0; font-size: clamp(52px, 7.1vw, 92px); line-height: .92; letter-spacing: -.065em; font-weight: 720; }
+.agent-guide-hero h1 span { color: var(--accent); }
+.agent-guide-hero > div > p { max-width: 710px; margin: 28px 0 0; color: var(--muted); font-size: 18px; line-height: 1.62; }
+.agent-guide-aside { border-top: 2px solid var(--accent); padding-top: 18px; display: flex; flex-direction: column; gap: 8px; font-family: var(--mono); }
+.agent-guide-aside > span { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
+.agent-guide-aside strong { font-size: 16px; }
+.agent-guide-aside p { margin: 2px 0 8px; color: var(--muted); font: 400 12px/1.55 var(--sans); }
+.agent-guide-aside code { color: var(--accent); font: 500 10px/1 var(--mono); }
+.agent-guide-aside a, .agent-doc-link { color: var(--accent); font: 600 10px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.agent-guide-layout { display: grid; grid-template-columns: 190px minmax(0, 760px); gap: 100px; padding-top: 70px; }
+.agent-guide-nav { position: sticky; top: 95px; align-self: start; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.agent-guide-nav > span, .agent-guide-nav a { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--dim); font: 500 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.agent-guide-nav a:hover, .agent-guide-nav a:focus-visible { color: var(--accent); }
+.agent-guide-copy { display: grid; gap: 100px; }
+.agent-guide-copy section { scroll-margin-top: 95px; }
+.agent-guide-copy h2 { margin: 0; font-size: 42px; line-height: 1; letter-spacing: -.045em; }
+.agent-guide-copy section > p { margin: 23px 0 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
+.agent-contract-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 34px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.agent-contract-grid > div { min-height: 145px; padding: 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.agent-contract-grid span, .agent-command-list span, .agent-evidence-list strong, .agent-guide-cta span { color: var(--accent); font: 600 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+.agent-contract-grid strong { display: block; margin-top: 31px; font: 600 14px/1.25 var(--mono); }
+.agent-contract-grid p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.agent-command-list { display: grid; margin-top: 34px; border-top: 1px solid var(--line); }
+.agent-command-list > div { display: grid; grid-template-columns: 35px minmax(0, 1fr) 190px; gap: 18px; align-items: center; min-height: 58px; border-bottom: 1px solid var(--line); }
+.agent-command-list code { color: var(--accent); font: 500 11px/1.3 var(--mono); overflow-wrap: anywhere; }
+.agent-command-list p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.agent-guide-note { margin-top: 18px; padding: 14px 16px; border-left: 2px solid var(--amber); background: rgba(230, 185, 94, .055); color: #b9b39f; font-size: 12px; line-height: 1.55; }
+.agent-guide-note strong { color: var(--text); }
+.agent-adapter-contract { display: grid; grid-template-columns: 1fr 1fr; margin-top: 34px; border-top: 1px solid var(--line); }
+.agent-adapter-contract > div { display: grid; grid-template-columns: 38px 1fr; gap: 15px; align-items: center; min-height: 120px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.agent-adapter-contract > div:nth-child(odd) { padding-right: 22px; border-right: 1px solid var(--line); }
+.agent-adapter-contract > div:nth-child(even) { padding-left: 22px; }
+.agent-adapter-contract strong { font: 600 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+.agent-adapter-contract p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.agent-adapter-contract code { color: var(--accent); font: 500 10px/1.25 var(--mono); }
+.agent-doc-link { display: inline-flex; margin-top: 22px; text-decoration: underline; text-underline-offset: 4px; }
+.agent-evidence-list { display: grid; margin-top: 34px; border-top: 1px solid var(--line); }
+.agent-evidence-list > div { display: grid; grid-template-columns: 125px 1fr; gap: 18px; align-items: center; min-height: 58px; border-bottom: 1px solid var(--line); }
+.agent-evidence-list span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.agent-prompt-box { margin-top: 34px; border: 1px solid var(--line); background: var(--surface); }
+.agent-prompt-box pre { min-height: 220px; padding-right: 100px; color: #c9cdbf; }
+.agent-guide-cta { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 34px; padding: 20px; border: 1px solid var(--line-strong); background: var(--surface); }
+.agent-guide-cta > div { display: flex; flex-direction: column; gap: 7px; }
+.agent-guide-cta > div strong { font-size: 17px; }
+.agent-guide-cta .primary-action { flex-shrink: 0; font-size: 10px; }
+
 .not-found { min-height: 70vh; padding-top: 100px; }
 .not-found h1 { max-width: 700px; font-size: clamp(42px, 7vw, 80px); line-height: .95; letter-spacing: -.06em; }
 
@@ -467,6 +515,9 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
   .submission-hero { grid-template-columns: 1fr; gap: 40px; }
   .submission-hero-aside { max-width: 350px; }
   .submission-layout { grid-template-columns: 150px minmax(0, 1fr); gap: 50px; }
+  .agent-guide-hero { grid-template-columns: 1fr; gap: 40px; }
+  .agent-guide-aside { max-width: 350px; }
+  .agent-guide-layout { grid-template-columns: 150px minmax(0, 1fr); gap: 50px; }
   .incident-entry-head { grid-template-columns: 1fr; gap: 42px; }
   .incident-entry-head aside { max-width: 330px; }
   .incident-prose { grid-template-columns: 180px minmax(0, 1fr); gap: 45px; }
@@ -480,7 +531,7 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
   .header-inner { height: 54px; }
   .brand > span:last-child { display: none; }
   .nav-links { gap: 10px; font-size: 10px; }
-  .nav-links a:nth-child(3), .nav-links a:nth-child(4), .nav-links a:nth-child(6) { display: none; }
+  .nav-links a:nth-child(4), .nav-links a:nth-child(5), .nav-links a:nth-child(6), .nav-links a:nth-child(7) { display: none; }
   .nav-links a:last-child { display: none; }
   .intro-hero { padding-top: 35px; }
   .intro-hero-grid { padding: 50px 0 58px; }
@@ -579,6 +630,23 @@ dd { min-width: 0; margin: 0; color: var(--muted); font: 500 10px/1.4 var(--mono
   .trace-contract > div:nth-child(even) { padding-left: 0; }
   .safety-grid { grid-template-columns: 1fr; }
   .submission-cta { align-items: flex-start; flex-direction: column; }
+  .agent-guide-hero { padding: 55px 0 65px; }
+  .agent-guide-hero .eyebrow { max-width: 280px; line-height: 1.4; }
+  .agent-guide-hero h1 { font-size: clamp(40px, 12vw, 52px); }
+  .agent-guide-hero > div > p { font-size: 16px; }
+  .agent-guide-layout { display: block; padding-top: 55px; }
+  .agent-guide-nav { display: none; }
+  .agent-guide-copy { gap: 80px; }
+  .agent-guide-copy h2 { font-size: 34px; }
+  .agent-guide-copy section > p { font-size: 14px; }
+  .agent-contract-grid { grid-template-columns: 1fr; }
+  .agent-command-list > div { grid-template-columns: 30px 1fr; gap: 10px; padding-block: 14px; }
+  .agent-command-list p { grid-column: 2; }
+  .agent-adapter-contract { grid-template-columns: 1fr; }
+  .agent-adapter-contract > div:nth-child(odd) { padding-right: 0; border-right: 0; }
+  .agent-adapter-contract > div:nth-child(even) { padding-left: 0; }
+  .agent-evidence-list > div { grid-template-columns: 1fr; gap: 7px; padding-block: 14px; }
+  .agent-guide-cta { align-items: flex-start; flex-direction: column; }
   .changelog-page { padding-bottom: 80px; }
   .changelog-hero { padding: 55px 0 65px; }
   .changelog-hero > p { font-size: 16px; }

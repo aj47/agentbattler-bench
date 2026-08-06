@@ -8,6 +8,21 @@ chess ratings must be presented only as historical results. Existing immutable s
 generated agents, match bodies, and replay commands remain supported so the evidence is not
 lost or rewritten.
 
+The current V6 campaign compares the five sealed harnesses using only GPT-5.6 Luna at max
+reasoning, with five independent runs per harness and a hard one-hour limit per turn. It
+archives candidate source after every turn and scores the final all-stage regression matrix
+separately from the historical trajectory:
+
+```sh
+npm run terminal:matrix:v6
+npm run terminal:run:v6
+npm run terminal:verify:v6
+npm run terminal:traces:v6
+```
+
+See [the terminal protocol](docs/terminal-challenge.md#v6-lunamax-campaign) and
+[the V6 task contract](benchmark/challenges/mini-ledger-v6.md).
+
 ## Historical chess benchmark data
 
 Raw generation traces and tournament result bodies are not stored in Git history. The final
@@ -202,7 +217,9 @@ Every terminal run receives an empty home and workspace. Host Factory settings a
 not inherited; builtin skills, hooks, cloud session sync, and model fallbacks are disabled. The
 configuration records a 272,000-token raw context window, a 258,400-token effective window,
 native compaction at 206,720 tokens, and a 32,768-token maximum output. Compaction stays on the
-active model and reasoning is fixed to high.
+active model. V5 reasoning is fixed to high; the sealed V6 Luna campaign supplies max reasoning
+through the same JSON-RPC session settings and adds a macOS sandbox that denies host user-home
+and shared temporary files outside the ephemeral run directory.
 
 ```sh
 npm run droid:routing:smoke

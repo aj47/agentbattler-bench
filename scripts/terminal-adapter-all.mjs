@@ -20,11 +20,11 @@ export const harnesses = [...legacyByHarness.keys()].sort();
 
 async function verifyHarborAdapters(challenge, harness) {
   const expected = challenge.execution?.adapters;
-  if (!expected) throw new Error('V4 challenge does not bind adapter source');
+  if (!expected) throw new Error('Harbor challenge does not bind adapter source');
   const kind = harborByHarness.has(harness) ? 'harbor' : harness === 'dotagents-mono' ? 'dotagents' : 'droid';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
   if (kind === 'droid') common.push('droidHarness', 'droidJsonRpc', 'droidRouting', 'droidRuntime');
-  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions', 'terminalRoster']) {
+  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalChallenge', 'terminalRunner', 'terminalPrompts', 'harnessVersions', 'terminalRoster', 'dotagentsHarness', 'droidSandbox', 'runEvidence']) {
     if (expected[optional]) common.push(optional);
   }
   for (const name of common) {

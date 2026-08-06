@@ -20,7 +20,7 @@ test('Droid JSON-RPC summary records native tools, token usage, and compaction',
     beforeContext: { used: 200_000, limit: 206_720 },
     afterContext: { used: 25_000, limit: 206_720 },
   }), {
-    sessionId: 'session-1', success: true, finalText: 'Done', durationMs: 42, eventCount: 5,
+    sessionId: 'session-1', success: true, stopReason: 'completed', finalText: 'Done', durationMs: 42, eventCount: 5,
     toolCallCount: 1, toolCallBreakdown: { Read: 1 },
     usage: { inputTokens: 100, outputTokens: 20, cachedInputTokens: 30, cacheCreationTokens: 4, reasoningTokens: 5 },
     errors: [],

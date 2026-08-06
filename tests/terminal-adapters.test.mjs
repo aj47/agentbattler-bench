@@ -11,7 +11,7 @@ import * as claude from '../scripts/terminal-adapter-claude.mjs';
 import * as dotagents from '../scripts/terminal-adapter-dotagents.mjs';
 import * as droid from '../scripts/terminal-adapter-droid.mjs';
 import * as harbor from '../scripts/terminal-adapter-harbor.mjs';
-import { candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
+import { CANDIDATE_NODE_OPTIONS, candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
 import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
@@ -37,6 +37,24 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
   assert.equal(args[args.indexOf('--agent-timeout') + 1], '1800');
   assert.ok(args.some((value) => value.endsWith('/.codex/auth.json') && value.startsWith('CODEX_AUTH_JSON_PATH=')));
   assert.ok(!args.includes('CODEX_FORCE_AUTH_JSON=true'));
+  assert.ok(args.includes('reasoning_effort=high'));
+});
+
+test('Harbor maps the sealed max reasoning level into every native harness', () => {
+  for (const [harness, expected] of [
+    ['claude-code', 'reasoning_effort=max'],
+    ['codex-cli', 'reasoning_effort=max'],
+    ['pi-coding-agent', 'thinking=max'],
+  ]) {
+    const args = harbor.buildHarborArgs({
+      job: { harness, model: 'gpt-5.6-luna', reasoningEffort: 'max', maxWallTimeMs: 3_600_000 },
+      trialsDir: '/tmp/trials',
+      trialName: `max-${harness}`,
+    });
+    assert.ok(args.includes(expected));
+    assert.equal(args[args.indexOf('--model') + 1], harness === 'pi-coding-agent' ? 'openai-codex/gpt-5.6-luna' : 'gpt-5.6-luna');
+    assert.equal(args[args.indexOf('--agent-timeout') + 1], '3600');
+  }
 });
 
 test('terminal schedules bind declared harness versions to launched runtimes', () => {
@@ -67,6 +85,8 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /@earendil-works\/pi-coding-agent/);
   assert.match(source, /--session/);
   assert.match(source, /--continue/);
+  assert.match(source, /"max"/);
+  assert.match(source, /self\.build_cli_flags\(\)/);
   assert.match(source, /upload_file/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
 });
@@ -304,21 +324,66 @@ test('generated Harbor V5 R5 task declares the Droid harness revision', async ()
   assert.match(source, /protocolRevision === 'r5' \? '5\.4\.0'/);
 });
 
+test('generated Harbor V6 task archives every candidate and reevaluates final correctness', async () => {
+  const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
+  const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
+  assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
+  assert.match(config, /version = "6\.0\.0"/);
+  assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
+  assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
+  assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
+  assert.match(config, /candidate_network_policy = "node-permission-model-deny-network-and-child-process"/);
+  const runner = await readFile(path.join(taskRoot, 'tests', 'run-stage.mjs'), 'utf8');
+  assert.match(runner, /candidateSnapshotsRequired = true/);
+  assert.match(runner, /finalPublicRequired = true/);
+  assert.match(runner, /candidate-ledger\.mjs/);
+  assert.match(runner, /all-public-stages-from-final-source-only-candidate/);
+  assert.match(runner, /nodePermissionModel: true/);
+  const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
+  assert.match(candidateProcess, /--permission --allow-fs-read=\. --allow-fs-write=\./);
+  const firstPrompt = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'instruction.md'), 'utf8');
+  assert.match(firstPrompt, /must never be embedded as source defaults/);
+  assert.match(firstPrompt, /hard 60-minute wall-clock limit enforced by the benchmark/);
+});
+
 test('candidate verifier process identity is opt-in and validated', () => {
   const previousUid = process.env.AGENTBATTLER_CANDIDATE_UID;
   const previousGid = process.env.AGENTBATTLER_CANDIDATE_GID;
   try {
     delete process.env.AGENTBATTLER_CANDIDATE_UID;
     delete process.env.AGENTBATTLER_CANDIDATE_GID;
-    assert.deepEqual(candidateSpawnOptions(), {});
+    assert.deepEqual(candidateSpawnOptions(), { env: { PATH: process.env.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C', NODE_OPTIONS: CANDIDATE_NODE_OPTIONS } });
     process.env.AGENTBATTLER_CANDIDATE_UID = '1000';
     process.env.AGENTBATTLER_CANDIDATE_GID = '1001';
-    assert.deepEqual(candidateSpawnOptions(), { uid: 1000, gid: 1001 });
+    assert.deepEqual(candidateSpawnOptions(), { uid: 1000, gid: 1001, env: { PATH: process.env.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C', NODE_OPTIONS: CANDIDATE_NODE_OPTIONS } });
     process.env.AGENTBATTLER_CANDIDATE_UID = 'root';
     assert.throws(() => candidateSpawnOptions(), /positive integers/);
   } finally {
     if (previousUid === undefined) delete process.env.AGENTBATTLER_CANDIDATE_UID; else process.env.AGENTBATTLER_CANDIDATE_UID = previousUid;
     if (previousGid === undefined) delete process.env.AGENTBATTLER_CANDIDATE_GID; else process.env.AGENTBATTLER_CANDIDATE_GID = previousGid;
+  }
+});
+
+test('candidate verifier process denies network and outside-workspace files at the Node runtime boundary', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-candidate-permission-'));
+  try {
+    await writeFile(path.join(root, 'allowed.txt'), 'allowed');
+    const result = await new Promise((resolve, reject) => {
+      const stdout = [];
+      const child = spawn(process.execPath, ['-e', "const fs = require('node:fs'); console.log(fs.readFileSync('allowed.txt', 'utf8')); try { fs.readFileSync('/etc/hosts'); process.exit(8); } catch (error) { console.log(error.code); } fetch('https://example.com').then(() => process.exit(9), error => { console.log(error.cause?.code ?? error.code ?? error.name); })"], {
+        ...candidateSpawnOptions(),
+        cwd: root,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      child.stdout.on('data', (chunk) => stdout.push(chunk));
+      child.once('error', reject);
+      child.once('close', (code, signal) => resolve({ code, signal, stdout: Buffer.concat(stdout).toString('utf8') }));
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.signal, null);
+    assert.match(result.stdout, /^allowed\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\n$/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

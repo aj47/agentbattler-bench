@@ -9,6 +9,11 @@ import { canonicalJsonSha256, sha256File } from '../src/provenance.mjs';
 import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry, compactionDelta } from '../src/claude-compaction.mjs';
 import { terminalHarnessVersion } from '../src/terminal-harness-versions.mjs';
+import {
+  assertTerminalTraceIsolation,
+  captureTerminalCandidateSnapshot,
+  terminalTurnCompletion,
+} from '../src/terminal-run-evidence.mjs';
 
 const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
@@ -19,8 +24,8 @@ const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_ag
 const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
 const ANTHROPIC_OVERFLOW_COMPAT_PATH = path.join(REPO_ROOT, 'src', 'anthropic-overflow-compat.mjs');
 const HARBOR_BY_HARNESS = Object.freeze({
-  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: terminalHarnessVersion('claude-code'), kwargs: ['reasoning_effort=high'] },
-  'codex-cli': { agent: 'codex', version: terminalHarnessVersion('codex-cli'), kwargs: ['reasoning_effort=high', 'web_search=disabled'] },
+  'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: terminalHarnessVersion('claude-code'), kwargs: [] },
+  'codex-cli': { agent: 'codex', version: terminalHarnessVersion('codex-cli'), kwargs: ['web_search=disabled'] },
   'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: terminalHarnessVersion('pi-coding-agent'), kwargs: [] },
 });
 
@@ -31,7 +36,9 @@ function invariant(condition, message) { if (!condition) throw new Error(message
 function taskRootForChallenge(challenge) {
   const allowedPaths = challenge.id === 'terminal-mini-ledger-v5'
     ? new Set(['benchmark/harbor/mini-ledger-v5', 'benchmark/harbor/mini-ledger-v5-r2', 'benchmark/harbor/mini-ledger-v5-r3', 'benchmark/harbor/mini-ledger-v5-r4'])
-    : new Set(['benchmark/harbor/mini-ledger-v4']);
+    : challenge.id === 'terminal-mini-ledger-v6'
+      ? new Set(['benchmark/harbor/mini-ledger-v6'])
+      : new Set(['benchmark/harbor/mini-ledger-v4']);
   const expectedPath = challenge.execution?.taskPath;
   invariant(allowedPaths.has(expectedPath), `Challenge task path is not an allowed sealed task: ${expectedPath ?? 'missing'}`);
   return path.join(REPO_ROOT, expectedPath);
@@ -203,8 +210,11 @@ function harborModel(harness, model) {
 
 export function buildHarborArgs({ job, taskRoot = path.join(REPO_ROOT, 'benchmark', 'harbor', 'mini-ledger-v4'), trialsDir, trialName, claudeProviderRoot = null }) {
   const config = HARBOR_BY_HARNESS[job.harness]; invariant(config, `Unsupported Harbor harness: ${job.harness}`);
+  const reasoningEffort = job.reasoningEffort ?? 'high';
+  invariant(['low', 'medium', 'high', 'xhigh', 'max'].includes(reasoningEffort), `Unsupported Harbor reasoning effort: ${reasoningEffort}`);
   const args = ['--from', `harbor==${HARBOR_VERSION}`, 'harbor', 'trial', 'start', '--path', taskRoot, '--agent', config.agent, '--model', harborModel(job.harness, job.model ?? job.modelRequested), '--trial-name', trialName, '--trials-dir', trialsDir, '--env', 'docker', '--resume-trajectory', '--delete'];
-  for (const kwarg of [...config.kwargs, `version=${config.version}`]) args.push('--agent-kwarg', kwarg);
+  const effortKwarg = job.harness === 'pi-coding-agent' ? `thinking=${reasoningEffort}` : `reasoning_effort=${reasoningEffort}`;
+  for (const kwarg of [...config.kwargs, effortKwarg, `version=${config.version}`]) args.push('--agent-kwarg', kwarg);
   const proxyEnv = proxyAgentEnv(job.harness, claudeProviderRoot);
   if (job.harness === 'codex-cli' && proxyEnv.length === 0) {
     // Do not use CODEX_FORCE_AUTH_JSON=true here. Harbor 0.20.0 registers
@@ -252,13 +262,15 @@ async function detailedStage(trialRoot, step, fallbackId) {
   } catch { /* Fall back to Harbor's scalar rewards when detailed output is absent. */ }
   if (detail) {
     invariant(!detail.infrastructureError, `Verifier infrastructure failed for ${step.step_name}: ${detail.infrastructureError}`);
-    return { stage: { ...detail.stage, id: detail.stage?.id ?? fallbackId }, holdout: detail.holdout ?? null };
+    return { stage: { ...detail.stage, id: detail.stage?.id ?? fallbackId }, holdout: detail.holdout ?? null, finalPublic: detail.finalPublic ?? null, candidateSnapshot: detail.candidateSnapshot ?? null };
   } else {
     const rewards = step.verifier_result?.rewards ?? {};
     const passed = rewards.reward === 1;
     return {
       stage: { id: fallbackId, passed, regressions: Number(rewards.regressions ?? (passed ? 0 : 1)), exitCode: passed ? 0 : 1, durationMs: Number(rewards.stage_duration_ms ?? 0), diagnostic: passed ? null : 'Harbor verifier stage failed' },
       holdout: Number(rewards.holdout_total ?? 0) > 0 ? { passed: Number(rewards.holdout_passed ?? 0), total: Number(rewards.holdout_total), cases: [] } : null,
+      finalPublic: null,
+      candidateSnapshot: null,
     };
   }
 }
@@ -269,10 +281,12 @@ async function nativePiEvidence(trialRoot, stepName) {
     const events = (await readFile(eventFile, 'utf8')).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
     const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
     const providerErrors = [];
+    let stopReason = null;
     for (const event of events) {
       const messages = [event.message, ...(Array.isArray(event.messages) ? event.messages : [])].filter(Boolean);
       for (const message of messages) {
         if (message.stopReason === 'error') providerErrors.push(String(message.errorMessage ?? message.error ?? 'provider error').slice(0, 500));
+        if (typeof message.stopReason === 'string') stopReason = message.stopReason;
       }
       if (event.type === 'message_end' && event.message?.role === 'assistant') {
         const sample = event.message.usage ?? {};
@@ -287,8 +301,10 @@ async function nativePiEvidence(trialRoot, stepName) {
       toolCalls: events.filter((event) => event.type === 'tool_execution_start').length,
       usage,
       providerErrors: [...new Set(providerErrors)],
+      stopReason,
+      events,
     };
-  } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 }, providerErrors: [] }; }
+  } catch { return { sessionId: null, toolCalls: 0, usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 }, providerErrors: [], stopReason: null, events: [] }; }
 }
 
 async function nativeClaudeEvidence(trialRoot, stepName) {
@@ -334,17 +350,18 @@ function combineUsage(samples, cumulative) {
     : samples.reduce((sum, sample) => sum + Number(sample[field] ?? 0), 0)]));
 }
 
-export async function importHarborResult({ raw, trialRoot, challenge, job, harnessVersion }) {
+export async function importHarborResult({ raw, trialRoot, challenge, job, harnessVersion, runDirectory = null }) {
   invariant(!raw.exception_info, `Harbor trial failed: ${raw.exception_info?.exception_message ?? 'unknown error'}`);
   const expectedStages = job.challengeStageIds ?? challenge.stages.map((stage) => stage.id);
   invariant(raw.step_results?.length === expectedStages.length, `Harbor returned ${raw.step_results?.length ?? 0}/${expectedStages.length} steps`);
-  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; const compactionSamples = []; let holdout = null; let nativeToolCalls = 0;
+  const stages = []; const turns = []; const sessionIds = []; const trajectories = []; const usageSamples = []; const compactionSamples = []; let holdout = null; let finalPublic = null; let nativeToolCalls = 0;
   for (let index = 0; index < raw.step_results.length; index += 1) {
     const step = raw.step_results[index];
     const timedOut = step.exception_info?.exception_type === 'AgentTimeoutError';
     invariant(!step.exception_info || timedOut, `Harbor step ${step.step_name} failed: ${step.exception_info?.exception_message ?? 'unknown error'}`);
     const detail = await detailedStage(trialRoot, step, expectedStages[index]);
-    stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout;
+    if (challenge.execution?.candidateSnapshotsRequired === true) invariant(detail.candidateSnapshot, `Harbor candidate snapshot evidence is missing for ${step.step_name}`);
+    stages.push(detail.stage); if (detail.holdout) holdout = detail.holdout; if (detail.finalPublic) finalPublic = detail.finalPublic;
     const context = step.agent_result ?? {};
     const nativeEvidence = await nativePiEvidence(trialRoot, step.step_name);
     const nativeCompaction = job.harness === 'claude-code' ? await nativeClaudeEvidence(trialRoot, step.step_name) : { count: 0, boundaries: [] };
@@ -355,11 +372,23 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
     try {
       trajectory = JSON.parse(await readFile(path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json'), 'utf8'));
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
+    const isolation = challenge.execution?.traceIsolationRequired === true
+      ? assertTerminalTraceIsolation({ trace: { trajectory, nativeEvents: nativeEvidence.events }, repositoryRoot: REPO_ROOT, workspace: '/app', turn: index + 1 })
+      : null;
+    const candidate = challenge.execution?.candidateSnapshotsRequired === true
+      ? await captureTerminalCandidateSnapshot({
+          sourcePath: path.join(trialRoot, 'steps', step.step_name, 'verifier', 'candidate-ledger.mjs'),
+          runDirectory,
+          turn: index + 1,
+          expected: detail.candidateSnapshot,
+        })
+      : null;
     trajectories.push(trajectory);
     const turnUsage = job.harness === 'pi-coding-agent' ? nativeEvidence.usage : tokenCounts(context, trajectory); usageSamples.push(turnUsage);
-    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, ...(job.harness === 'pi-coding-agent' && nativeEvidence.providerErrors.length ? { providerErrors: nativeEvidence.providerErrors } : {}), ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
+    turns.push({ index: index + 1, sessionId, exitCode: timedOut ? null : 0, signal: null, timedOut, startedAt: step.agent_execution?.started_at ?? null, endedAt: step.agent_execution?.finished_at ?? null, durationMs: milliseconds(step.agent_execution), usage: turnUsage, completion: terminalTurnCompletion({ nativeReason: nativeEvidence.stopReason ?? trajectory?.extra?.stopReason ?? trajectory?.extra?.stop_reason, timedOut, providerError: nativeEvidence.providerErrors.length > 0 }), ...(candidate ? { candidate } : {}), ...(isolation ? { isolation } : {}), ...(job.harness === 'pi-coding-agent' && nativeEvidence.providerErrors.length ? { providerErrors: nativeEvidence.providerErrors } : {}), ...(job.harness === 'claude-code' ? { compaction: nativeCompaction } : {}) });
   }
   invariant(holdout?.total === challenge.verifiers.holdout.cases, 'Harbor final holdout result is missing or incomplete');
+  if (challenge.execution?.finalPublicEvaluationRequired === true) invariant(finalPublic?.total === challenge.stages.length, 'Harbor final public evaluation is missing or incomplete');
   const observedSessions = sessionIds.filter(Boolean);
   const sameSessionProof = observedSessions.length === expectedStages.length && new Set(observedSessions).size === 1;
   invariant(sameSessionProof, 'Harbor did not prove one resumed native session across all steps');
@@ -383,11 +412,11 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
   return {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',
-    harness: job.harness, harnessVersion, model: job.model ?? job.modelRequested, reasoningEffort: 'high',
+    harness: job.harness, harnessVersion, model: job.model ?? job.modelRequested, reasoningEffort: job.reasoningEffort ?? 'high',
     sessionId: observedSessions[0], sameSessionProof,
     startedAt: raw.started_at, endedAt: raw.finished_at,
     durationMs: Math.max(0, Date.parse(raw.finished_at) - Date.parse(raw.started_at)),
-    turns, toolCalls, usage, stages, holdout, humanIntervention: 'none',
+    turns, toolCalls, usage, stages, ...(finalPublic ? { finalPublic } : {}), holdout, humanIntervention: 'none',
     workspace: { path: '<harbor-isolated-workspace>' },
     ...(compaction ? { compaction } : {}),
     adapter: { name: 'harbor', version: HARBOR_VERSION, environment: 'docker', verifierEnvironment: 'separate', verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, resumeTrajectory: true, cumulativeTrajectories, timedOutTurns: turns.filter((turn) => turn.timedOut).length, providerErrorTurns: turns.filter((turn) => turn.providerErrors?.length).length, trialUri: raw.trial_uri, resourcePolicy: job.harness === 'claude-code' ? { maxToolUseConcurrency: Number(CLAUDE_MAX_TOOL_USE_CONCURRENCY), compaction: compactionPolicy } : null },
@@ -395,7 +424,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
 }
 
 export async function runTerminalJob({ challenge, job, runDirectory }) {
-  invariant(challenge.id === 'terminal-mini-ledger-v4' || challenge.id === 'terminal-mini-ledger-v5', `Harbor adapter only supports terminal-mini-ledger-v4/v5, received ${challenge.id}`);
+  invariant(['terminal-mini-ledger-v4', 'terminal-mini-ledger-v5', 'terminal-mini-ledger-v6'].includes(challenge.id), `Harbor adapter only supports terminal-mini-ledger-v4/v5/v6, received ${challenge.id}`);
   invariant(challenge.execution?.substrate === 'harbor' && challenge.execution?.version === HARBOR_VERSION, 'Challenge does not bind the expected Harbor execution substrate');
   invariant(challenge.execution?.adapters?.harbor?.sha256 === await sha256File(fileURLToPath(import.meta.url)), 'Harbor adapter source does not match the sealed challenge');
   if (job.harness === 'pi-coding-agent') invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
@@ -429,7 +458,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   }
   invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Harbor trial failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'}): ${result.stderr.slice(-1000)}`);
   const resultPath = await findResult(path.join(trialsDir, trialName)); const raw = JSON.parse(await readFile(resultPath, 'utf8'));
-  const imported = await importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version });
+  const imported = await importHarborResult({ raw, trialRoot: path.dirname(resultPath), challenge, job, harnessVersion: config.version, runDirectory });
   imported.resources = JSON.parse(await readFile(path.join(runDirectory, 'harbor-resource-summary.json'), 'utf8'));
   if (overflowCompat) imported.adapter.overflowCompatibility = { name: 'agentbattler-anthropic-overflow-compat', normalizedStatus: 400, normalizedType: 'invalid_request_error', ...overflowCompat.stats };
   return imported;

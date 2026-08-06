@@ -8,6 +8,8 @@ export const DOTAGENTS_VERSION = terminalHarnessVersion('dotagents-mono');
 export const DOTAGENTS_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}`;
 export const DOTAGENTS_PROFILE_ID = 'agentbattler-benchmark';
 export const DOTAGENTS_RUNTIME_TOOLS = Object.freeze(['execute_command', 'mark_work_complete']);
+export const DOTAGENTS_DEFAULT_MAX_ITERATIONS = 12;
+export const DOTAGENTS_V6_MAX_ITERATIONS = 32;
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -17,10 +19,22 @@ function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, stateful = false, openaiProxy = null }) {
+export function createDotAgentsConfig({
+  model,
+  remoteApiKey,
+  remotePort = 3210,
+  stateful = false,
+  openaiProxy = null,
+  reasoningEffort = 'high',
+  maxIterations = DOTAGENTS_DEFAULT_MAX_ITERATIONS,
+  enableCompletionTool = false,
+}) {
   invariant(typeof model === 'string' && /^gpt-5\.6-(terra|sol|luna)$/.test(model), `Unsupported DotAgents benchmark model: ${model}`);
   invariant(typeof remoteApiKey === 'string' && remoteApiKey.length >= 32, 'DotAgents benchmark API key is missing');
   invariant(Number.isSafeInteger(remotePort) && remotePort > 0 && remotePort <= 65_535, 'Invalid DotAgents remote port');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'DotAgents reasoning effort is required');
+  invariant(Number.isSafeInteger(maxIterations) && maxIterations > 0, 'DotAgents max iterations must be a positive integer');
+  invariant(typeof enableCompletionTool === 'boolean', 'DotAgents completion-tool policy must be boolean');
   if (openaiProxy) {
     invariant(typeof openaiProxy.baseUrl === 'string' && /^http:\/\/[^/]+(?::\d+)?\/v1\/?$/.test(openaiProxy.baseUrl), 'DotAgents proxy base URL must be an HTTP /v1 endpoint');
     invariant(typeof openaiProxy.apiKey === 'string' && openaiProxy.apiKey.length >= 32, 'DotAgents proxy API key is missing');
@@ -65,12 +79,12 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       mcpToolsChatgptWebModel: model,
       chatgptWebBaseUrl: 'https://chatgpt.com',
     }),
-    openaiReasoningEffort: 'high',
+    openaiReasoningEffort: reasoningEffort,
     codexTextVerbosity: 'medium',
   };
   const mcp = {
     mcpConfig: { mcpServers: {} },
-    mcpMaxIterations: 12,
+    mcpMaxIterations: maxIterations,
     mcpUnlimitedIterations: false,
     mcpVerifyCompletionEnabled: true,
     mcpVerifyRetryCount: 1,
@@ -85,7 +99,7 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       enabledServers: [],
       disabledServers: [],
       disabledTools: [],
-      enabledRuntimeTools: ['execute_command'],
+      enabledRuntimeTools: enableCompletionTool ? [...DOTAGENTS_RUNTIME_TOOLS] : ['execute_command'],
     },
     modelConfig: {
       agentProviderId: providerId,
@@ -118,15 +132,16 @@ export function createDotAgentsConfig({ model, remoteApiKey, remotePort = 3210, 
       provider: openaiProxy ? 'openai-compatible' : 'chatgpt-web',
       transport: openaiProxy ? 'cliproxyapi' : 'native',
       promptCaching: openaiProxy ? 'cliproxy' : 'native',
-      reasoningEffort: 'high',
+      reasoningEffort,
       textVerbosity: 'medium',
-      maxIterations: 12,
+      maxIterations,
       unlimitedIterations: false,
       completionVerification: true,
       verificationRetries: 1,
       finalSummaryPass: false,
       parallelToolExecution: false,
-      runtimeTools: DOTAGENTS_RUNTIME_TOOLS,
+      runtimeTools: enableCompletionTool ? [...DOTAGENTS_RUNTIME_TOOLS] : ['execute_command'],
+      explicitCompletionTool: enableCompletionTool,
       stateful,
       externalMcpServers: 0,
       skillsEnabled: false,
@@ -213,7 +228,7 @@ export function networkCommandReason(command) {
   return null;
 }
 
-export function summarizeDotAgentsTrace(events, expectedModel) {
+export function summarizeDotAgentsTrace(events, expectedModel, { maxIterations = null } = {}) {
   invariant(Array.isArray(events) && events.length > 0, 'DotAgents trace is empty');
   const doneEvents = events.filter((event) => event?.type === 'done');
   invariant(doneEvents.length === 1, `DotAgents trace requires exactly one done event; found ${doneEvents.length}`);
@@ -242,6 +257,12 @@ export function summarizeDotAgentsTrace(events, expectedModel) {
     (right.inputTokens ?? 0) + (right.outputTokens ?? 0) - (left.inputTokens ?? 0) - (left.outputTokens ?? 0)
   ))[0] ?? null;
   const history = done.data.conversation_history ?? [];
+  const maxIterationObserved = Math.max(0, ...events.map((event) => Number(event?.data?.currentIteration ?? 0)).filter(Number.isFinite));
+  const completionToolCalled = toolCalls.some((call) => call.name === 'mark_work_complete');
+  const nativeStopReason = done.data.stop_reason ?? done.data.stopReason ?? done.data.finish_reason ?? null;
+  const iterationLimitReached = Number.isSafeInteger(maxIterations) && maxIterations > 0
+    && (maxIterationObserved >= maxIterations || /max(?:imum)?[ -]iterations?|iteration[ -]limit/i.test(done.data.content ?? ''))
+    && !completionToolCalled;
   return {
     eventCount: events.length,
     modelIds: [...modelIds].sort(),
@@ -253,6 +274,10 @@ export function summarizeDotAgentsTrace(events, expectedModel) {
     sessionCost,
     finalContent: done.data.content,
     conversationId: done.data.conversation_id ?? null,
+    maxIterationObserved,
+    completionToolCalled,
+    nativeStopReason,
+    iterationLimitReached,
   };
 }
 

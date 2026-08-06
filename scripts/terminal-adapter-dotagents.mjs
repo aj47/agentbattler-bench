@@ -9,6 +9,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
@@ -16,6 +17,8 @@ import {
   DOTAGENTS_IMAGE,
   DOTAGENTS_PROFILE_ID,
   DOTAGENTS_VERSION,
+  DOTAGENTS_DEFAULT_MAX_ITERATIONS,
+  DOTAGENTS_V6_MAX_ITERATIONS,
   buildDotAgentsDockerArgs,
   createDotAgentsConfig,
   dotAgentsCumulativeUsageDelta,
@@ -23,7 +26,15 @@ import {
   summarizeDotAgentsTrace,
 } from '../src/dotagents-harness.mjs';
 import { canonicalJson } from '../src/provenance.mjs';
+import {
+  assertTerminalTraceIsolation,
+  captureTerminalCandidateSnapshot,
+  terminalTurnCompletion,
+  verifyTerminalFinalPublic,
+  verifyTerminalPublicStage,
+} from '../src/terminal-run-evidence.mjs';
 
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
 const CHATGPT_TOKEN_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR;
 const IMAGE = process.env.AGENTBATTLER_DOTAGENTS_IMAGE ?? DOTAGENTS_IMAGE;
@@ -114,9 +125,10 @@ function compactTraceEvent(event) {
       type: 'done',
       data: {
         model: event.data?.model,
-        content: '',
+        content: event.data?.content ?? '',
         conversation_id: event.data?.conversation_id,
         conversation_history: conversationHistory,
+        stop_reason: event.data?.stop_reason ?? event.data?.stopReason ?? event.data?.finish_reason,
       },
     };
   }
@@ -134,13 +146,13 @@ async function waitForHealth(port, apiKey, childState) {
   throw new Error('DotAgents container did not become healthy within 60 seconds');
 }
 
-async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
+async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy, maxIterations) {
   const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
   const update = await fetch(`http://127.0.0.1:${port}/v1/settings`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({
-      mcpMaxIterations: 12,
+      mcpMaxIterations: maxIterations,
       mcpUnlimitedIterations: false,
       mcpMessageQueueEnabled: false,
       mcpVerifyCompletionEnabled: true,
@@ -155,8 +167,9 @@ async function applyAndVerifyRuntimeSettings(port, apiKey, job, proxy) {
   });
   invariant(response.ok, `DotAgents settings preflight failed (${response.status})`);
   const settings = await response.json();
-  invariant(settings.mcpMaxIterations === 12, `DotAgents effective max iterations is ${settings.mcpMaxIterations ?? 'missing'}, not 12`);
+  invariant(settings.mcpMaxIterations === maxIterations, `DotAgents effective max iterations is ${settings.mcpMaxIterations ?? 'missing'}, not ${maxIterations}`);
   invariant(settings.mcpUnlimitedIterations === false, 'DotAgents effective unlimited iterations is not disabled');
+  invariant(settings.openaiReasoningEffort === (job.reasoningEffort ?? 'high'), `DotAgents effective reasoning effort is ${settings.openaiReasoningEffort ?? 'missing'}, not ${job.reasoningEffort ?? 'high'}`);
   if (!proxy) return;
   invariant(settings.agentProviderId === 'openai', `DotAgents effective provider is ${settings.agentProviderId ?? 'missing'}, not openai`);
   invariant(settings.agentOpenaiModel === job.model, `DotAgents effective model is ${settings.agentOpenaiModel ?? 'missing'}, not ${job.model}`);
@@ -271,7 +284,7 @@ async function archivePreviousAttempt(runDirectory) {
   for (const name of names) await rename(path.join(runDirectory, name), path.join(archive, name));
 }
 
-async function startContainer(runDirectory, job) {
+async function startContainer(runDirectory, job, { maxIterations, enableCompletionTool }) {
   const proxy = cliProxyConfig();
   const auth = proxy ? null : await loadChatGptAuth();
   const home = path.join(runDirectory, 'dotagents-home'); const configRoot = path.join(runDirectory, 'config-workspace'); const workspace = path.join(runDirectory, 'workspace');
@@ -289,6 +302,9 @@ async function startContainer(runDirectory, job) {
     remotePort: 3210,
     stateful: true,
     openaiProxy: proxy ? { baseUrl: proxy.baseUrl, apiKey: proxy.apiKey } : null,
+    reasoningEffort: job.reasoningEffort ?? 'high',
+    maxIterations,
+    enableCompletionTool,
   });
   // DotAgents treats ~/.agents as its global persisted layer and the mounted
   // workspace as an overlay. Seed both with the sealed config so provider
@@ -307,7 +323,7 @@ async function startContainer(runDirectory, job) {
   const container = { port, apiKey, workspace, child, name, state, stdout, stderr, proxy, generationSettings: generatedConfig.generationSettings };
   try {
     await waitForHealth(port, apiKey, state);
-    await applyAndVerifyRuntimeSettings(port, apiKey, job, proxy);
+    await applyAndVerifyRuntimeSettings(port, apiKey, job, proxy, maxIterations);
     return container;
   } catch (error) {
     await stopContainer(container);
@@ -336,7 +352,9 @@ async function stopContainer(container) {
 export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(job.harness === 'dotagents-mono', `DotAgents adapter received ${job.harness}`);
   await mkdir(runDirectory, { recursive: true, mode: 0o700 });
-  const container = await startContainer(runDirectory, job);
+  const isV6 = challenge.id === 'terminal-mini-ledger-v6';
+  const maxIterations = isV6 ? DOTAGENTS_V6_MAX_ITERATIONS : DOTAGENTS_DEFAULT_MAX_ITERATIONS;
+  const container = await startContainer(runDirectory, job, { maxIterations, enableCompletionTool: isV6 });
   const stages = []; const turns = []; const sessionIds = [];
   let cumulativeUsage = null;
   const runStartedAt = new Date().toISOString(); let conversationId = null; let toolCalls = 0;
@@ -351,7 +369,10 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
         timeoutMs: job.maxWallTimeMs,
         outputPath: path.join(runDirectory, `turn-${index + 1}.jsonl`),
       });
-      const telemetry = summarizeDotAgentsTrace(result.events, job.model);
+      const isolation = challenge.execution?.traceIsolationRequired === true
+        ? assertTerminalTraceIsolation({ trace: result.events, repositoryRoot: REPOSITORY_ROOT, workspace: '/workspace', turn: index + 1 })
+        : null;
+      const telemetry = summarizeDotAgentsTrace(result.events, job.model, { maxIterations });
       invariant(telemetry.conversationId, `DotAgents turn ${index + 1} emitted no conversation ID`);
       if (!conversationId) conversationId = telemetry.conversationId;
       invariant(telemetry.conversationId === conversationId, `DotAgents conversation changed on turn ${index + 1}`);
@@ -359,14 +380,16 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       invariant(telemetry.sessionCost, `DotAgents turn ${index + 1} emitted no cumulative usage telemetry`);
       const turnUsage = dotAgentsCumulativeUsageDelta(cumulativeUsage, telemetry.sessionCost);
       cumulativeUsage = telemetry.sessionCost;
-      const stage = await publicVerifier.verifyPublicStage({ workspace: container.workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
+      const candidate = challenge.execution?.candidateSnapshotsRequired === true ? await captureTerminalCandidateSnapshot({ sourcePath: path.join(container.workspace, 'ledger.mjs'), runDirectory, turn: index + 1 }) : null;
+      const stage = await verifyTerminalPublicStage({ workspace: container.workspace, publicVerifier, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
       stages.push({ ...stage, id: stage.id ?? stage.stageId });
-      turns.push({ index: index + 1, sessionId: telemetry.conversationId, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: turnUsage });
+      turns.push({ index: index + 1, sessionId: telemetry.conversationId, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: turnUsage, completion: terminalTurnCompletion({ nativeReason: telemetry.nativeStopReason, iterationLimitReached: telemetry.iterationLimitReached }), iteration: { observed: telemetry.maxIterationObserved, limit: maxIterations, completionToolCalled: telemetry.completionToolCalled }, ...(candidate ? { candidate } : {}), ...(isolation ? { isolation } : {}) });
     }
+    const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace: container.workspace, challenge, publicVerifier }) : null;
     const holdout = await holdoutVerifier.verifyHoldout({ workspace: container.workspace });
     await writeFile(path.join(runDirectory, 'container-stdout.txt'), Buffer.concat(container.stdout));
     await writeFile(path.join(runDirectory, 'container-stderr.txt'), Buffer.concat(container.stderr));
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage: dotAgentsTerminalUsage(cumulativeUsage), stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'dotagents-mono', harnessVersion: DOTAGENTS_VERSION, model: job.model, reasoningEffort: job.reasoningEffort ?? 'high', sessionId: conversationId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === conversationId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage: dotAgentsTerminalUsage(cumulativeUsage), stages, ...(finalPublic ? { finalPublic } : {}), holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, generationSettings: container.generationSettings, adapter: { image: IMAGE, commit: DOTAGENTS_COMMIT, verifierWorkspacePolicy: 'source-only-per-stage-and-holdout-case', protocolRevision: challenge.execution?.protocolRevision ?? null, transport: container.proxy ? container.proxy.provenance : { name: 'chatgpt-web', mode: 'native-oauth' } } };
   } finally {
     await stopContainer(container);
     await Promise.allSettled([

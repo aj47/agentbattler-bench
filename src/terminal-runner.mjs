@@ -53,6 +53,8 @@ export function validateTerminalJobIdentity(job, run) {
 
 export function createInfrastructureInvalidRun(job, error, { adapter = null, startedAt = null, endedAt = null } = {}) {
   const reason = String(error?.message ?? error ?? 'unknown infrastructure failure').slice(0, 2_000);
+  const protocolViolation = error?.code === 'TRACE_ISOLATION_VIOLATION';
+  const status = protocolViolation ? 'protocol-invalid' : 'infrastructure-invalid';
   const result = {
     schemaVersion: TERMINAL_RUN_SCHEMA,
     runKey: job.runKey,
@@ -63,12 +65,13 @@ export function createInfrastructureInvalidRun(job, error, { adapter = null, sta
     generationIndex: job.generationIndex,
     repeat: job.repeat,
     seed: job.seed,
-    status: 'infrastructure-invalid',
-    validity: 'infrastructure-invalid',
+    status,
+    validity: status,
     adapter,
     startedAt,
     endedAt,
     error: reason,
+    ...(protocolViolation ? { stopReason: 'trace_isolation_violation', protocolViolation: error?.evidence ?? null } : {}),
   };
   return { ...result, resultSha256: canonicalJsonSha256(result) };
 }
@@ -95,7 +98,7 @@ async function readExistingRun(file, job) {
   if (!await exists(file)) return null;
   const run = JSON.parse(await readFile(file, 'utf8'));
   validateTerminalJobIdentity(job, run);
-  invariant(['completed', 'infrastructure-invalid'].includes(run.status), `Unsupported persisted terminal status ${run.status}`);
+  invariant(['completed', 'infrastructure-invalid', 'protocol-invalid'].includes(run.status), `Unsupported persisted terminal status ${run.status}`);
   return run;
 }
 
@@ -155,7 +158,7 @@ export async function runTerminalSchedule({
       onProgress({ job, status: 'invalid-persisted-result', error: error.message });
       return;
     }
-    if (existing?.status === 'completed' || (existing?.status === 'infrastructure-invalid' && !retryInvalid)) {
+    if (existing?.status === 'completed' || existing?.status === 'protocol-invalid' || (existing?.status === 'infrastructure-invalid' && !retryInvalid)) {
       summary.skipped += 1;
       if (existing.status === 'completed') summary.completed += 1;
       else summary.invalid += 1;
@@ -186,7 +189,7 @@ export async function runTerminalSchedule({
       await atomicWriteJson(terminalAttemptPath(resultRoot, job.runKey, attemptId), sealedAttempt);
       await atomicWriteJson(file, sealedAttempt);
       summary.invalid += 1;
-      onProgress({ job, status: 'infrastructure-invalid', result: sealedAttempt });
+      onProgress({ job, status: sealedAttempt.status, result: sealedAttempt });
     }
   }
 

@@ -6,6 +6,7 @@ import { finished } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
@@ -15,8 +16,16 @@ import {
   piSubscriptionAuthFromCodex,
   validateNativePiSession,
 } from '../src/pi-harness.mjs';
+import {
+  assertTerminalTraceIsolation,
+  captureTerminalCandidateSnapshot,
+  terminalTurnCompletion,
+  verifyTerminalFinalPublic,
+  verifyTerminalPublicStage,
+} from '../src/terminal-run-evidence.mjs';
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CODEX_AUTH = path.join(os.homedir(), '.codex', 'auth.json');
 const PI_SESSION_CONTAINER_PATH = '/pi-home/sessions/terminal-session.jsonl';
 const PI_SESSION_HOST_PATH = (runDirectory) => path.join(runDirectory, 'pi-home', 'sessions', 'terminal-session.jsonl');
@@ -60,7 +69,8 @@ async function summarizePiEventFile(file) {
   const lines = createInterface({ input, crlfDelay: Infinity });
   const eventTypes = new Map(); const toolBreakdown = new Map();
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
-  let count = 0; let header = null; let agentEnd = false; let toolCallCount = 0; let mcpCallCount = 0;
+  let count = 0; let header = null; let agentEnd = false; let toolCallCount = 0; let mcpCallCount = 0; let nativeStopReason = null;
+  const toolEvents = [];
   try {
     for await (const line of lines) {
       if (!line.trim()) continue;
@@ -69,14 +79,18 @@ async function summarizePiEventFile(file) {
       count += 1;
       eventTypes.set(event.type, (eventTypes.get(event.type) ?? 0) + 1);
       if (count === 1) header = event;
-      if (event.type === 'agent_end') agentEnd = true;
+      if (event.type === 'agent_end') { agentEnd = true; nativeStopReason = event.reason ?? nativeStopReason; }
       if (event.type === 'tool_execution_start') {
+        toolEvents.push(event);
         toolCallCount += 1;
         const name = event.toolName ?? 'unknown';
         toolBreakdown.set(name, (toolBreakdown.get(name) ?? 0) + 1);
         if (/mcp/i.test(name)) mcpCallCount += 1;
       }
-      if (event.type === 'message_end' && event.message?.role === 'assistant') addUsage(usage, event.message.usage);
+      if (event.type === 'message_end' && event.message?.role === 'assistant') {
+        addUsage(usage, event.message.usage);
+        nativeStopReason = event.message.stopReason ?? nativeStopReason;
+      }
     }
   } finally {
     lines.close();
@@ -97,6 +111,8 @@ async function summarizePiEventFile(file) {
     outputTokens: usage.output,
     reasoningTokens: 0,
     totalTokens: usage.totalTokens,
+    nativeStopReason,
+    toolEvents,
   };
 }
 
@@ -137,6 +153,8 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const sessionIds = []; const turns = []; const stages = [];
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   let toolCalls = 0;
+  const reasoningEffort = job.reasoningEffort ?? 'high';
+  const v6Evidence = challenge.execution?.candidateSnapshotsRequired === true;
 
   for (let index = 0; index < prompts.length; index += 1) {
     const prompt = prompts[index];
@@ -150,31 +168,37 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       user,
       sessionPath: PI_SESSION_CONTAINER_PATH,
       continueSession: index > 0,
+      reasoningEffort,
     });
     const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`);
     const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
     const result = await runProcess('docker', args, { cwd: workspace, env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
     invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Pi turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);
     const stream = await summarizePiEventFile(outputPath);
+    const isolation = challenge.execution?.traceIsolationRequired === true
+      ? assertTerminalTraceIsolation({ trace: stream.toolEvents, repositoryRoot: REPOSITORY_ROOT, workspace: '/workspace', turn: index + 1 })
+      : null;
     invariant(stream.sessionId, `Pi turn ${index + 1} emitted no session ID`);
     sessionIds.push(stream.sessionId); toolCalls += stream.toolCallCount;
     usage.inputTokens += stream.inputTokens; usage.cachedInputTokens += stream.cachedInputTokens; usage.outputTokens += stream.outputTokens;
     const stageId = job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id;
-    stages.push(await publicVerifier.verifyPublicStage({ workspace, stageId }));
-    turns.push({ index: index + 1, sessionId: stream.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: { inputTokens: stream.inputTokens, cachedInputTokens: stream.cachedInputTokens, outputTokens: stream.outputTokens, totalTokens: stream.totalTokens } });
+    const candidate = v6Evidence ? await captureTerminalCandidateSnapshot({ sourcePath: path.join(workspace, 'ledger.mjs'), runDirectory, turn: index + 1 }) : null;
+    stages.push(await verifyTerminalPublicStage({ workspace, publicVerifier, stageId }));
+    turns.push({ index: index + 1, sessionId: stream.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: { inputTokens: stream.inputTokens, cachedInputTokens: stream.cachedInputTokens, outputTokens: stream.outputTokens, totalTokens: stream.totalTokens }, completion: terminalTurnCompletion({ nativeReason: stream.nativeStopReason, timedOut: result.timedOut }), ...(candidate ? { candidate } : {}), ...(isolation ? { isolation } : {}) });
   }
 
   const nativeSession = await readFile(sessionHostPath, 'utf8');
   const session = validateNativePiSession(nativeSession, { sessionId: sessionIds[0], model: job.model });
   invariant(sessionIds.every((sessionId) => sessionId === sessionIds[0]), 'Pi session changed across turns');
+  const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace, challenge, publicVerifier }) : null;
   const holdout = await holdoutVerifier.verifyHoldout({ workspace });
   return {
     ...job,
     schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid',
     harness: 'pi-coding-agent', harnessVersion: PI_HARNESS_VERSION, model: job.model,
-    reasoningEffort: job.reasoningEffort ?? 'high', sessionId: sessionIds[0], sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionIds[0]),
+    reasoningEffort, sessionId: sessionIds[0], sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionIds[0]),
     nativeSession: { version: session.sessionVersion, eventCount: session.eventCount, path: '<ephemeral-pi-session>' },
-    startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout,
+    startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, ...(finalPublic ? { finalPublic } : {}), holdout,
     humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' },
   };
 }

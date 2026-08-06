@@ -38,6 +38,24 @@ test('terminal runner records infrastructure-invalid and retries it explicitly',
   assert.equal(second.completed, 2); assert.equal(calls, 4);
 });
 
+test('terminal runner rejects trace-isolation violations without retrying them as infrastructure', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-protocol-invalid-'));
+  const s = createExhaustiveTerminalSchedule({ challenge, agents: [agent('codex-cli', 'terra', 1)], expectedHarnesses: ['codex-cli'], expectedModels: ['terra'], generationsPerCombo: 1 });
+  let calls = 0;
+  const violation = new Error('attempted to inspect sealed verifier source');
+  violation.code = 'TRACE_ISOLATION_VIOLATION';
+  violation.evidence = { schemaVersion: 'agentbattler.terminal-trace-isolation.v1', turn: 1, passed: false, violations: [{ tool: 'Read', marker: 'public-verifier.mjs' }] };
+  await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, runTerminalJob: async () => { calls += 1; throw violation; } });
+  const retry = await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, retryInvalid: true, runTerminalJob: async ({ job }) => { calls += 1; return completed(job); } });
+  const saved = JSON.parse(await readFile(terminalRunPath(root, s.jobs[0].runKey), 'utf8'));
+  assert.equal(saved.status, 'protocol-invalid');
+  assert.equal(saved.validity, 'protocol-invalid');
+  assert.equal(saved.stopReason, 'trace_isolation_violation');
+  assert.deepEqual(saved.protocolViolation, violation.evidence);
+  assert.equal(retry.skipped, 1);
+  assert.equal(calls, 1);
+});
+
 test('terminal retries archive the failed workspace and start from an empty attempt', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-attempts-'));
   const s = createExhaustiveTerminalSchedule({ challenge, agents: [agent('codex-cli', 'terra', 1)], expectedHarnesses: ['codex-cli'], expectedModels: ['terra'], generationsPerCombo: 1 });

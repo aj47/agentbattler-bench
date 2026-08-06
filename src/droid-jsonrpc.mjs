@@ -4,7 +4,6 @@ import readline from 'node:readline';
 
 import {
   DROID_CONTEXT_POLICY,
-  DROID_REASONING_EFFORT,
   DROID_RESTRICTED_TOOLS,
   droidCustomModelId,
 } from './droid-harness.mjs';
@@ -53,6 +52,7 @@ export function summarizeDroidRpcTurn(messages, { sessionId, startedAt = Date.no
   return {
     sessionId,
     success: errors.length === 0 && (!completion || completion.reason === 'completed'),
+    stopReason: completion?.reason ?? (errors.length > 0 ? 'error' : null),
     finalText,
     durationMs: completion?.durationMs ?? Date.now() - startedAt,
     eventCount: messages.length,
@@ -77,12 +77,14 @@ export function summarizeDroidRpcTurn(messages, { sessionId, startedAt = Date.no
 }
 
 export class DroidJsonRpcSession {
-  constructor({ workspace, model, env, timeoutMs = null, onMessage = null }) {
+  constructor({ workspace, model, env, timeoutMs = null, onMessage = null, reasoningEffort = 'high', launcher = null }) {
     this.workspace = workspace;
     this.model = model;
     this.env = env;
     this.timeoutMs = timeoutMs;
     this.onMessage = onMessage;
+    this.reasoningEffort = reasoningEffort;
+    this.launcher = launcher;
     this.messages = [];
     this.stderr = [];
     this.pending = new Map();
@@ -95,7 +97,9 @@ export class DroidJsonRpcSession {
 
   async start() {
     invariant(!this.child, 'Droid JSON-RPC session is already started');
-    this.child = spawn('droid', ['exec', '--input-format', 'stream-jsonrpc', '--output-format', 'stream-jsonrpc'], {
+    const command = this.launcher?.command ?? 'droid';
+    const args = [...(this.launcher?.argsPrefix ?? []), 'exec', '--input-format', 'stream-jsonrpc', '--output-format', 'stream-jsonrpc'];
+    this.child = spawn(command, args, {
       cwd: this.workspace,
       env: this.env,
       shell: false,
@@ -121,7 +125,7 @@ export class DroidJsonRpcSession {
       modelId: droidCustomModelId(this.model),
       interactionMode: 'auto',
       autonomyLevel: 'medium',
-      reasoningEffort: DROID_REASONING_EFFORT,
+      reasoningEffort: this.reasoningEffort,
       compactionThresholdCheckEnabled: true,
       disableBuiltinSkills: true,
     });

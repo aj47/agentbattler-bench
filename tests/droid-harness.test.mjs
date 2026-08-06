@@ -27,6 +27,7 @@ test('Droid settings pin the 9Router model IDs, output budget, and compaction po
   assert.deepEqual(settings.modelFallbacks, {});
   assert.equal(settings.cloudSessionSync, false);
   assert.equal(settings.hooksDisabled, true);
+  assert.equal(settings.llmRequestTimeout, 1_800_000);
   assert.deepEqual(settings.customModels.map((model) => model.model), DROID_MODEL_FAMILIES.map((family) => family.upstreamModel));
   assert.ok(settings.customModels.every((model) => model.baseUrl === 'http://127.0.0.1:20128/v1'));
   assert.ok(settings.customModels.every((model) => model.apiKey === '${AGENTBATTLER_DROID_API_KEY}'));
@@ -39,6 +40,8 @@ test('Droid settings pin the 9Router model IDs, output budget, and compaction po
   assert.deepEqual(createDroidSettings({ baseUrl: 'http://127.0.0.1:8317', upstreamModelPrefix: '' }).customModels.map((model) => model.model), [
     'gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna',
   ]);
+  assert.equal(createDroidSettings({ baseUrl: 'http://127.0.0.1:8317', reasoningEffort: 'max' }).reasoningEffort, 'max');
+  assert.equal(createDroidSettings({ baseUrl: 'http://127.0.0.1:8317', llmRequestTimeout: 3_600_000 }).llmRequestTimeout, 3_600_000);
 });
 
 test('Droid compaction telemetry records native boundaries and nearby usage', () => {
@@ -76,6 +79,8 @@ test('Droid custom aliases and exec arguments are deterministic and restricted',
   assert.equal(args[args.indexOf('--session-id') + 1], 'session-1');
   assert.equal(args[args.indexOf('--file') + 1], '/tmp/prompt.txt');
   assert.equal(args.includes('-'), false);
+  const maxArgs = droidExecArgs({ workspace: '/tmp/workspace', model: 'gpt-5.6-luna', reasoningEffort: 'max' });
+  assert.equal(maxArgs[maxArgs.indexOf('--reasoning-effort') + 1], 'max');
 });
 
 test('Droid base URL normalization rejects credentials and non-HTTP protocols', () => {

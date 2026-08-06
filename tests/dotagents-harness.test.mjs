@@ -33,6 +33,23 @@ test('can configure a stateful DotAgents benchmark profile', () => {
   assert.equal(config.generationSettings.unlimitedIterations, false);
 });
 
+test('V6 DotAgents uses max reasoning, a larger turn budget, and explicit completion', () => {
+  const config = createDotAgentsConfig({
+    model: 'gpt-5.6-luna',
+    remoteApiKey: 'a'.repeat(64),
+    reasoningEffort: 'max',
+    maxIterations: 32,
+    enableCompletionTool: true,
+  });
+  const models = JSON.parse(config.files['models.json']);
+  const mcp = JSON.parse(config.files['mcp.json']);
+  const profile = JSON.parse(config.files['agents/agentbattler-benchmark/config.json']);
+  assert.equal(models.openaiReasoningEffort, 'max');
+  assert.equal(mcp.mcpMaxIterations, 32);
+  assert.deepEqual(profile.toolConfig.enabledRuntimeTools, ['execute_command', 'mark_work_complete']);
+  assert.equal(config.generationSettings.explicitCompletionTool, true);
+});
+
 test('can route DotAgents through a pinned OpenAI-compatible proxy', () => {
   const config = createDotAgentsConfig({
     model: 'gpt-5.6-luna',
@@ -83,6 +100,11 @@ test('summarizes a sealed trace and rejects model, tool, and network drift', () 
   assert.equal(summary.toolCallCount, 1);
   assert.deepEqual(summary.toolCallBreakdown, { execute_command: 1 });
   assert.equal(summary.sessionCost.inputTokens, 10);
+  const limited = summarizeDotAgentsTrace([
+    { type: 'progress', data: { modelInfo: { model: 'gpt-5.6-sol' }, currentIteration: 32, steps: [] } },
+    { type: 'done', data: { model: 'gpt-5.6-sol', content: 'maximum iterations reached', conversation_id: 'c1', conversation_history: [] } },
+  ], 'gpt-5.6-sol', { maxIterations: 32 });
+  assert.equal(limited.iterationLimitReached, true);
   assert.throws(() => summarizeDotAgentsTrace(events, 'gpt-5.6-luna'), /model mismatch/);
   assert.throws(() => summarizeDotAgentsTrace([
     { type: 'progress', data: { modelInfo: { model: 'gpt-5.6-sol' }, steps: [{ toolCall: { name: 'execute_command', arguments: { command: 'curl https:\/\/example.com' } } }] } },

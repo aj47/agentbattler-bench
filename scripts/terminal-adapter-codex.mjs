@@ -3,11 +3,19 @@ import { chmod, mkdir, mkdtemp, readFile, writeFile, copyFile } from 'node:fs/pr
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
+import {
+  assertTerminalTraceIsolation,
+  captureTerminalCandidateSnapshot,
+  terminalTurnCompletion,
+  verifyTerminalFinalPublic,
+  verifyTerminalPublicStage,
+} from '../src/terminal-run-evidence.mjs';
 
 const CODEX_VERSION = '0.144.0';
-const REASONING = 'high';
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const harnesses = ['codex-cli'];
 const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
@@ -70,6 +78,8 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const workspace = path.join(runDirectory, 'workspace'); await mkdir(workspace, { recursive: true });
   const home = await prepareHome(runDirectory); const env = isolatedEnv(home);
   const runStartedAt = new Date().toISOString();
+  const reasoningEffort = job.reasoningEffort ?? 'high';
+  const v6Evidence = challenge.execution?.candidateSnapshotsRequired === true;
   const timeoutMs = job.maxWallTimeMs ?? null;
   const stages = []; const sessionIds = []; const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   let sessionId = null; let toolCalls = 0; const turns = [];
@@ -77,7 +87,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const prompt = prompts[index];
     const turnStartedAt = new Date().toISOString();
     const turnStartedClock = Date.now();
-    const common = ['--model', job.model ?? job.modelRequested, '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(REASONING)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}'];
+    const common = ['--model', job.model ?? job.modelRequested, '--skip-git-repo-check', '--json', '-c', `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`, '-c', 'approval_policy="never"', '-c', 'web_search="disabled"', '-c', 'features.apps=false', '-c', 'features.multi_agent=false', '-c', 'features.hooks=false', '-c', 'features.shell_snapshot=false', '-c', 'mcp_servers={}'];
     // Codex 0.144 parses resume as `exec resume [OPTIONS] <SESSION_ID> [PROMPT]`.
     // Resume does not accept --sandbox or -C; it inherits the original session's
     // sandbox and working directory. The child is still spawned with cwd=workspace.
@@ -93,12 +103,17 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     if (!sessionId) sessionId = observedSession;
     invariant(observedSession === sessionId, `Codex session changed on turn ${index + 1}`);
     invariant(result.events.some((event) => event.type === 'turn.completed'), `Codex turn ${index + 1} emitted no turn.completed event`);
+    const isolation = challenge.execution?.traceIsolationRequired === true
+      ? assertTerminalTraceIsolation({ trace: result.events, repositoryRoot: REPOSITORY_ROOT, workspace, turn: index + 1 })
+      : null;
     sessionIds.push(observedSession); toolCalls += result.events.filter((event) => event.type === 'item.started' && !['agent_message', 'reasoning'].includes(event.item?.type)).length;
     const u = usageFor(result.events); for (const [source, target] of [['input_tokens', 'inputTokens'], ['cached_input_tokens', 'cachedInputTokens'], ['output_tokens', 'outputTokens'], ['reasoning_output_tokens', 'reasoningTokens']]) usage[target] += Number.isFinite(u[source]) ? u[source] : 0;
-    const stage = await publicVerifier.verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
-    turns.push({ index: index + 1, sessionId: observedSession, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt: turnStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - turnStartedClock, usage: u });
+    const candidate = v6Evidence ? await captureTerminalCandidateSnapshot({ sourcePath: path.join(workspace, 'ledger.mjs'), runDirectory, turn: index + 1 }) : null;
+    const stage = await verifyTerminalPublicStage({ workspace, publicVerifier, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
+    turns.push({ index: index + 1, sessionId: observedSession, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt: turnStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - turnStartedClock, usage: u, completion: terminalTurnCompletion({ timedOut: result.timedOut }), ...(candidate ? { candidate } : {}), ...(isolation ? { isolation } : {}) });
     stages.push({ ...stage, id: stage.id ?? stage.stageId });
   }
+  const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace, challenge, publicVerifier }) : null;
   const holdout = await holdoutVerifier.verifyHoldout({ workspace });
-  return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'codex-cli', harnessVersion: CODEX_VERSION, model: job.model ?? job.modelRequested, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
+  return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'codex-cli', harnessVersion: CODEX_VERSION, model: job.model ?? job.modelRequested, reasoningEffort, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, stages, ...(finalPublic ? { finalPublic } : {}), holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' } };
 }

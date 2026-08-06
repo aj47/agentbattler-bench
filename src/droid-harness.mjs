@@ -62,8 +62,12 @@ export function createDroidSettings({
   baseUrl,
   apiKeyEnvironmentVariable = 'AGENTBATTLER_DROID_API_KEY',
   upstreamModelPrefix = 'cx/',
+  reasoningEffort = DROID_REASONING_EFFORT,
+  llmRequestTimeout = 1_800_000,
 } = {}) {
   invariant(/^[A-Z][A-Z0-9_]*$/.test(apiKeyEnvironmentVariable), 'Droid API key environment variable is invalid');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'Droid reasoning effort is required');
+  invariant(Number.isSafeInteger(llmRequestTimeout) && llmRequestTimeout > 0, 'Droid LLM request timeout must be a positive integer');
   const normalizedBaseUrl = normalizeDroidBaseUrl(baseUrl);
   const customModels = DROID_MODEL_FAMILIES.map((family) => ({
     model: droidUpstreamModel(family.model, upstreamModelPrefix),
@@ -80,7 +84,7 @@ export function createDroidSettings({
   }));
   return {
     model: droidCustomModelId('gpt-5.6-terra'),
-    reasoningEffort: DROID_REASONING_EFFORT,
+    reasoningEffort,
     sessionDefaultSettings: { interactionMode: 'auto', autonomyLevel: 'medium' },
     cloudSessionSync: false,
     completionSound: 'off',
@@ -96,20 +100,21 @@ export function createDroidSettings({
     ])),
     compactionModel: 'same',
     modelFallbacks: {},
-    llmRequestTimeout: 1_800_000,
+    llmRequestTimeout,
     customModels,
   };
 }
 
-export function droidExecArgs({ workspace, model, sessionId = null, promptFile = null, outputFormat = 'stream-json' }) {
+export function droidExecArgs({ workspace, model, sessionId = null, promptFile = null, outputFormat = 'stream-json', reasoningEffort = DROID_REASONING_EFFORT }) {
   invariant(typeof workspace === 'string' && workspace.length > 0, 'Droid workspace is required');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'Droid reasoning effort is required');
   const args = [
     'exec',
     '--auto', 'medium',
     '--disable-builtin-skills',
     '--restrict-tools', DROID_RESTRICTED_TOOLS.join(','),
     '--model', droidCustomModelId(model),
-    '--reasoning-effort', DROID_REASONING_EFFORT,
+    '--reasoning-effort', reasoningEffort,
     '--output-format', outputFormat,
     '--cwd', workspace,
   ];

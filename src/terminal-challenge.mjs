@@ -1,4 +1,4 @@
-import { canonicalJsonSha256 } from './provenance.mjs';
+import { canonicalJson, canonicalJsonSha256 } from './provenance.mjs';
 
 export const TERMINAL_CHALLENGE_SCHEMA = 'agentbattler.terminal-challenge.v1';
 export const TERMINAL_RUN_SCHEMA = 'agentbattler.terminal-run.v1';
@@ -65,6 +65,18 @@ function nonEmpty(value, label) {
   return value;
 }
 
+function validateTerminalModelPolicy(policy) {
+  if (policy == null) return null;
+  invariant(Array.isArray(policy.models) && policy.models.length > 0 && new Set(policy.models).size === policy.models.length, 'Terminal model policy models are invalid');
+  invariant(Array.isArray(policy.harnesses) && policy.harnesses.length > 0 && new Set(policy.harnesses).size === policy.harnesses.length, 'Terminal model policy harnesses are invalid');
+  invariant(policy.models.every((value) => typeof value === 'string' && value.length > 0), 'Terminal model policy contains an invalid model');
+  invariant(policy.harnesses.every((value) => typeof value === 'string' && value.length > 0), 'Terminal model policy contains an invalid harness');
+  invariant(typeof policy.reasoningEffort === 'string' && policy.reasoningEffort.length > 0, 'Terminal model policy reasoning effort is invalid');
+  invariant(Number.isSafeInteger(policy.independentRunsPerHarness) && policy.independentRunsPerHarness > 0, 'Terminal model policy run count is invalid');
+  invariant(Number.isSafeInteger(policy.repeats) && policy.repeats > 0, 'Terminal model policy repeat count is invalid');
+  return policy;
+}
+
 export function createMiniLedgerChallenge({
   challengeId = 'terminal-mini-ledger-v1',
   title = 'Mini Ledger v1',
@@ -109,6 +121,7 @@ export function createMiniLedgerChallenge({
   };
   invariant(score.visibleStagePoints === visibleStagePoints, 'visibleStagePoints must equal stage points');
   invariant(score.visibleStagePoints + score.holdoutPoints === score.maxPoints, 'terminal scoring must sum to maxPoints');
+  invariant(['trajectory', 'final-correctness'].includes(score.primaryMetric ?? 'trajectory'), 'terminal primary score metric is invalid');
   return seal('challenge', {
     schemaVersion: TERMINAL_CHALLENGE_SCHEMA,
     kind: 'long-horizon-terminal-task',
@@ -155,7 +168,9 @@ export function validateMiniLedgerChallenge(challenge) {
   invariant(typeof challenge.fairness?.generationIndexIsArtifact === 'boolean', 'Terminal replicate identity policy is invalid');
   invariant(challenge.fairness.replicateIdentity === (challenge.fairness.generationIndexIsArtifact ? 'generated-source-artifact' : 'fresh-independent-run'), 'Terminal replicate identity label is invalid');
   invariant(challenge.scoring.visibleStagePoints === challenge.stages.reduce((total, stage) => total + stage.points, 0), 'Terminal challenge visible scoring mismatch');
+  invariant(['trajectory', 'final-correctness'].includes(challenge.scoring.primaryMetric ?? 'trajectory'), 'Terminal challenge primary score metric is invalid');
   invariant(Number.isSafeInteger(challenge.verifiers.holdout.cases) && challenge.verifiers.holdout.cases > 0, 'Terminal holdout case count is invalid');
+  validateTerminalModelPolicy(challenge.execution?.modelPolicy);
   return challenge;
 }
 
@@ -275,6 +290,17 @@ export function validateTerminalSchedule(schedule, challenge) {
     invariant(runKey === canonicalJsonSha256(descriptor), `Terminal run key mismatch: ${runKey}`);
   }
   invariant(schedule.jobs.length === schedule.matrix.expectedRuns, 'Terminal schedule run count mismatch');
+  const policy = validateTerminalModelPolicy(challenge.execution?.modelPolicy);
+  if (policy) {
+    invariant(canonicalJson(schedule.matrix.models) === canonicalJson([...policy.models].sort()), 'Terminal schedule violates the sealed model policy');
+    invariant(canonicalJson(schedule.matrix.harnesses) === canonicalJson([...policy.harnesses].sort()), 'Terminal schedule violates the sealed harness policy');
+    invariant(schedule.matrix.generationsPerCombo === policy.independentRunsPerHarness, 'Terminal schedule violates the sealed independent-run policy');
+    invariant(schedule.matrix.repeats === policy.repeats, 'Terminal schedule violates the sealed repeat policy');
+    invariant(schedule.coverage.every((entry) => policy.models.includes(entry.combo.model.id)
+      && policy.harnesses.includes(entry.combo.harness.id)
+      && entry.combo.model.reasoningEffort === policy.reasoningEffort
+      && entry.artifacts.length === policy.independentRunsPerHarness), 'Terminal schedule coverage violates the sealed model policy');
+  }
   return schedule;
 }
 
@@ -289,7 +315,21 @@ export function scoreTerminalRun(run, challenge) {
   const stageMap = new Map(run.stages.map((stage) => [stage.id ?? stage.stageId, stage]));
   invariant(stageMap.size === challenge.stages.length, 'Terminal run stage count mismatch');
   for (const stage of challenge.stages) invariant(stageMap.has(stage.id), `Missing terminal stage ${stage.id}`);
-  const visiblePoints = challenge.stages.reduce((total, stage) => total + (stageMap.get(stage.id).passed === true ? stage.points : 0), 0);
+  const trajectoryVisiblePoints = challenge.stages.reduce((total, stage) => total + (stageMap.get(stage.id).passed === true ? stage.points : 0), 0);
+  const primaryMetric = challenge.scoring.primaryMetric ?? 'trajectory';
+  let finalStageMap = null;
+  let finalVisiblePoints = null;
+  if (primaryMetric === 'final-correctness') {
+    invariant(run.finalPublic?.schemaVersion === 'agentbattler.terminal-final-public.v1', 'Terminal final public evaluation is required');
+    invariant(Array.isArray(run.finalPublic.stages), 'Terminal final public stages are required');
+    finalStageMap = new Map(run.finalPublic.stages.map((stage) => [stage.id ?? stage.stageId, stage]));
+    invariant(finalStageMap.size === challenge.stages.length, 'Terminal final public stage count mismatch');
+    for (const stage of challenge.stages) invariant(finalStageMap.has(stage.id), `Missing final terminal stage ${stage.id}`);
+    finalVisiblePoints = challenge.stages.reduce((total, stage) => total + (finalStageMap.get(stage.id).passed === true ? stage.points : 0), 0);
+    invariant(run.finalPublic.visiblePoints === finalVisiblePoints, 'Terminal final public visible points mismatch');
+  }
+  const primaryStageMap = finalStageMap ?? stageMap;
+  const visiblePoints = finalVisiblePoints ?? trajectoryVisiblePoints;
   const holdout = run.holdout ?? {};
   invariant(Number.isSafeInteger(holdout.passed) && Number.isSafeInteger(holdout.total) && holdout.total === challenge.verifiers.holdout.cases, 'Terminal holdout result is invalid');
   invariant(holdout.passed >= 0 && holdout.passed <= holdout.total, 'Terminal holdout passed count is invalid');
@@ -297,16 +337,28 @@ export function scoreTerminalRun(run, challenge) {
   const regressions = run.stages.reduce((total, stage) => total + (Number.isSafeInteger(stage.regressions) ? stage.regressions : 0), 0);
   const scorePoints = visiblePoints + holdoutPoints;
   return {
+    primaryMetric,
     maxPoints: challenge.scoring.maxPoints,
     visiblePoints,
     holdoutPoints,
     scorePoints,
     scorePct: Math.round((scorePoints / challenge.scoring.maxPoints) * 10_000) / 100,
-    passedStages: challenge.stages.filter((stage) => stageMap.get(stage.id).passed === true).length,
+    passedStages: challenge.stages.filter((stage) => primaryStageMap.get(stage.id).passed === true).length,
     totalStages: challenge.stages.length,
     holdoutPassed: holdout.passed,
     holdoutTotal: holdout.total,
     regressions,
+    trajectory: {
+      visiblePoints: trajectoryVisiblePoints,
+      passedStages: challenge.stages.filter((stage) => stageMap.get(stage.id).passed === true).length,
+      totalStages: challenge.stages.length,
+      regressions,
+    },
+    final: finalStageMap ? {
+      visiblePoints: finalVisiblePoints,
+      passedStages: challenge.stages.filter((stage) => finalStageMap.get(stage.id).passed === true).length,
+      totalStages: challenge.stages.length,
+    } : null,
   };
 }
 

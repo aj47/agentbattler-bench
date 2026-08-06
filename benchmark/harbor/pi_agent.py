@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typing import override
 
-from harbor.agents.installed.base import with_prompt_template
+from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.node_install import nvm_node_install_snippet
 from harbor.agents.installed.pi import Pi
 from harbor.environments.base import BaseEnvironment
@@ -17,6 +17,15 @@ class AgentBattlerPi(Pi):
     """Harbor Pi adapter for AgentBattler's pinned, session-capable fork."""
 
     _SESSION_PATH = "$HOME/.pi/agent/sessions/agentbattler.jsonl"
+    CLI_FLAGS = [
+        CliFlag(
+            "thinking",
+            cli="--thinking",
+            type="enum",
+            choices=["off", "minimal", "low", "medium", "high", "xhigh", "max"],
+            default="high",
+        )
+    ]
 
     @override
     async def install(self, environment: BaseEnvironment) -> None:
@@ -83,6 +92,7 @@ class AgentBattlerPi(Pi):
         if not self.model_name or "/" not in self.model_name:
             raise ValueError("Model name must be in provider/model format")
         provider, model = self.model_name.split("/", 1)
+        thinking_flags = self.build_cli_flags()
         continuation = (
             "mkdir -p $HOME/.pi/agent/sessions; "
             f"if test -s {self._SESSION_PATH}; "
@@ -95,7 +105,7 @@ class AgentBattlerPi(Pi):
                 f"{continuation}"
                 "pi --mode json "
                 f"--provider {shlex.quote(provider)} --model {shlex.quote(model)} "
-                "--thinking high --tools read,bash,edit,write "
+                f"{thinking_flags} --tools read,bash,edit,write "
                 "--no-extensions --no-skills --no-prompt-templates --no-themes "
                 "--no-context-files --no-approve "
                 f"--session {self._SESSION_PATH} $continue_flag "
@@ -107,4 +117,5 @@ class AgentBattlerPi(Pi):
         context.metadata = {
             "native_session_path": "<harbor-persistent-workspace>",
             "session_continuity": True,
+            "thinking": self._resolved_flags.get("thinking"),
         }

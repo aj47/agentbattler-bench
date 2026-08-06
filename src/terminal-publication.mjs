@@ -189,7 +189,9 @@ export async function buildTerminalCampaignSiteData({ campaignRoot, sourceRoots 
     const attempts = [...sourceAttempts, ...recoveryAttempts]
       .sort((left, right) => String(left.startedAt ?? '').localeCompare(String(right.startedAt ?? '')))
       .map((attempt, index) => ({ ...attempt, attempt: index + 1 }));
-    const stageById = new Map(run.stages.map((stage) => [stage.id ?? stage.stageId, stage]));
+    const trajectoryStageById = new Map(run.stages.map((stage) => [stage.id ?? stage.stageId, stage]));
+    const finalStageById = new Map((run.finalPublic?.stages ?? []).map((stage) => [stage.id ?? stage.stageId, stage]));
+    const stageById = score.primaryMetric === 'final-correctness' ? finalStageById : trajectoryStageById;
     const usage = usageFor(run);
     runs.push({
       logicalKey: entry.logicalKey,
@@ -217,6 +219,9 @@ export async function buildTerminalCampaignSiteData({ campaignRoot, sourceRoots 
       totalStages: score.totalStages,
       holdoutPassed: score.holdoutPassed,
       holdoutTotal: score.holdoutTotal,
+      scoreMetric: score.primaryMetric,
+      trajectory: score.trajectory,
+      final: score.final,
       usage,
       stages: source.challenge.stages.map((definition) => {
         const stage = stageById.get(definition.id);

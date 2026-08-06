@@ -11,7 +11,8 @@ lost or rewritten.
 The current V6 campaign compares the five sealed harnesses using only GPT-5.6 Luna at max
 reasoning, with five independent runs per harness and a hard one-hour limit per turn. It
 archives candidate source after every turn and scores the final all-stage regression matrix
-separately from the historical trajectory:
+separately from the historical trajectory. Its R2 runtime contract uses permission-compatible
+`FileHandle.sync()`/`datasync()` durability barriers:
 
 ```sh
 npm run terminal:matrix:v6

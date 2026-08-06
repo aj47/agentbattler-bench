@@ -11,6 +11,8 @@ export const MINI_LEDGER_V6_WIRE_NOTICE = `The CLI wire contract is exact. ledge
 
 export const MINI_LEDGER_V6_LOCK_NOTICE = `Concurrency may use any correct lock or compare-and-swap implementation. For recovery interoperability, ledger.lock is a reserved canonical stale-lock artifact: when recover finds a candidate-owned regular file named ledger.lock with no valid live-owner metadata, it must treat that file as stale, remove it safely, and continue. Normal mutations do not have to use ledger.lock, and an active lock with verifiable live ownership must never be stolen.`;
 
+export const MINI_LEDGER_V6_DURABILITY_NOTICE = `Verifier-spawned candidate processes run under Node's permission model. Real durability barriers are supported through file handles: open the file with fs.promises.open(), then await FileHandle.sync() or FileHandle.datasync(), and close it. Node disables the descriptor-only fs.fsync(), fs.fdatasync(), fs.fsyncSync(), and fs.fdatasyncSync() APIs whenever its permission model is active, even for a file inside the workspace. Do not call those disabled APIs, and do not omit durability barriers; use the supported FileHandle methods instead.`;
+
 export const MINI_LEDGER_V6_EVALUATION_NOTICE = `After each turn the evaluator checks that turn's public stage in a fresh source-only workspace. After turn 15 it reruns every public stage against the final ledger.mjs and scores that final-correctness matrix separately from the historical turn-by-turn trajectory. Preserve and locally regression-test all earlier behavior; a transient earlier pass does not compensate for a final regression.`;
 
 const turnPrompts = [...MINI_LEDGER_V4_TURN_PROMPTS];
@@ -25,6 +27,7 @@ const protocolNotice = [
   MINI_LEDGER_V6_SOURCE_NOTICE,
   MINI_LEDGER_V6_WIRE_NOTICE,
   MINI_LEDGER_V6_LOCK_NOTICE,
+  MINI_LEDGER_V6_DURABILITY_NOTICE,
   MINI_LEDGER_V6_EVALUATION_NOTICE,
   MINI_LEDGER_V6_TIME_BUDGET_NOTICE,
 ].join('\n\n');

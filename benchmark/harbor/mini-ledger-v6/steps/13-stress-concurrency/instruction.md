@@ -6,6 +6,8 @@ The CLI wire contract is exact. ledger.json is the primary live state. Every suc
 
 Concurrency may use any correct lock or compare-and-swap implementation. For recovery interoperability, ledger.lock is a reserved canonical stale-lock artifact: when recover finds a candidate-owned regular file named ledger.lock with no valid live-owner metadata, it must treat that file as stale, remove it safely, and continue. Normal mutations do not have to use ledger.lock, and an active lock with verifiable live ownership must never be stolen.
 
+Verifier-spawned candidate processes run under Node's permission model. Real durability barriers are supported through file handles: open the file with fs.promises.open(), then await FileHandle.sync() or FileHandle.datasync(), and close it. Node disables the descriptor-only fs.fsync(), fs.fdatasync(), fs.fsyncSync(), and fs.fdatasyncSync() APIs whenever its permission model is active, even for a file inside the workspace. Do not call those disabled APIs, and do not omit durability barriers; use the supported FileHandle methods instead.
+
 After each turn the evaluator checks that turn's public stage in a fresh source-only workspace. After turn 15 it reruns every public stage against the final ledger.mjs and scores that final-correctness matrix separately from the historical turn-by-turn trajectory. Preserve and locally regression-test all earlier behavior; a transient earlier pass does not compensate for a final regression.
 
 This turn has a hard 60-minute wall-clock limit enforced by the benchmark. Save a runnable ledger.mjs early, implement before spending time on broad local stress tests, and stop cleanly after the most important checks. Do not rely on another message before saving your progress.

@@ -328,22 +328,26 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.0\.0"/);
+  assert.match(config, /version = "6\.1\.0"/);
+  assert.match(config, /protocol_revision = "r2"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
   assert.match(config, /candidate_network_policy = "node-permission-model-deny-network-and-child-process"/);
+  assert.match(config, /candidate_durability_policy = "filehandle-sync-and-datasync"/);
   const runner = await readFile(path.join(taskRoot, 'tests', 'run-stage.mjs'), 'utf8');
   assert.match(runner, /candidateSnapshotsRequired = true/);
   assert.match(runner, /finalPublicRequired = true/);
   assert.match(runner, /candidate-ledger\.mjs/);
   assert.match(runner, /all-public-stages-from-final-source-only-candidate/);
   assert.match(runner, /nodePermissionModel: true/);
+  assert.match(runner, /supported: \['FileHandle\.sync', 'FileHandle\.datasync'\]/);
   const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
   assert.match(candidateProcess, /--permission --allow-fs-read=\. --allow-fs-write=\./);
   const firstPrompt = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'instruction.md'), 'utf8');
   assert.match(firstPrompt, /must never be embedded as source defaults/);
   assert.match(firstPrompt, /hard 60-minute wall-clock limit enforced by the benchmark/);
+  assert.match(firstPrompt, /fs\.promises\.open\(\).*FileHandle\.sync\(\)/);
 });
 
 test('candidate verifier process identity is opt-in and validated', () => {
@@ -364,13 +368,29 @@ test('candidate verifier process identity is opt-in and validated', () => {
   }
 });
 
-test('candidate verifier process denies network and outside-workspace files at the Node runtime boundary', async () => {
+test('candidate verifier permits real FileHandle durability while denying unsupported fd sync, network, and outside files', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-candidate-permission-'));
   try {
     await writeFile(path.join(root, 'allowed.txt'), 'allowed');
     const result = await new Promise((resolve, reject) => {
       const stdout = [];
-      const child = spawn(process.execPath, ['-e', "const fs = require('node:fs'); console.log(fs.readFileSync('allowed.txt', 'utf8')); try { fs.readFileSync('/etc/hosts'); process.exit(8); } catch (error) { console.log(error.code); } fetch('https://example.com').then(() => process.exit(9), error => { console.log(error.cause?.code ?? error.code ?? error.name); })"], {
+      const child = spawn(process.execPath, ['-e', `
+        const fs = require('node:fs');
+        (async () => {
+          console.log(fs.readFileSync('allowed.txt', 'utf8'));
+          const handle = await fs.promises.open('durable.txt', 'w');
+          await handle.writeFile('durable');
+          await handle.sync();
+          await handle.datasync();
+          await handle.close();
+          console.log('FILEHANDLE_DURABILITY_OK');
+          const fd = fs.openSync('sync-only.txt', 'w');
+          try { fs.fsyncSync(fd); process.exit(7); } catch (error) { console.log(error.code); } finally { fs.closeSync(fd); }
+          try { require('node:child_process').spawnSync(process.execPath, ['--version']); process.exit(6); } catch (error) { console.log(error.code); }
+          try { fs.readFileSync('/etc/hosts'); process.exit(8); } catch (error) { console.log(error.code); }
+          await fetch('https://example.com').then(() => process.exit(9), (error) => console.log(error.cause?.code ?? error.code ?? error.name));
+        })().catch((error) => { console.error(error); process.exit(10); });
+      `], {
         ...candidateSpawnOptions(),
         cwd: root,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -381,7 +401,7 @@ test('candidate verifier process denies network and outside-workspace files at t
     });
     assert.equal(result.code, 0);
     assert.equal(result.signal, null);
-    assert.match(result.stdout, /^allowed\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\n$/);
+    assert.match(result.stdout, /^allowed\nFILEHANDLE_DURABILITY_OK\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\n$/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

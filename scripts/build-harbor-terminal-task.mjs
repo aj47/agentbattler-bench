@@ -10,11 +10,13 @@ import { MINI_LEDGER_V6_TURN_LIMIT_MINUTES, MINI_LEDGER_V6_TURN_PROMPTS } from '
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!['v4', 'v5', 'v6'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4, V5, and V6');
-const protocolRevision = challengeVersion === 'v5' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2' : null;
+const protocolRevision = challengeVersion === 'v5'
+  ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
+  : challengeVersion === 'v6' ? 'r2' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_PROMPTS : challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
 const versionNumber = challengeVersion === 'v6'
-  ? '6.0.0'
+  ? '6.1.0'
   : challengeVersion === 'v5'
   ? protocolRevision === 'r5' ? '5.4.0' : protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
   : '4.2.0';
@@ -51,6 +53,7 @@ verifier_workspace_policy = "source-only-per-stage-and-holdout-case"
 primary_score_policy = "${challengeVersion === 'v6' ? 'final-public-matrix-plus-holdout' : 'trajectory-stage-results-plus-holdout'}"
 candidate_snapshot_policy = "${challengeVersion === 'v6' ? 'every-turn-exact-ledger-source' : 'not-required'}"
 candidate_network_policy = "${challengeVersion === 'v6' ? 'node-permission-model-deny-network-and-child-process' : 'legacy'}"
+candidate_durability_policy = "${challengeVersion === 'v6' ? 'filehandle-sync-and-datasync' : 'legacy'}"
 
 [agent]
 network_mode = "public"
@@ -192,7 +195,7 @@ const reward = {
 let isolationProbe = null;
 try { isolationProbe = JSON.parse(await readFile(path.join(workspace, 'isolation-probe.json'), 'utf8')); } catch { /* Normal candidates do not emit a probe. */ }
 await writeFile(path.join(logs, 'reward.json'), JSON.stringify(reward));
-await writeFile(path.join(logs, 'stage-result.json'), JSON.stringify({ stage, holdout, finalPublic, candidateSnapshot, isolationProbe, workspaceBytes, infrastructureError, verifierWorkspace: { policy: 'source-only-per-stage-and-holdout-case', sourceEntryPoint: 'ledger.mjs', candidateUid: 1000, candidateGid: 1000, candidateRuntime: { nodePermissionModel: ${challengeVersion === 'v6'}, filesystem: ${challengeVersion === 'v6' ? "'working-directory-only'" : "'legacy'"}, network: ${challengeVersion === 'v6' ? "'denied'" : "'legacy'"}, childProcess: ${challengeVersion === 'v6' ? "'denied'" : "'legacy'"} } } }, null, 2));
+await writeFile(path.join(logs, 'stage-result.json'), JSON.stringify({ stage, holdout, finalPublic, candidateSnapshot, isolationProbe, workspaceBytes, infrastructureError, verifierWorkspace: { policy: 'source-only-per-stage-and-holdout-case', sourceEntryPoint: 'ledger.mjs', candidateUid: 1000, candidateGid: 1000, candidateRuntime: { nodePermissionModel: ${challengeVersion === 'v6'}, filesystem: ${challengeVersion === 'v6' ? "'working-directory-only'" : "'legacy'"}, network: ${challengeVersion === 'v6' ? "'denied'" : "'legacy'"}, childProcess: ${challengeVersion === 'v6' ? "'denied'" : "'legacy'"}, durabilityApis: ${challengeVersion === 'v6' ? "{ supported: ['FileHandle.sync', 'FileHandle.datasync'], unavailable: ['fs.fsync', 'fs.fdatasync', 'fs.fsyncSync', 'fs.fdatasyncSync'] }" : "'legacy'"} } } }, null, 2));
 if (infrastructureError) process.exitCode = 2;
 `;
 
@@ -255,5 +258,5 @@ await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersio
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? '\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout.\n' : ''}`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? '\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction.\n' : ''}`);
 console.log(output);

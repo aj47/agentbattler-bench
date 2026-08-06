@@ -7,6 +7,7 @@ import test from 'node:test';
 import { createDroidSandboxProfile, droidSandboxLauncher } from '../src/droid-sandbox.mjs';
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge, MINI_LEDGER_V4_STAGES, scoreTerminalRun, validateTerminalSchedule } from '../src/terminal-challenge.mjs';
 import {
+  MINI_LEDGER_V6_DURABILITY_NOTICE,
   MINI_LEDGER_V6_EVALUATION_NOTICE,
   MINI_LEDGER_V6_LOCK_NOTICE,
   MINI_LEDGER_V6_SOURCE_NOTICE,
@@ -31,10 +32,12 @@ test('V6 gives every turn the corrected source-only and validation contract', ()
     assert.ok(prompt.includes(MINI_LEDGER_V6_SOURCE_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_WIRE_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_LOCK_NOTICE));
+    assert.ok(prompt.includes(MINI_LEDGER_V6_DURABILITY_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_EVALUATION_NOTICE));
     assert.match(prompt, /strictly positive integers/);
     assert.match(prompt, /final-correctness matrix/);
     assert.match(prompt, /hard 60-minute wall-clock limit/);
+    assert.match(prompt, /FileHandle\.sync\(\).*FileHandle\.datasync\(\)/);
   }
   assert.match(MINI_LEDGER_V6_TURN_PROMPTS[0], /must never be embedded as source defaults/);
   assert.match(MINI_LEDGER_V6_TURN_PROMPTS[7], /--keep 0.*fail without mutation/);

@@ -4,13 +4,13 @@ artifacts = [{ source = "/app", destination = "candidate" }]
 
 [task]
 name = "agentbattler/mini-ledger-v6"
-version = "6.0.0"
+version = "6.1.0"
 description = "Fifteen-turn long-horizon deterministic ledger challenge"
 
 [metadata]
 benchmark = "AgentBattler"
 challenge = "mini-ledger-v6"
-protocol_revision = "original"
+protocol_revision = "r2"
 harbor_version = "0.20.0"
 visible_points = 70
 holdout_points = 30
@@ -19,6 +19,7 @@ verifier_workspace_policy = "source-only-per-stage-and-holdout-case"
 primary_score_policy = "final-public-matrix-plus-holdout"
 candidate_snapshot_policy = "every-turn-exact-ledger-source"
 candidate_network_policy = "node-permission-model-deny-network-and-child-process"
+candidate_durability_policy = "filehandle-sync-and-datasync"
 
 [agent]
 network_mode = "public"

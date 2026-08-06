@@ -19,13 +19,15 @@ const HARBOR_VERSION = '0.20.0';
 const CLAUDE_MAX_TOOL_USE_CONCURRENCY = '4';
 const RESOURCE_SAMPLE_INTERVAL_MS = 5_000;
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const CODEX_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'codex_agent.py');
 const PI_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_agent.py');
+const PI_SANDBOX_EXTENSION_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'pi_sandbox_extension.mjs');
 const CLAUDE_AGENT_PATH = path.join(REPO_ROOT, 'benchmark', 'harbor', 'claude_agent.py');
 const CLAUDE_COMPACTION_PATH = path.join(REPO_ROOT, 'src', 'claude-compaction.mjs');
 const ANTHROPIC_OVERFLOW_COMPAT_PATH = path.join(REPO_ROOT, 'src', 'anthropic-overflow-compat.mjs');
 const HARBOR_BY_HARNESS = Object.freeze({
   'claude-code': { agent: 'benchmark.harbor.claude_agent:AgentBattlerClaude', version: terminalHarnessVersion('claude-code'), kwargs: [] },
-  'codex-cli': { agent: 'codex', version: terminalHarnessVersion('codex-cli'), kwargs: ['web_search=disabled'] },
+  'codex-cli': { agent: 'benchmark.harbor.codex_agent:AgentBattlerCodex', version: terminalHarnessVersion('codex-cli'), kwargs: ['web_search=disabled'] },
   'pi-coding-agent': { agent: 'benchmark.harbor.pi_agent:AgentBattlerPi', version: terminalHarnessVersion('pi-coding-agent'), kwargs: [] },
 });
 
@@ -427,7 +429,11 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   invariant(['terminal-mini-ledger-v4', 'terminal-mini-ledger-v5', 'terminal-mini-ledger-v6'].includes(challenge.id), `Harbor adapter only supports terminal-mini-ledger-v4/v5/v6, received ${challenge.id}`);
   invariant(challenge.execution?.substrate === 'harbor' && challenge.execution?.version === HARBOR_VERSION, 'Challenge does not bind the expected Harbor execution substrate');
   invariant(challenge.execution?.adapters?.harbor?.sha256 === await sha256File(fileURLToPath(import.meta.url)), 'Harbor adapter source does not match the sealed challenge');
-  if (job.harness === 'pi-coding-agent') invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
+  if (job.harness === 'codex-cli') invariant(challenge.execution?.adapters?.codexHarbor?.sha256 === await sha256File(CODEX_AGENT_PATH), 'Harbor Codex agent source does not match the sealed challenge');
+  if (job.harness === 'pi-coding-agent') {
+    invariant(challenge.execution?.adapters?.piHarbor?.sha256 === await sha256File(PI_AGENT_PATH), 'Harbor Pi agent source does not match the sealed challenge');
+    invariant(challenge.execution?.adapters?.piSandboxExtension?.sha256 === await sha256File(PI_SANDBOX_EXTENSION_PATH), 'Harbor Pi sandbox extension does not match the sealed challenge');
+  }
   invariant(challenge.execution?.adapters?.claudeCompaction?.sha256 === await sha256File(CLAUDE_COMPACTION_PATH), 'Claude compaction policy source does not match the sealed challenge');
   invariant(challenge.execution?.adapters?.anthropicOverflowCompat?.sha256 === await sha256File(ANTHROPIC_OVERFLOW_COMPAT_PATH), 'Anthropic overflow compatibility source does not match the sealed challenge');
   if (job.harness === 'claude-code') invariant(challenge.execution?.adapters?.claudeHarbor?.sha256 === await sha256File(CLAUDE_AGENT_PATH), 'Harbor Claude agent source does not match the sealed challenge');

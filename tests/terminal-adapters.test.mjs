@@ -15,6 +15,8 @@ import { CANDIDATE_NODE_OPTIONS, candidateSpawnOptions } from '../benchmark/chal
 import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
+import { createDroidSettings, materializeDroidSettingsCredential } from '../src/droid-harness.mjs';
+import { assertDroidCredentialAbsent, isolatedDroidEnvironment } from '../src/droid-sandbox.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'factory-droid', 'pi-coding-agent']);
@@ -22,6 +24,30 @@ test('all terminal harness adapters advertise the exhaustive matrix roster', () 
   assert.deepEqual(harbor.harnesses, ['claude-code', 'codex-cli', 'pi-coding-agent']);
   assert.deepEqual(dotagents.harnesses, ['dotagents-mono']);
   assert.deepEqual(droid.harnesses, ['factory-droid']);
+});
+
+test('Droid keeps its router credential out of the model command environment and persistent run files', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-droid-credential-'));
+  const apiKey = 'credential-that-must-never-reach-model-commands';
+  try {
+    const environment = isolatedDroidEnvironment(path.join(root, 'home'), path.join(root, 'tmp'));
+    assert.equal(environment.AGENTBATTLER_DROID_API_KEY, undefined);
+    assert.equal(Object.values(environment).includes(apiKey), false);
+
+    const template = createDroidSettings({ baseUrl: 'http://127.0.0.1:20128' });
+    const runtime = materializeDroidSettingsCredential(template, apiKey);
+    assert.ok(runtime.customModels.every((entry) => entry.apiKey === apiKey));
+    assert.ok(template.customModels.every((entry) => entry.apiKey === '${AGENTBATTLER_DROID_API_KEY}'));
+
+    await mkdir(root, { recursive: true });
+    const transientSettings = path.join(root, 'settings.json');
+    await writeFile(transientSettings, JSON.stringify(runtime));
+    await assert.rejects(() => assertDroidCredentialAbsent({ runDirectory: root, apiKey }), /credential residue/);
+    await rm(transientSettings);
+    assert.deepEqual(await assertDroidCredentialAbsent({ runDirectory: root, apiKey }), { filesScanned: 0 });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
@@ -38,6 +64,30 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
   assert.ok(args.some((value) => value.endsWith('/.codex/auth.json') && value.startsWith('CODEX_AUTH_JSON_PATH=')));
   assert.ok(!args.includes('CODEX_FORCE_AUTH_JSON=true'));
   assert.ok(args.includes('reasoning_effort=high'));
+  assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.codex_agent:AgentBattlerCodex');
+});
+
+test('Harbor Codex replaces the unsafe launcher flag with native command sandboxing', async () => {
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_agent.py'), 'utf8');
+  assert.match(source, /--ignore-user-config/);
+  assert.match(source, /--strict-config/);
+  assert.match(source, /approval_policy="never"/);
+  assert.match(source, /default_permissions="agentbattler_workspace"/);
+  assert.match(source, /filesystem=\{":root"="deny",":minimal"="read"/);
+  assert.match(source, /HOME="\/app\/\.agentbattler-tmp"/);
+  assert.doesNotMatch(source, /HOME="\/tmp/);
+  assert.match(source, /permissions\.agentbattler_workspace\.network\.enabled=false/);
+  assert.match(source, /shell_environment_policy\.inherit="none"/);
+  assert.doesNotMatch(source, /--sandbox workspace-write/);
+  assert.match(source, /AgentBattlerCodex/);
+  const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_bwrap_wrapper.sh'), 'utf8');
+  assert.match(bwrap, /--unshare-user/);
+  assert.match(bwrap, /--unshare-net/);
+  assert.match(bwrap, /--unshare-pid/);
+  assert.match(bwrap, /--ro-bind/);
+  assert.match(bwrap, /--tmpfs/);
+  assert.match(bwrap, /args\+\=\(--cap-drop ALL\)/);
+  assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
 test('Harbor maps the sealed max reasoning level into every native harness', () => {
@@ -88,7 +138,17 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /"max"/);
   assert.match(source, /self\.build_cli_flags\(\)/);
   assert.match(source, /upload_file/);
+  assert.match(source, /pi_sandbox_extension\.mjs/);
+  assert.match(source, /--extension/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
+  const sandbox = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_sandbox_extension.mjs'), 'utf8');
+  assert.match(sandbox, /'--unshare-net'/);
+  assert.match(sandbox, /'--unshare-pid'/);
+  assert.match(sandbox, /'--cap-drop', 'ALL'/);
+  assert.match(sandbox, /'--clearenv'/);
+  assert.doesNotMatch(sandbox, /SandboxManager/);
+  assert.match(sandbox, /SAFE_ENVIRONMENT/);
+  assert.match(sandbox, /restricted to \/app/);
 });
 
 test('Harbor Claude terminates the native CLI after a terminal result event', async () => {
@@ -109,6 +169,10 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /CLAUDE_CODE_MAX_CONTEXT_TOKENS="200000"/);
   assert.match(source, /CLAUDE_CODE_AUTO_COMPACT_WINDOW="200000"/);
   assert.match(source, /CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="80"/);
+  assert.match(source, /"allowUnsandboxedCommands": False/);
+  assert.match(source, /"failIfUnavailable": True/);
+  assert.match(source, /"bwrapPath": "\/usr\/local\/bin\/agentbattler-bwrap"/);
+  assert.match(source, /"allowedDomains": \[\]/);
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
   assert.match(source, /kill -TERM -- "-\$agent_pid"/);
@@ -119,6 +183,12 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /mkdir -p "\$\(dirname "\$active"\)"/);
   assert.match(source, /kill -TERM "\$previous"/);
   assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
+  const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_bwrap_wrapper.sh'), 'utf8');
+  assert.match(bwrap, /--unshare-user/);
+  assert.match(bwrap, /--unshare-net/);
+  assert.match(bwrap, /--unshare-pid/);
+  assert.match(bwrap, /--cap-drop/);
+  assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
 test('DotAgents turn streaming tolerates quiet SSE intervals without fetch body timeouts', async () => {
@@ -328,13 +398,22 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.2\.0"/);
-  assert.match(config, /protocol_revision = "r3"/);
+  assert.match(config, /version = "6\.3\.0"/);
+  assert.match(config, /protocol_revision = "r4"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
   assert.match(config, /candidate_network_policy = "node-permission-model-deny-network-and-child-process"/);
   assert.match(config, /candidate_durability_policy = "filehandle-sync-and-datasync"/);
+  assert.match(config, /agent_command_sandbox_policy = "workspace-filesystem-minimal-environment-no-network"/);
+  assert.match(config, /agent_command_sandbox_host_compat = "trusted-parent-namespace-caps-model-child-cap-drop"/);
+  const agentImage = await readFile(path.join(taskRoot, 'environment', 'Dockerfile'), 'utf8');
+  assert.match(agentImage, /bubblewrap/);
+  assert.match(agentImage, /socat/);
+  const agentCompose = await readFile(path.join(taskRoot, 'environment', 'docker-compose.yaml'), 'utf8');
+  assert.match(agentCompose, /SYS_ADMIN/);
+  assert.match(agentCompose, /NET_ADMIN/);
+  assert.match(agentCompose, /seccomp=unconfined/);
   const runner = await readFile(path.join(taskRoot, 'tests', 'run-stage.mjs'), 'utf8');
   assert.match(runner, /candidateSnapshotsRequired = true/);
   assert.match(runner, /finalPublicRequired = true/);

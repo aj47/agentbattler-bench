@@ -31,7 +31,7 @@ class AgentBattlerPi(Pi):
     async def install(self, environment: BaseEnvironment) -> None:
         await self.exec_as_root(
             environment,
-            command="apt-get update && apt-get install -y curl",
+            command="apt-get update && apt-get install -y bubblewrap curl ripgrep",
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
         version_spec = f"@{self._version}" if self._version else "@latest"
@@ -42,6 +42,20 @@ class AgentBattlerPi(Pi):
                 f"{nvm_node_install_snippet()} && "
                 f"npm install -g @earendil-works/pi-coding-agent{version_spec} && "
                 "pi --version"
+            ),
+        )
+        sandbox_source = Path(__file__).with_name("pi_sandbox_extension.mjs")
+        await environment.upload_file(
+            sandbox_source, "/tmp/agentbattler-pi-sandbox.mjs"
+        )
+        await self.exec_as_agent(
+            environment,
+            command=(
+                'root="$(npm root -g)/@earendil-works/pi-coding-agent"; '
+                'test -d "$root"; '
+                'mv /tmp/agentbattler-pi-sandbox.mjs '
+                '"$root/agentbattler-sandbox.mjs"; '
+                'chmod 0644 "$root/agentbattler-sandbox.mjs"'
             ),
         )
         auth_path = self._get_env("CODEX_AUTH_JSON_PATH")
@@ -93,6 +107,10 @@ class AgentBattlerPi(Pi):
             raise ValueError("Model name must be in provider/model format")
         provider, model = self.model_name.split("/", 1)
         thinking_flags = self.build_cli_flags()
+        sandbox_extension = (
+            "$(npm root -g)/@earendil-works/pi-coding-agent/"
+            "agentbattler-sandbox.mjs"
+        )
         continuation = (
             "mkdir -p $HOME/.pi/agent/sessions; "
             f"if test -s {self._SESSION_PATH}; "
@@ -106,6 +124,7 @@ class AgentBattlerPi(Pi):
                 "pi --mode json "
                 f"--provider {shlex.quote(provider)} --model {shlex.quote(model)} "
                 f"{thinking_flags} --tools read,bash,edit,write "
+                f"--extension {sandbox_extension} "
                 "--no-extensions --no-skills --no-prompt-templates --no-themes "
                 "--no-context-files --no-approve "
                 f"--session {self._SESSION_PATH} $continue_flag "

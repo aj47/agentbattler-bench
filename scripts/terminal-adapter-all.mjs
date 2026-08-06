@@ -24,7 +24,7 @@ async function verifyHarborAdapters(challenge, harness) {
   const kind = harborByHarness.has(harness) ? 'harbor' : harness === 'dotagents-mono' ? 'dotagents' : 'droid';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
   if (kind === 'droid') common.push('droidHarness', 'droidJsonRpc', 'droidRouting', 'droidRuntime');
-  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalChallenge', 'terminalRunner', 'terminalPrompts', 'harnessVersions', 'terminalRoster', 'dotagentsHarness', 'droidSandbox', 'runEvidence']) {
+  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalChallenge', 'terminalRunner', 'terminalPrompts', 'harnessVersions', 'terminalRoster', 'codexHarbor', 'codexBwrapWrapper', 'piSandboxExtension', 'claudeBwrapWrapper', 'dotagentsHarness', 'dotagentsDockerfile', 'dotagentsDockerignore', 'dotagentsCommandSandbox', 'droidSandbox', 'runEvidence']) {
     if (expected[optional]) common.push(optional);
   }
   for (const name of common) {

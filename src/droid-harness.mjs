@@ -105,6 +105,22 @@ export function createDroidSettings({
   };
 }
 
+export function materializeDroidSettingsCredential(settings, apiKey, environmentVariable = 'AGENTBATTLER_DROID_API_KEY') {
+  invariant(settings && typeof settings === 'object', 'Droid settings are required');
+  invariant(typeof apiKey === 'string' && apiKey.length > 0, 'Droid API key is required');
+  const placeholder = `\${${environmentVariable}}`;
+  let replacements = 0;
+  const visit = (value) => {
+    if (Array.isArray(value)) return value.map(visit);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, visit(child)]));
+    if (value === placeholder) { replacements += 1; return apiKey; }
+    return value;
+  };
+  const materialized = visit(settings);
+  invariant(replacements === settings.customModels?.length, `Expected one Droid API credential placeholder per custom model; replaced ${replacements}`);
+  return materialized;
+}
+
 export function droidExecArgs({ workspace, model, sessionId = null, promptFile = null, outputFormat = 'stream-json', reasoningEffort = DROID_REASONING_EFFORT }) {
   invariant(typeof workspace === 'string' && workspace.length > 0, 'Droid workspace is required');
   invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'Droid reasoning effort is required');

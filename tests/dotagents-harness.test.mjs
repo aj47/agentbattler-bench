@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
   DOTAGENTS_IMAGE,
+  DOTAGENTS_SANDBOX_REVISION,
   buildDotAgentsDockerArgs,
   createDotAgentsConfig,
   dotAgentsCumulativeUsageDelta,
@@ -120,10 +123,32 @@ test('builds a locked-down loopback-only Docker invocation', () => {
     home: '/tmp/home', configRoot: '/tmp/config', workspace: '/tmp/workspace',
   });
   assert.equal(args.at(-1), DOTAGENTS_IMAGE);
+  assert.equal(DOTAGENTS_SANDBOX_REVISION, 'r4');
+  assert.match(DOTAGENTS_IMAGE, /-r4$/);
   assert.ok(args.includes('--read-only'));
   assert.ok(args.includes('no-new-privileges'));
+  assert.ok(args.includes('seccomp=unconfined'));
+  assert.deepEqual(args.slice(args.indexOf('--cap-add'), args.indexOf('--cap-add') + 2), ['--cap-add', 'SYS_ADMIN']);
+  assert.ok(args.includes('NET_ADMIN'));
   assert.ok(args.includes('127.0.0.1:40123:3210'));
   assert.ok(args.includes('DOTAGENTS_WORKSPACE_DIR=/workspace'));
+});
+
+test('DotAgents image sandboxes model-generated commands below the provider process', async () => {
+  const [dockerfile, sandboxPatch] = await Promise.all([
+    readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'Dockerfile'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'runtime-tools-sandbox.patch'), 'utf8'),
+  ]);
+  assert.match(dockerfile, /bubblewrap/);
+  assert.match(dockerfile, /git -C \/opt\/dotagents apply --check/);
+  assert.match(sandboxPatch, /--unshare-net/);
+  assert.match(sandboxPatch, /--unshare-pid/);
+  assert.match(sandboxPatch, /--cap-drop\", \"ALL/);
+  assert.match(sandboxPatch, /--clearenv/);
+  assert.match(sandboxPatch, /AGENTBATTLER_COMMAND_ENV/);
+  const additions = sandboxPatch.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).join('\n');
+  assert.doesNotMatch(additions, /\.\.\.process\.env/);
+  assert.match(sandboxPatch, /--bind\", AGENTBATTLER_WORKSPACE, AGENTBATTLER_WORKSPACE/);
 });
 
 test('can attach the DotAgents container to an isolated proxy network', () => {

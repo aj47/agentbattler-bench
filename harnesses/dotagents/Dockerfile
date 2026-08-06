@@ -7,10 +7,11 @@ ARG DOTAGENTS_VERSION=1.1.9
 LABEL org.opencontainers.image.source="https://github.com/aj47/dotagents-mono" \
       org.opencontainers.image.revision="${DOTAGENTS_COMMIT}" \
       org.opencontainers.image.version="${DOTAGENTS_VERSION}" \
-      org.opencontainers.image.title="AgentBattler DotAgents harness"
+      org.opencontainers.image.title="AgentBattler DotAgents harness" \
+      io.agentbattler.command-sandbox="r4"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential ca-certificates git python3 tini xauth xvfb \
+      bubblewrap build-essential ca-certificates git python3 tini xauth xvfb \
       libasound2 libatk-bridge2.0-0 libatspi2.0-0 libcups2 libdbus-1-3 \
       libdrm2 libgbm1 libgtk-3-0 libnss3 libx11-6 libx11-xcb1 libxcb1 \
       libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 \
@@ -23,6 +24,11 @@ RUN git init /opt/dotagents \
     && git -C /opt/dotagents fetch --depth 1 origin "${DOTAGENTS_COMMIT}" \
     && git -C /opt/dotagents checkout --detach FETCH_HEAD \
     && test "$(git -C /opt/dotagents rev-parse HEAD)" = "${DOTAGENTS_COMMIT}"
+
+COPY runtime-tools-sandbox.patch /tmp/runtime-tools-sandbox.patch
+RUN git -C /opt/dotagents apply --check /tmp/runtime-tools-sandbox.patch \
+    && git -C /opt/dotagents apply /tmp/runtime-tools-sandbox.patch \
+    && rm /tmp/runtime-tools-sandbox.patch
 
 WORKDIR /opt/dotagents
 RUN pnpm install --frozen-lockfile --ignore-scripts

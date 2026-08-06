@@ -1,0 +1,10 @@
+services:
+  main:
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=unconfined

@@ -12,11 +12,11 @@ const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 
 if (!['v4', 'v5', 'v6'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4, V5, and V6');
 const protocolRevision = challengeVersion === 'v5'
   ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
-  : challengeVersion === 'v6' ? 'r3' : null;
+  : challengeVersion === 'v6' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r4' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_PROMPTS : challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
 const versionNumber = challengeVersion === 'v6'
-  ? '6.2.0'
+  ? protocolRevision === 'r4' ? '6.3.0' : '6.2.0'
   : challengeVersion === 'v5'
   ? protocolRevision === 'r5' ? '5.4.0' : protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
   : '4.2.0';
@@ -56,6 +56,8 @@ primary_score_policy = "${challengeVersion === 'v6' ? 'final-public-matrix-plus-
 candidate_snapshot_policy = "${challengeVersion === 'v6' ? 'every-turn-exact-ledger-source' : 'not-required'}"
 candidate_network_policy = "${challengeVersion === 'v6' ? 'node-permission-model-deny-network-and-child-process' : 'legacy'}"
 candidate_durability_policy = "${challengeVersion === 'v6' ? 'filehandle-sync-and-datasync' : 'legacy'}"
+agent_command_sandbox_policy = "${challengeVersion === 'v6' ? 'workspace-filesystem-minimal-environment-no-network' : 'legacy'}"
+agent_command_sandbox_host_compat = "${challengeVersion === 'v6' ? 'trusted-parent-namespace-caps-model-child-cap-drop' : 'legacy'}"
 
 [agent]
 network_mode = "public"
@@ -204,11 +206,22 @@ if (infrastructureError) process.exitCode = 2;
 await rm(output, { recursive: true, force: true });
 await mkdir(path.join(output, 'environment'), { recursive: true });
 await writeFile(path.join(output, 'environment', 'Dockerfile'), `FROM node:24-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git procps ripgrep \\
+RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap ca-certificates curl git procps ripgrep socat \\
     && rm -rf /var/lib/apt/lists/* \\
     && mkdir -p /app \\
     && chmod 0777 /app
 WORKDIR /app
+`);
+if (challengeVersion === 'v6') await writeFile(path.join(output, 'environment', 'docker-compose.yaml'), `services:
+  main:
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=unconfined
 `);
 for (const version of verifierDependencyVersions) await mkdir(path.join(output, 'tests', `mini-ledger-${version}`), { recursive: true });
 await writeFile(path.join(output, 'task.toml'), toml);
@@ -258,5 +271,5 @@ await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersio
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? '\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction. R3 supplies the complete command grammar on every turn and verifies turn 2 without requiring the turn 3 query command.\n' : ''}`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? `\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction. ${protocolRevision === 'r4' ? 'R4 gives the trusted harness parent only the capabilities needed to create per-command mount, PID, and network namespaces; every model command starts after all capabilities are dropped, with a minimal non-secret environment and no network. Trace checks remain defense-in-depth.' : 'R3 supplies the complete command grammar on every turn and verifies turn 2 without requiring the turn 3 query command.'}\n` : ''}`);
 console.log(output);

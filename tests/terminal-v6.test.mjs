@@ -161,14 +161,47 @@ test('V6 trace isolation rejects verifier inspection and network-capable tool in
   assert.throws(() => assertTerminalTraceIsolation({ trace: [{ type: 'tool_use', name: 'Bash', input: { command: 'node -p process.env.AGENTBATTLER_DROID_API_KEY' } }], repositoryRoot: '/repo', turn: 5 }), TerminalTraceIsolationError);
 });
 
+test('V6 trace isolation permits sandbox-owned task variables without permitting environment discovery', () => {
+  const scoped = assertTerminalTraceIsolation({
+    trace: [{
+      type: 'tool_use',
+      name: 'Bash',
+      input: {
+        command: 'P="$page" FULL="$full" node -e "JSON.parse(process.env.P); JSON.parse(process.env.FULL)"',
+      },
+    }],
+    repositoryRoot: '/repo',
+    workspace: '/app',
+    turn: 3,
+  });
+  assert.equal(scoped.passed, true);
+  for (const command of [
+    'node -e "console.log(process.env)"',
+    'node -e "console.log(process.env[name])"',
+    'node -e "console.log(process.env.CODEX_AUTH_JSON_PATH)"',
+    'printenv',
+  ]) {
+    assert.throws(() => assertTerminalTraceIsolation({
+      trace: [{ type: 'tool_use', name: 'Bash', input: { command } }],
+      repositoryRoot: '/repo',
+      workspace: '/app',
+      turn: 3,
+    }), TerminalTraceIsolationError);
+  }
+});
+
 test('V6 records normalized stop reasons and seals Droid away from the user home', () => {
   assert.equal(terminalTurnCompletion().stopReason, 'completed');
   assert.equal(terminalTurnCompletion({ iterationLimitReached: true }).stopReason, 'iteration_limit');
   assert.equal(terminalTurnCompletion({ timedOut: true }).stopReason, 'time_limit');
-  const profile = createDroidSandboxProfile({ runDirectory: '/Users/test/results/run', binaryPath: '/Users/test/.local/bin/droid', userHome: '/Users/test' });
+  const profile = createDroidSandboxProfile({ runDirectory: '/Users/test/results/run', binaryPath: '/Users/test/.local/bin/droid', allowedReadPaths: ['/Users/test/.local/opt/node/bin/node'], userHome: '/Users/test', networkPort: 20128 });
   assert.match(profile, /deny file-read\* file-write\*/);
   assert.match(profile, /\/Users\/test\/results\/run/);
   assert.match(profile, /\/private\/tmp/);
-  const launcher = droidSandboxLauncher({ profilePath: '/Users/test/results/run/droid.sb', droidBinary: '/Users/test/.local/bin/droid' });
+  assert.match(profile, /deny network\*/);
+  assert.match(profile, /localhost:20128/);
+  assert.match(profile, /\/Users\/test\/\.local\/opt\/node\/bin\/node/);
+  const launcher = droidSandboxLauncher({ profilePath: '/Users/test/results/run/droid.sb', droidBinary: '/Users/test/.local/bin/droid', allowedReadPaths: ['/Users/test/.local/opt/node/bin/node'] });
   assert.deepEqual(launcher.argsPrefix, ['-f', '/Users/test/results/run/droid.sb', '/Users/test/.local/bin/droid']);
+  assert.equal(launcher.policy.runtimeReadExecutableCount, 1);
 });

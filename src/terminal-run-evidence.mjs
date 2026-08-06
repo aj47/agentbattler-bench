@@ -221,6 +221,44 @@ function normalizedToolText(value, workspace) {
   return normalized;
 }
 
+function sensitiveEnvironmentName(value) {
+  const name = String(value ?? '').toUpperCase();
+  return name === 'HOME'
+    || name.endsWith('_HOME')
+    || ['API_KEY', 'TOKEN', 'SECRET', 'PASSWORD', 'CREDENTIAL', 'AUTH'].some((marker) => name.includes(marker));
+}
+
+function staticEnvironmentKey(text, offset) {
+  const suffix = text.slice(offset);
+  const dot = suffix.match(/^\s*\.\s*([A-Z_$][A-Z0-9_$]*)/i);
+  if (dot) return { key: dot[1] };
+  const bracket = suffix.match(/^\s*\[\s*(['"])([A-Z_$][A-Z0-9_$]*)\1\s*\]/i);
+  if (bracket) return { key: bracket[2] };
+  return null;
+}
+
+function environmentAccessMarkers(text) {
+  const markers = new Set();
+  if (/(^|[;&|()\s])printenv(?=\s|$)|(^|[;&()\s])env\s*(?:$|[|;&])|\/proc\/(?:self|\d+)\/environ|\bgetenv\s*\(/i.test(text)) {
+    markers.add('<environment-enumeration>');
+  }
+  if (/(?:^|[\s"'=])(?:~(?=\/|\s|$)|\$HOME(?:\/|\b)|\$\{HOME\}|\$(?:\{)?[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH)[A-Z0-9_]*(?:\})?)/i.test(text)) {
+    markers.add('<sensitive-environment-access>');
+  }
+
+  for (const match of text.matchAll(/\bprocess\.env\b/gi)) {
+    const access = staticEnvironmentKey(text, match.index + match[0].length);
+    if (!access) markers.add('<environment-enumeration>');
+    else if (sensitiveEnvironmentName(access.key)) markers.add('<sensitive-environment-access>');
+  }
+
+  // These APIs either expose the complete environment or permit dynamic
+  // lookups. Direct task-local process.env.NAME reads are handled above and
+  // remain valid because the execution sandbox owns which names are present.
+  if (/\bdeno\.env\b|\bos\.environ\b/i.test(text)) markers.add('<environment-enumeration>');
+  return [...markers];
+}
+
 export function assertTerminalTraceIsolation({ trace, repositoryRoot = null, workspace = null, turn = null }) {
   const resolvedRepositoryRoot = repositoryRoot ? path.resolve(repositoryRoot) : null;
   const markers = [
@@ -247,9 +285,7 @@ export function assertTerminalTraceIsolation({ trace, repositoryRoot = null, wor
     if (/(^|[;&|()\s])(curl|wget|nc|ncat|netcat|telnet|ftp|sftp|ssh|scp|rsync)(?=\s|$)|https?:\/\/|\/dev\/(?:tcp|udp)\/|\b(?:fetch|xmlhttprequest|websocket)\s*\(|\b(?:import|require)\s*\(?\s*['"](?:node:)?(?:http|https|net|tls|dns|dgram)['"]/i.test(payload.text)) {
       violations.push({ tool: String(payload.tool), marker: '<network-capable-tool-input>' });
     }
-    if (/(^|[;&|()\s])printenv(?=\s|$)|(^|[;&()\s])env\s*(?:$|[|;&])|\/proc\/(?:self|\d+)\/environ|\bprocess\.env\b|\bdeno\.env\b|\bos\.environ\b|\bgetenv\s*\(|(?:^|[\s"'=])(?:~(?=\/|\s|$)|\$HOME(?:\/|\b)|\$\{HOME\}|\$(?:\{)?[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH)[A-Z0-9_]*(?:\})?)/i.test(payload.text)) {
-      violations.push({ tool: String(payload.tool), marker: '<environment-enumeration>' });
-    }
+    for (const marker of environmentAccessMarkers(payload.text)) violations.push({ tool: String(payload.tool), marker });
   }
   const evidence = {
     schemaVersion: TRACE_ISOLATION_SCHEMA,

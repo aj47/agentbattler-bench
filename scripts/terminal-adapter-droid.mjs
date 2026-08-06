@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,9 +11,16 @@ import {
   DROID_RESTRICTED_TOOLS,
   DROID_VERSION,
   droidCustomModelId,
+  materializeDroidSettingsCredential,
 } from '../src/droid-harness.mjs';
 import { DroidJsonRpcSession } from '../src/droid-jsonrpc.mjs';
-import { createDroidSandboxProfile, droidSandboxLauncher, requireDroidSandboxRuntime } from '../src/droid-sandbox.mjs';
+import {
+  assertDroidCredentialAbsent,
+  createDroidSandboxProfile,
+  droidSandboxLauncher,
+  isolatedDroidEnvironment,
+  requireDroidSandboxRuntime,
+} from '../src/droid-sandbox.mjs';
 import { droidRouteModel, droidRouterConfig, preflightDroidRoute } from '../src/droid-routing.mjs';
 import { verifyDroidRuntime } from '../src/droid-runtime.mjs';
 import { canonicalJson, sha256 } from '../src/provenance.mjs';
@@ -33,15 +40,18 @@ const { prompts, publicVerifier, holdoutVerifier } = terminalChallengeRuntime;
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
 
-function isolatedDroidEnvironment(home, temporaryDirectory, apiKey) {
-  const keep = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'SHELL'];
-  return {
-    ...Object.fromEntries(keep.flatMap((key) => typeof process.env[key] === 'string' ? [[key, process.env[key]]] : [])),
-    HOME: home,
-    TMPDIR: temporaryDirectory,
-    NO_COLOR: '1',
-    AGENTBATTLER_DROID_API_KEY: apiKey,
+function redactCredential(value, apiKey) {
+  let replacements = 0;
+  const visit = (subject) => {
+    if (Array.isArray(subject)) return subject.map(visit);
+    if (subject && typeof subject === 'object') return Object.fromEntries(Object.entries(subject).map(([key, child]) => [key, visit(child)]));
+    if (typeof subject === 'string' && subject.includes(apiKey)) {
+      replacements += subject.split(apiKey).length - 1;
+      return subject.replaceAll(apiKey, '<redacted-droid-api-key>');
+    }
+    return subject;
   };
+  return { value: visit(value), replacements };
 }
 
 function publicTrace(content, { runDirectory, apiKey }) {
@@ -68,20 +78,23 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     reasoningEffort,
     llmRequestTimeout: job.maxWallTimeMs ?? 1_800_000,
   });
-  const settingsContent = `${canonicalJson(settings, { space: 2 })}\n`;
+  const settingsTemplateContent = `${canonicalJson(settings, { space: 2 })}\n`;
   const settingsPath = path.join(factoryHome, 'settings.json');
-  await writeFile(settingsPath, settingsContent, { mode: 0o600 });
-  const env = isolatedDroidEnvironment(home, temporaryDirectory, router.apiKey);
-  const verifiedDroidRuntime = await verifyDroidRuntime(env);
+  const verifiedDroidRuntime = await verifyDroidRuntime(process.env);
   const { binaryPath: droidBinary, ...droidRuntime } = verifiedDroidRuntime;
+  const runtimeReadPaths = [process.execPath];
+  const env = isolatedDroidEnvironment(home, temporaryDirectory, { executablePaths: runtimeReadPaths });
   await preflightDroidRoute(router, model);
 
   let launcher = null;
   if (challenge.id === 'terminal-mini-ledger-v6') {
+    const routeUrl = new URL(router.baseUrl);
+    invariant(['127.0.0.1', 'localhost', '::1'].includes(routeUrl.hostname), 'V6 Droid requires a loopback model router so its OS sandbox can deny all other network access');
+    const networkPort = Number(routeUrl.port || (routeUrl.protocol === 'https:' ? 443 : 80));
     const sandboxBinary = await requireDroidSandboxRuntime();
     const profilePath = path.join(runDirectory, 'droid-sandbox.sb');
-    await writeFile(profilePath, createDroidSandboxProfile({ runDirectory, binaryPath: droidBinary }), { mode: 0o600 });
-    launcher = droidSandboxLauncher({ sandboxBinary, profilePath, droidBinary });
+    await writeFile(profilePath, createDroidSandboxProfile({ runDirectory, binaryPath: droidBinary, allowedReadPaths: runtimeReadPaths, networkPort }), { mode: 0o600 });
+    launcher = droidSandboxLauncher({ sandboxBinary, profilePath, droidBinary, allowedReadPaths: runtimeReadPaths });
   }
 
   const runStartedAt = new Date().toISOString();
@@ -90,11 +103,20 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const compaction = { count: 0, boundaries: [] };
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   let sessionId = null; let toolCalls = 0; let sanitizationReplacements = 0; let settingsEvidence;
+  let credentialSettingsUnlinked = false;
+  const credentialResidueScans = [];
   const session = new DroidJsonRpcSession({ workspace, model, env, timeoutMs, reasoningEffort, launcher });
   try {
+    const runtimeSettings = materializeDroidSettingsCredential(settings, router.apiKey);
+    await writeFile(settingsPath, `${canonicalJson(runtimeSettings, { space: 2 })}\n`, { mode: 0o600 });
     const initialized = await session.start();
+    await rm(settingsPath, { force: true });
+    credentialSettingsUnlinked = true;
+    credentialResidueScans.push({ boundary: 'before-first-turn', ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
     sessionId = initialized.sessionId;
-    settingsEvidence = initialized.settings;
+    const redactedSettingsEvidence = redactCredential(initialized.settings, router.apiKey);
+    sanitizationReplacements += redactedSettingsEvidence.replacements;
+    settingsEvidence = redactedSettingsEvidence.value;
     for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString();
       const turn = await session.turn(prompts[index], timeoutMs);
@@ -131,12 +153,15 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
         ...(candidate ? { candidate } : {}),
         ...(isolation ? { isolation } : {}),
       });
+      credentialResidueScans.push({ boundary: `after-turn-${index + 1}`, ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
     }
   } finally {
+    await rm(settingsPath, { force: true });
     await session.close();
     const stderr = publicTrace(session.stderrText(), { runDirectory, apiKey: router.apiKey });
     sanitizationReplacements += stderr.totalReplacements;
     await writeFile(path.join(runDirectory, 'droid.stderr'), stderr.content);
+    credentialResidueScans.push({ boundary: 'after-session-close', ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
   }
   const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace, challenge, publicVerifier }) : null;
   const holdout = await holdoutVerifier.verifyHoldout({ workspace });
@@ -172,7 +197,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       baseUrl: settings.customModels[0].baseUrl,
       upstreamModel: droidRouteModel(router, model),
       customModelId: droidCustomModelId(model),
-      settingsSha256: sha256(settingsContent),
+      settingsSha256: sha256(settingsTemplateContent),
       settingsEvidence,
       contextPolicy: DROID_CONTEXT_POLICY,
       compactionModel: settings.compactionModel,
@@ -183,7 +208,11 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       cloudSessionSync: false,
       isolatedHome: true,
       hostFactorySettingsInherited: false,
-      apiKeyStoredInSettings: false,
+      apiKeyStoredInPersistentSettings: false,
+      apiKeyInheritedByModelCommands: false,
+      apiKeyDelivery: 'ephemeral-settings-unlinked-before-first-turn',
+      credentialSettingsUnlinked,
+      credentialResidueScans,
       sanitizationReplacements,
       filesystemIsolation: launcher?.policy ?? null,
     },

@@ -34,7 +34,7 @@ COPY enable-max-reasoning.mjs /tmp/enable-max-reasoning.mjs
 
 WORKDIR /opt/dotagents
 RUN pnpm install --frozen-lockfile --ignore-scripts
-RUN sdk_dist="$(find node_modules/.pnpm -type d -path '*/node_modules/@ai-sdk/openai/dist' -print -quit)" \
+RUN sdk_dist="$(find /opt/dotagents/node_modules/.pnpm -type d -path '*/node_modules/@ai-sdk/openai/dist' -print -quit)" \
     && test -n "$sdk_dist" \
     && node /tmp/enable-max-reasoning.mjs "$sdk_dist" \
     && rm /tmp/enable-max-reasoning.mjs

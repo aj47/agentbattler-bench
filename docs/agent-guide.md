@@ -19,6 +19,7 @@ V6 is sealed to the following condition:
 | field | value |
 | --- | --- |
 | challenge | `terminal-mini-ledger-v6` |
+| protocol revision | `r3` |
 | model | `gpt-5.6-luna` |
 | reasoning | `max` |
 | turns | 15 sequential turns, one session and workspace |
@@ -31,6 +32,9 @@ network, child processes, worker threads, native add-ons, WASI, or files outside
 working directory during verification. The agent never receives the verifier or holdout
 source. The exact candidate source is archived after every turn, and the final source is
 rerun across all fifteen public stages before the holdout is scored.
+
+Every prompt carries the complete command grammar. In particular, export and import use
+the positional forms `export PATH` and `import PATH`; they do not use `--file`.
 
 Read the [V6 challenge description](../benchmark/challenges/mini-ledger-v6.md) and the
 [V6 Harbor task notes](../benchmark/harbor/mini-ledger-v6/README.md) before writing an

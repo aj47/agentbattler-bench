@@ -7,6 +7,7 @@ import test from 'node:test';
 import { createDroidSandboxProfile, droidSandboxLauncher } from '../src/droid-sandbox.mjs';
 import { createExhaustiveTerminalSchedule, createMiniLedgerChallenge, MINI_LEDGER_V4_STAGES, scoreTerminalRun, validateTerminalSchedule } from '../src/terminal-challenge.mjs';
 import {
+  MINI_LEDGER_V6_COMMAND_NOTICE,
   MINI_LEDGER_V6_DURABILITY_NOTICE,
   MINI_LEDGER_V6_EVALUATION_NOTICE,
   MINI_LEDGER_V6_LOCK_NOTICE,
@@ -15,6 +16,8 @@ import {
   MINI_LEDGER_V6_TURN_PROMPTS,
   MINI_LEDGER_V6_WIRE_NOTICE,
 } from '../src/terminal-prompts-v6.mjs';
+import { verifyPublicStage as verifyV3PublicStage } from '../benchmark/challenges/mini-ledger-v3/public-verifier.mjs';
+import { verifyPublicStage as verifyV6PublicStage } from '../benchmark/challenges/mini-ledger-v6/public-verifier.mjs';
 import {
   TerminalTraceIsolationError,
   assertTerminalTraceIsolation,
@@ -30,6 +33,7 @@ test('V6 gives every turn the corrected source-only and validation contract', ()
   assert.equal(MINI_LEDGER_V6_TURN_PROMPTS.length, 15);
   for (const prompt of MINI_LEDGER_V6_TURN_PROMPTS) {
     assert.ok(prompt.includes(MINI_LEDGER_V6_SOURCE_NOTICE));
+    assert.ok(prompt.includes(MINI_LEDGER_V6_COMMAND_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_WIRE_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_LOCK_NOTICE));
     assert.ok(prompt.includes(MINI_LEDGER_V6_DURABILITY_NOTICE));
@@ -38,10 +42,36 @@ test('V6 gives every turn the corrected source-only and validation contract', ()
     assert.match(prompt, /final-correctness matrix/);
     assert.match(prompt, /hard 60-minute wall-clock limit/);
     assert.match(prompt, /FileHandle\.sync\(\).*FileHandle\.datasync\(\)/);
+    assert.match(prompt, /export PATH; import PATH/);
+    assert.match(prompt, /PATH for export and import is one positional argument/);
   }
   assert.match(MINI_LEDGER_V6_TURN_PROMPTS[0], /must never be embedded as source defaults/);
   assert.match(MINI_LEDGER_V6_TURN_PROMPTS[7], /--keep 0.*fail without mutation/);
   assert.match(MINI_LEDGER_V6_TURN_PROMPTS[13], /canonical stale regular ledger\.lock/);
+  assert.match(MINI_LEDGER_V6_TURN_PROMPTS[3], /positional command import PATH/);
+  assert.match(MINI_LEDGER_V6_TURN_PROMPTS[3], /run import legacy\.json/);
+});
+
+test('V6 batch stage tests only turn-two commands while preserving the historical verifier', { timeout: 60_000 }, async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-v6-batch-stage-'));
+  try {
+    const fixture = await readFile(path.resolve(import.meta.dirname, 'fixtures', 'mini-ledger-reference.mjs'), 'utf8');
+    const queryHandler = "else if (command === 'query') result = await query(input);";
+    const withoutQuery = fixture.replace(queryHandler, "else if (command === 'query') fail('query intentionally unavailable until turn 3');");
+    assert.notEqual(withoutQuery, fixture, 'reference fixture query handler was not replaced');
+    const ledgerPath = path.join(root, 'ledger.mjs');
+    await writeFile(ledgerPath, withoutQuery);
+    await chmod(ledgerPath, 0o750);
+
+    const v6 = await verifyV6PublicStage({ workspace: root, ledgerPath, stageId: 'batch' });
+    assert.equal(v6.passed, true, v6.diagnostic);
+
+    const historical = await verifyV3PublicStage({ workspace: root, ledgerPath, stageId: 'batch' });
+    assert.equal(historical.passed, false, 'the historical verifier should still require its original query check');
+    assert.match(historical.diagnostic, /query intentionally unavailable/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('V6 runtime roster is Luna-only at max reasoning with five independent runs', () => {

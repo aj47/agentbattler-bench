@@ -263,10 +263,14 @@ V6 corrects the main validity and harness failures observed in V5:
 - Harbor 0.20 requires a networked separate-verifier container, so V6 also launches every
   untrusted `ledger.mjs` verifier process under Node's permission model without network,
   child-process, worker, native-addon, or WASI capabilities. The trusted verifier itself has no
-  credentials and makes no network requests. V6 R2 explicitly discloses the permission model's
+  credentials and makes no network requests. V6 R2 explicitly disclosed the permission model's
   durability API boundary: `FileHandle.sync()` and `FileHandle.datasync()` perform real barriers,
   while Node disables the descriptor-only `fs.fsync*` and `fs.fdatasync*` variants. A withdrawn
   R1 partial run exposed this mismatch before any complete run was recorded.
+- V6 R3 publishes the exact grammar for all eleven commands in every turn, including positional
+  `export PATH` and `import PATH`. Its batch trajectory check validates state and idempotency using
+  only the turn-two surface (`append`, `get`, and `append-batch`), so it no longer tests `query`
+  one turn before that feature is assigned. The withdrawn R2 traces remain diagnostic evidence.
 
 Published V6 semantic traces include the source text and checksum for every candidate snapshot,
 the turn completion evidence, the trajectory stage results, the final public matrix, and the

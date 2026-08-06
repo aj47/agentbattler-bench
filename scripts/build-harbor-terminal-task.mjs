@@ -12,16 +12,18 @@ const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 
 if (!['v4', 'v5', 'v6'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4, V5, and V6');
 const protocolRevision = challengeVersion === 'v5'
   ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
-  : challengeVersion === 'v6' ? 'r2' : null;
+  : challengeVersion === 'v6' ? 'r3' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_PROMPTS : challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
 const versionNumber = challengeVersion === 'v6'
-  ? '6.1.0'
+  ? '6.2.0'
   : challengeVersion === 'v5'
   ? protocolRevision === 'r5' ? '5.4.0' : protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
   : '4.2.0';
 const taskTag = challengeVersion === 'v5' ? `${challengeVersion}-${protocolRevision}` : challengeVersion;
 const output = path.join(root, 'benchmark', 'harbor', `mini-ledger-${taskTag}`);
+const verifierVersion = challengeVersion === 'v6' ? 'v6' : 'v4';
+const verifierDependencyVersions = challengeVersion === 'v6' ? ['v3', 'v4', 'v6'] : ['v3', 'v4'];
 const agentTurnLimitMinutes = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_LIMIT_MINUTES : challengeVersion === 'v5' ? 30 : null;
 const agentTimePolicy = agentTurnLimitMinutes === null ? 'self-terminating' : `hard-${agentTurnLimitMinutes}-minutes-per-turn-with-agent-notice`;
 const stages = [
@@ -98,8 +100,8 @@ const runner = `#!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { chmod, lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { verifyPublicStage } from './mini-ledger-v4/public-verifier.mjs';
-import { verifyHoldout } from './mini-ledger-v4/holdout-verifier.mjs';
+import { verifyPublicStage } from './mini-ledger-${verifierVersion}/public-verifier.mjs';
+import { verifyHoldout } from './mini-ledger-${verifierVersion}/holdout-verifier.mjs';
 
 const workspace = '/app';
 const logs = '/logs/verifier';
@@ -208,12 +210,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && chmod 0777 /app
 WORKDIR /app
 `);
-await mkdir(path.join(output, 'tests', 'mini-ledger-v3'), { recursive: true });
-await mkdir(path.join(output, 'tests', 'mini-ledger-v4'), { recursive: true });
+for (const version of verifierDependencyVersions) await mkdir(path.join(output, 'tests', `mini-ledger-${version}`), { recursive: true });
 await writeFile(path.join(output, 'task.toml'), toml);
 await writeFile(path.join(output, 'tests', 'run-stage.mjs'), runner, { mode: 0o755 });
 await cp(path.join(root, 'benchmark', 'challenges', 'candidate-process.mjs'), path.join(output, 'tests', 'candidate-process.mjs'));
-for (const version of ['v3', 'v4']) {
+for (const version of verifierDependencyVersions) {
   for (const verifier of ['public-verifier.mjs', 'holdout-verifier.mjs']) {
     await cp(
       path.join(root, 'benchmark', 'challenges', `mini-ledger-${version}`, verifier),
@@ -225,8 +226,7 @@ for (const [[stage], prompt, index] of stages.map((stage, index) => [stage, prom
   const step = `${String(index + 1).padStart(2, '0')}-${stage}`;
   const directory = path.join(output, 'steps', step);
   const tests = path.join(directory, 'tests');
-  await mkdir(path.join(tests, 'mini-ledger-v3'), { recursive: true });
-  await mkdir(path.join(tests, 'mini-ledger-v4'), { recursive: true });
+  for (const version of verifierDependencyVersions) await mkdir(path.join(tests, `mini-ledger-${version}`), { recursive: true });
   await writeFile(path.join(directory, 'instruction.md'), `${prompt}\n`);
   await writeFile(path.join(tests, 'Dockerfile'), `FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends iptables \\
@@ -245,7 +245,7 @@ WORKDIR /
   await writeFile(path.join(tests, 'test.sh'), '#!/bin/sh\nset -eu\niptables -P OUTPUT DROP\nchown -hR 1000:1000 /app\nchmod -R u+rwX /app\nnode /tests/run-stage.mjs\n', { mode: 0o755 });
   await writeFile(path.join(tests, 'run-stage.mjs'), runner, { mode: 0o700 });
   await cp(path.join(root, 'benchmark', 'challenges', 'candidate-process.mjs'), path.join(tests, 'candidate-process.mjs'));
-  for (const version of ['v3', 'v4']) {
+  for (const version of verifierDependencyVersions) {
     for (const verifier of ['public-verifier.mjs', 'holdout-verifier.mjs']) {
       await cp(
         path.join(root, 'benchmark', 'challenges', `mini-ledger-${version}`, verifier),
@@ -258,5 +258,5 @@ await writeFile(path.join(output, 'README.md'), `# Mini Ledger ${challengeVersio
 
 Generated from the canonical AgentBattler prompts and verifiers. Run with Harbor 0.20.0 or newer and pass \`--resume-trajectory\` so all fifteen instructions use one native agent session.
 
-The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? '\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction.\n' : ''}`);
+The agent and verifier use separate containers. Only \`/app\` is transferred. Each check copies only the regular \`ledger.mjs\` source entry point into a fresh candidate-owned workspace; runtime state and sidecars never cross check boundaries. Verifier-spawned candidate processes run as UID/GID 1000 while \`/tests\` remains root-only. Harbor 0.20's Docker provider does not support \`no-network\` for separate verifier environments, so the verifier starts in \`public\` mode, receives the candidate artifact, then drops all outbound traffic with iptables before any verifier or candidate code executes. The verifier receives no credentials.${agentTurnLimitMinutes === null ? '\n' : `\n\nEvery agent step has a hard ${agentTurnLimitMinutes}-minute wall-clock limit supplied by the sealed schedule, and every instruction explicitly tells the agent to finish within that limit.\n`}${challengeVersion === 'v6' ? '\nV6 archives the exact ledger.mjs source after every turn and reruns all fifteen public stages against the final source before the holdout. Node permission mode supports real durability through FileHandle.sync() and FileHandle.datasync(); descriptor-only fs.fsync/fs.fdatasync variants are unavailable and are disclosed in every agent instruction. R3 supplies the complete command grammar on every turn and verifies turn 2 without requiring the turn 3 query command.\n' : ''}`);
 console.log(output);

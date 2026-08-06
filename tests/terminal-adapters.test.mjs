@@ -328,8 +328,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.1\.0"/);
-  assert.match(config, /protocol_revision = "r2"/);
+  assert.match(config, /version = "6\.2\.0"/);
+  assert.match(config, /protocol_revision = "r3"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
@@ -342,12 +342,18 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   assert.match(runner, /all-public-stages-from-final-source-only-candidate/);
   assert.match(runner, /nodePermissionModel: true/);
   assert.match(runner, /supported: \['FileHandle\.sync', 'FileHandle\.datasync'\]/);
+  assert.match(runner, /mini-ledger-v6\/public-verifier\.mjs/);
+  assert.match(runner, /mini-ledger-v6\/holdout-verifier\.mjs/);
+  const v6BatchVerifier = await readFile(path.join(taskRoot, 'tests', 'mini-ledger-v6', 'public-verifier.mjs'), 'utf8');
+  assert.match(v6BatchVerifier, /stageBatch/);
+  assert.doesNotMatch(v6BatchVerifier, /\['query'/);
   const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
   assert.match(candidateProcess, /--permission --allow-fs-read=\. --allow-fs-write=\./);
   const firstPrompt = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'instruction.md'), 'utf8');
   assert.match(firstPrompt, /must never be embedded as source defaults/);
   assert.match(firstPrompt, /hard 60-minute wall-clock limit enforced by the benchmark/);
   assert.match(firstPrompt, /fs\.promises\.open\(\).*FileHandle\.sync\(\)/);
+  assert.match(firstPrompt, /export PATH; import PATH/);
 });
 
 test('candidate verifier process identity is opt-in and validated', () => {

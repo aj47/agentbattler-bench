@@ -2,8 +2,8 @@
 import { createHash } from 'node:crypto';
 import { chmod, lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { verifyPublicStage } from './mini-ledger-v4/public-verifier.mjs';
-import { verifyHoldout } from './mini-ledger-v4/holdout-verifier.mjs';
+import { verifyPublicStage } from './mini-ledger-v6/public-verifier.mjs';
+import { verifyHoldout } from './mini-ledger-v6/holdout-verifier.mjs';
 
 const workspace = '/app';
 const logs = '/logs/verifier';

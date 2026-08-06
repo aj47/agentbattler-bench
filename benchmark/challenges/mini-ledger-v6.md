@@ -10,4 +10,21 @@ Candidate verification uses Node's permission model. Use `fs.promises.open()` fo
 
 Every successful command emits exactly one JSON value; invalid input exits non-zero without mutating logical or primary state. `--limit` and `--keep` accept strictly positive integers only. `ledger.lock` is the canonical stale-lock recovery interoperability artifact, even when normal concurrency uses another correct locking or compare-and-swap mechanism.
 
+The exact CLI grammar is:
+
+```text
+append --id ID --kind KIND --payload JSON
+get --id ID
+query --kind KIND --after-sequence N --limit N
+append-batch --file PATH --idempotency-key KEY
+export PATH
+import PATH
+recover
+compact --keep N
+replay
+audit
+```
+
+`export PATH` and `import PATH` each take one positional path. In R3, the turn-two batch verifier uses only `append`, `get`, and `append-batch`; it validates the primary V2 state directly and does not require the turn-three `query` feature early.
+
 The evaluator records the public stage result after each turn, captures the exact `ledger.mjs` source after every turn, rejects traces that attempt to inspect benchmark/verifier source, and runs all fifteen public stages again against the final source. The final-correctness matrix plus the private holdout is the primary score; the historical trajectory is reported separately.

@@ -78,7 +78,7 @@ test('Harbor Codex replaces the unsafe launcher flag with native command sandbox
   assert.doesNotMatch(source, /HOME="\/tmp/);
   assert.match(source, /permissions\.agentbattler_workspace\.network\.enabled=false/);
   assert.match(source, /shell_environment_policy\.inherit="none"/);
-  assert.match(source, /environment\.default_user = "root"/);
+  assert.equal((source.match(/environment\.default_user = "root"/g) ?? []).length, 2);
   assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-bwrap/);
   assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-wrapper/);
   assert.doesNotMatch(source, /--sandbox workspace-write/);
@@ -406,8 +406,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.7\.0"/);
-  assert.match(config, /protocol_revision = "r8"/);
+  assert.match(config, /version = "6\.8\.0"/);
+  assert.match(config, /protocol_revision = "r9"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);

@@ -24,7 +24,7 @@ const isHarborChallenge = challengeVersion === 'v4' || challengeVersion === 'v5'
 const challengeSourceVersion = challengeVersion === 'v5' ? 'v4' : challengeVersion;
 const protocolRevision = challengeVersion === 'v5'
   ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
-  : isV6 ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r8' : null;
+  : isV6 ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r9' : null;
 const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? `v5-${protocolRevision}` : isV6 ? `v6-luna-max-${protocolRevision}` : challengeVersion);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const challengeRoot = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
@@ -158,7 +158,7 @@ const challenge = createMiniLedgerChallenge({
       ...(isV6 ? {
         predecessor: 'terminal-mini-ledger-v5',
         protocolRevision,
-        amendment: protocolRevision === 'r8' ? 'explicit-harbor-default-user-for-per-turn-secret-upload-ownership' : protocolRevision === 'r7' ? 'trusted-upload-ownership-normalization-and-pi-nvm-runtime-continuity' : protocolRevision === 'r6' ? 'owner-staged-executable-wrappers-under-minimal-parent-capabilities' : protocolRevision === 'r5' ? 'preinstalled-pinned-agent-runtimes-and-luna-max-provider-compatibility' : protocolRevision === 'r4' ? 'agent-command-sandbox-and-precise-environment-isolation' : 'luna-max-final-correctness-source-snapshots-stop-reasons-leak-rejection-permission-model-durability-stage-isolation-and-exact-command-grammar',
+        amendment: protocolRevision === 'r9' ? 'per-turn-harbor-default-user-for-codex-auth-upload-ownership' : protocolRevision === 'r8' ? 'explicit-harbor-default-user-for-per-turn-secret-upload-ownership' : protocolRevision === 'r7' ? 'trusted-upload-ownership-normalization-and-pi-nvm-runtime-continuity' : protocolRevision === 'r6' ? 'owner-staged-executable-wrappers-under-minimal-parent-capabilities' : protocolRevision === 'r5' ? 'preinstalled-pinned-agent-runtimes-and-luna-max-provider-compatibility' : protocolRevision === 'r4' ? 'agent-command-sandbox-and-precise-environment-isolation' : 'luna-max-final-correctness-source-snapshots-stop-reasons-leak-rejection-permission-model-durability-stage-isolation-and-exact-command-grammar',
         modelPolicy: { models: ['gpt-5.6-luna'], reasoningEffort: 'max', harnesses: Object.keys(SEALED_TERMINAL_HARNESS_VERSIONS).sort(), independentRunsPerHarness: 5, repeats: 1 },
         agentToolRuntimePolicy: { environment: 'minimal-non-secret-allowlist', filesystem: 'workspace-and-disposable-temp-only', network: 'denied-for-model-generated-commands', enforcement: 'native-or-os-sandbox-per-harness', traceAudit: 'denied-boundary-attempts-and-sensitive-access-only' },
         candidateRuntimePolicy: { nodePermissionModel: true, filesystem: 'working-directory-only', network: 'denied', childProcess: 'denied', workerThreads: 'denied', nativeAddons: 'denied', wasi: 'denied', durabilityApis: { supported: ['FileHandle.sync', 'FileHandle.datasync'], unavailable: ['fs.fsync', 'fs.fdatasync', 'fs.fsyncSync', 'fs.fdatasyncSync'] } },

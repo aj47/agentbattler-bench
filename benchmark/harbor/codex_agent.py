@@ -4,6 +4,7 @@ from typing import override
 
 from harbor.agents.installed.codex import Codex
 from harbor.environments.base import BaseEnvironment
+from harbor.models.agent.context import AgentContext
 
 
 _WRAPPER = r"""#!/usr/bin/env bash
@@ -102,3 +103,16 @@ class AgentBattlerCodex(Codex):
             )
         finally:
             wrapper.unlink(missing_ok=True)
+
+    @override
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        # Harbor rebuilds the per-step environment wrapper after installation,
+        # so declare the existing image user again immediately before the base
+        # adapter uploads this turn's auth.json and performs its ownership fix.
+        environment.default_user = "root"
+        await super().run(instruction, environment, context)

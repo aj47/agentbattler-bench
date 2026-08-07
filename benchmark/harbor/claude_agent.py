@@ -177,14 +177,12 @@ class AgentBattlerClaude(ClaudeCode):
         await environment.upload_file(
             bwrap_wrapper, "/tmp/agentbattler-claude-bwrap"
         )
-        await self.exec_as_agent(
-            environment,
-            command="chmod 0755 /tmp/agentbattler-claude-bwrap",
-        )
         await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
+                "chown 0:0 /tmp/agentbattler-claude-bwrap; "
+                "chmod 0755 /tmp/agentbattler-claude-bwrap; "
                 "mv /tmp/agentbattler-claude-bwrap "
                 "/usr/local/bin/agentbattler-bwrap"
             ),
@@ -195,6 +193,13 @@ class AgentBattlerClaude(ClaudeCode):
         try:
             await environment.upload_file(
                 settings, "/tmp/agentbattler-claude-settings.json"
+            )
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-claude-settings.json; "
+                    "chmod 0600 /tmp/agentbattler-claude-settings.json"
+                ),
             )
             await self.exec_as_agent(
                 environment,
@@ -214,6 +219,13 @@ class AgentBattlerClaude(ClaudeCode):
         try:
             await environment.upload_file(
                 wrapper, "/tmp/agentbattler-claude-wrapper"
+            )
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-claude-wrapper; "
+                    "chmod 0755 /tmp/agentbattler-claude-wrapper"
+                ),
             )
             await self.exec_as_agent(
                 environment,

@@ -51,9 +51,18 @@ class AgentBattlerPi(Pi):
         await environment.upload_file(
             sandbox_source, "/tmp/agentbattler-pi-sandbox.mjs"
         )
+        await self.exec_as_root(
+            environment,
+            command=(
+                "chown 0:0 /tmp/agentbattler-pi-sandbox.mjs; "
+                "chmod 0644 /tmp/agentbattler-pi-sandbox.mjs"
+            ),
+        )
         await self.exec_as_agent(
             environment,
             command=(
+                "set -euo pipefail; "
+                ". ~/.nvm/nvm.sh; nvm use 22 >/dev/null; "
                 'root="$(npm root -g)/@earendil-works/pi-coding-agent"; '
                 'test -d "$root"; '
                 'mv /tmp/agentbattler-pi-sandbox.mjs '
@@ -87,6 +96,13 @@ class AgentBattlerPi(Pi):
             temporary_auth = Path(handle.name)
         try:
             await environment.upload_file(temporary_auth, "/tmp/agentbattler-pi-auth.json")
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-pi-auth.json; "
+                    "chmod 0600 /tmp/agentbattler-pi-auth.json"
+                ),
+            )
             await self.exec_as_agent(
                 environment,
                 command=(

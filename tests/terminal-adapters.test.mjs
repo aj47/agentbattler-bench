@@ -78,6 +78,8 @@ test('Harbor Codex replaces the unsafe launcher flag with native command sandbox
   assert.doesNotMatch(source, /HOME="\/tmp/);
   assert.match(source, /permissions\.agentbattler_workspace\.network\.enabled=false/);
   assert.match(source, /shell_environment_policy\.inherit="none"/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-bwrap/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-wrapper/);
   assert.doesNotMatch(source, /--sandbox workspace-write/);
   assert.match(source, /AgentBattlerCodex/);
   const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_bwrap_wrapper.sh'), 'utf8');
@@ -141,6 +143,8 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /pi_sandbox_extension\.mjs/);
   assert.match(source, /--extension/);
   assert.match(source, /command -v bwrap/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-pi-sandbox\.mjs/);
+  assert.match(source, /\. ~\/\.nvm\/nvm\.sh; nvm use 22/);
   assert.doesNotMatch(source, /apt-get/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
   const sandbox = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_sandbox_extension.mjs'), 'utf8');
@@ -175,6 +179,7 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /"failIfUnavailable": True/);
   assert.match(source, /"bwrapPath": "\/usr\/local\/bin\/agentbattler-bwrap"/);
   assert.match(source, /"allowedDomains": \[\]/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-claude-bwrap/);
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
   assert.match(source, /kill -TERM -- "-\$agent_pid"/);
@@ -400,8 +405,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.5\.0"/);
-  assert.match(config, /protocol_revision = "r6"/);
+  assert.match(config, /version = "6\.6\.0"/);
+  assert.match(config, /protocol_revision = "r7"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
@@ -417,6 +422,7 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const agentCompose = await readFile(path.join(taskRoot, 'environment', 'docker-compose.yaml'), 'utf8');
   assert.match(agentCompose, /SYS_ADMIN/);
   assert.match(agentCompose, /NET_ADMIN/);
+  assert.match(agentCompose, /CHOWN/);
   assert.match(agentCompose, /seccomp=unconfined/);
   const runner = await readFile(path.join(taskRoot, 'tests', 'run-stage.mjs'), 'utf8');
   assert.match(runner, /candidateSnapshotsRequired = true/);

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runner = path.join(ROOT, 'scripts/run-terminal-matrix.mjs');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version === 'v6' ? 'v6-luna-max-r6' : version);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version === 'v6' ? 'v6-luna-max-r7' : version);
 const resultRoot = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const schedule = JSON.parse(await readFile(path.join(resultRoot, 'schedule.json'), 'utf8'));
 const v4Adapter = ['v4', 'v5', 'v6'].includes(version) ? 'scripts/terminal-adapter-all.mjs' : null;

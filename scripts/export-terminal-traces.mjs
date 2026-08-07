@@ -13,7 +13,7 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!/^v\d+$/.test(version)) throw new Error('Challenge version must look like v4');
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version === 'v6' ? 'v6-luna-max-r6' : version);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version === 'v6' ? 'v6-luna-max-r7' : version);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('Result tag must look like v4-harbor');
 const resultRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_RESULT_ROOT
   ?? path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`));

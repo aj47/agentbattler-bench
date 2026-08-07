@@ -60,14 +60,12 @@ class AgentBattlerCodex(Codex):
         await environment.upload_file(
             bwrap_wrapper, "/tmp/agentbattler-codex-bwrap"
         )
-        await self.exec_as_agent(
-            environment,
-            command="chmod 0755 /tmp/agentbattler-codex-bwrap",
-        )
         await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
+                "chown 0:0 /tmp/agentbattler-codex-bwrap; "
+                "chmod 0755 /tmp/agentbattler-codex-bwrap; "
                 "mv /tmp/agentbattler-codex-bwrap /usr/local/bin/bwrap"
             ),
         )
@@ -76,14 +74,12 @@ class AgentBattlerCodex(Codex):
             wrapper = Path(handle.name)
         try:
             await environment.upload_file(wrapper, "/tmp/agentbattler-codex-wrapper")
-            await self.exec_as_agent(
-                environment,
-                command="chmod 0755 /tmp/agentbattler-codex-wrapper",
-            )
             await self.exec_as_root(
                 environment,
                 command=(
                     "set -euo pipefail; "
+                    "chown 0:0 /tmp/agentbattler-codex-wrapper; "
+                    "chmod 0755 /tmp/agentbattler-codex-wrapper; "
                     "mkdir -p /app/.agentbattler-tmp; "
                     "chmod 0777 /app/.agentbattler-tmp; "
                     'installed="$(command -v codex)"; '

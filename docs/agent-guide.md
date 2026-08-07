@@ -19,7 +19,7 @@ V6 is sealed to the following condition:
 | field | value |
 | --- | --- |
 | challenge | `terminal-mini-ledger-v6` |
-| protocol revision | `r3` |
+| protocol revision | `r11` |
 | model | `gpt-5.6-luna` |
 | reasoning | `max` |
 | turns | 15 sequential turns, one session and workspace |
@@ -27,14 +27,44 @@ V6 is sealed to the following condition:
 | score | 70 visible points + 30 holdout points |
 | schedule | 5 harnesses × 1 model × 5 independent runs = 25 runs |
 
-The agent can use the network for model access. The candidate `ledger.mjs` cannot use
-network, child processes, worker threads, native add-ons, WASI, or files outside its
-working directory during verification. The agent never receives the verifier or holdout
-source. The exact candidate source is archived after every turn, and the final source is
-rerun across all fifteen public stages before the holdout is scored.
+The five sealed harness/runtime pairs are:
+
+| harness | runtime version |
+| --- | --- |
+| Claude Code | `2.1.220` |
+| Codex CLI | `0.144.0` |
+| DotAgents Mono | `1.1.9` |
+| Factory Droid | `0.186.0` |
+| Pi coding agent | `0.80.7` |
+
+The trusted harness can use the network for model-provider access. Model-generated commands
+cannot use the network, and the candidate `ledger.mjs` cannot use network, child processes,
+worker threads, native add-ons, WASI, or files outside its working directory during
+verification. The agent never receives the verifier or holdout source. The exact candidate
+source is archived after every turn, and the final source is rerun across all fifteen public
+stages before the holdout is scored.
 
 Every prompt carries the complete command grammar. In particular, export and import use
 the positional forms `export PATH` and `import PATH`; they do not use `--file`.
+
+R11 retains the exact command grammar introduced in R3 and the later command-sandbox,
+pinned-runtime, authentication-ownership, and credential-retirement repairs. Its only
+change from R10 is fail-closed tolerance for a transient Droid session-lock directory
+vanishing while the harness scans for credential residue. Any stable scan failure or
+credential-bearing file still invalidates the attempt.
+
+### Enforcement belongs to the harness
+
+The prompt does not need to forbid normal use of `process.env`. Model-generated commands
+run with a minimal, non-secret environment inside the harness boundary. A static read of a
+non-sensitive task-local variable such as `process.env.TMPDIR` is valid because the sandbox
+controls which value, if any, is present.
+
+Defense-in-depth trace validation rejects attempts to enumerate the environment, dynamically
+index `process.env`, read `HOME` or credential-like names, inspect benchmark/verifier or
+authentication files, or submit network-capable tool inputs. These are non-retryable
+`protocol-invalid` outcomes. This policy detects boundary violations; it is not a substitute
+for removing secrets and inaccessible paths before the agent starts.
 
 Read the [V6 challenge description](../benchmark/challenges/mini-ledger-v6.md) and the
 [V6 Harbor task notes](../benchmark/harbor/mini-ledger-v6/README.md) before writing an
@@ -53,11 +83,19 @@ npm run terminal:traces:v6
 ```
 
 The matrix command seals `challenge.json` and `schedule.json`. The run command executes
-the schedule through the harness dispatcher. Verification is fail-closed: infrastructure
-failures are retained as invalid evidence, while agent failures remain real low scores.
+the schedule through the harness dispatcher. Verification is fail-closed:
+
+- a completed, protocol-valid candidate is scored, including ordinary test failures;
+- an infrastructure failure is retained as invalid evidence and may be retried in a fresh
+  attempt;
+- a trace-isolation or other protocol violation is retained as `protocol-invalid`, receives
+  no score, and must not be retried as infrastructure.
+
 Trace export creates the sanitized public evidence package. Do not run a second matrix
-command over a schedule that has already started; use a new result tag and protocol when
-the challenge or harness roster changes.
+command over a schedule that has already started. Any challenge, adapter, runtime, isolation,
+timeout, model, reasoning, or harness-roster change requires a new protocol revision, result
+tag, challenge hash, and schedule hash. Never rewrite or silently accept an old result under
+new rules.
 
 Canonical runs should start from a clean, pinned checkout. V6 hardware-dependent runs
 are executed on the M4 host; the M1 checkout is for orchestration and inspection. No
@@ -97,6 +135,14 @@ Every adapter must provide:
 - a sanitized semantic trace and the final source snapshots;
 - an explicit infrastructure-invalid result when the harness cannot complete safely.
 
+The adapter must distinguish three classes without guessing:
+
+| outcome | meaning | retry policy |
+| --- | --- | --- |
+| completed | protocol-valid candidate, whether tests pass or fail | score it |
+| infrastructure-invalid | provider, runtime, transport, or harness failure prevented a valid run | fresh attempt allowed |
+| protocol-invalid | the agent or harness crossed a sealed boundary | no infrastructure retry |
+
 An adapter may use a CLI, container, local server, or loopback API. The mechanism is not
 the comparison. The published run must make the mechanism and its limits inspectable.
 
@@ -121,6 +167,12 @@ Before a full run, smoke-test the things most likely to invalidate a result:
 - the adapter records a terminal event for every turn, including timeout and failure;
 - a retry cannot reuse a failed workspace or overwrite another attempt;
 - traces and source snapshots are produced even when the agent fails.
+
+Test the negative cases too: environment enumeration, a sensitive-variable read, verifier
+path access, a network-capable command, a disappearing transient runtime file, and a stable
+credential-residue scan failure. The first four must become `protocol-invalid`; the transient
+runtime race may be tolerated only when the path is known to be disposable; stable scan or
+credential failures must remain fail-closed.
 
 If the new harness needs a different timeout, model, tool catalog, or isolation policy,
 that is a protocol change. Give it a new challenge hash and result tag; never silently
@@ -170,6 +222,10 @@ npm test
 npm run terminal:verify:v6
 npm run terminal:traces:v6
 ```
+
+Strict verification is expected to fail until all 25 scheduled outcomes exist. During an
+active campaign, use the verifier's documented `--allow-incomplete` mode only for status and
+diagnostics; it does not make a partial campaign publishable.
 
 Also include any harness-specific smoke or calibration commands. If the run is partial,
 exploratory, retried, or infrastructure-invalid, say so plainly. Do not turn a partial

@@ -177,13 +177,16 @@ class AgentBattlerClaude(ClaudeCode):
         await environment.upload_file(
             bwrap_wrapper, "/tmp/agentbattler-claude-bwrap"
         )
+        await self.exec_as_agent(
+            environment,
+            command="chmod 0755 /tmp/agentbattler-claude-bwrap",
+        )
         await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
                 "mv /tmp/agentbattler-claude-bwrap "
-                "/usr/local/bin/agentbattler-bwrap; "
-                "chmod 0755 /usr/local/bin/agentbattler-bwrap"
+                "/usr/local/bin/agentbattler-bwrap"
             ),
         )
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:

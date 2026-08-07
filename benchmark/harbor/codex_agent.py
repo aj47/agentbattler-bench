@@ -60,12 +60,15 @@ class AgentBattlerCodex(Codex):
         await environment.upload_file(
             bwrap_wrapper, "/tmp/agentbattler-codex-bwrap"
         )
+        await self.exec_as_agent(
+            environment,
+            command="chmod 0755 /tmp/agentbattler-codex-bwrap",
+        )
         await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
-                "mv /tmp/agentbattler-codex-bwrap /usr/local/bin/bwrap; "
-                "chmod 0755 /usr/local/bin/bwrap"
+                "mv /tmp/agentbattler-codex-bwrap /usr/local/bin/bwrap"
             ),
         )
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
@@ -73,6 +76,10 @@ class AgentBattlerCodex(Codex):
             wrapper = Path(handle.name)
         try:
             await environment.upload_file(wrapper, "/tmp/agentbattler-codex-wrapper")
+            await self.exec_as_agent(
+                environment,
+                command="chmod 0755 /tmp/agentbattler-codex-wrapper",
+            )
             await self.exec_as_root(
                 environment,
                 command=(
@@ -89,8 +96,7 @@ class AgentBattlerCodex(Codex):
                     'ln -sf "$sandbox_bwrap" '
                     "/usr/local/bin/agentbattler-codex-bwrap-real; "
                     'ln -sf "$resolved" /usr/local/bin/codex-agentbattler-real; '
-                    "mv /tmp/agentbattler-codex-wrapper /usr/local/bin/codex; "
-                    "chmod 0755 /usr/local/bin/codex"
+                    "mv /tmp/agentbattler-codex-wrapper /usr/local/bin/codex"
                 ),
             )
         finally:

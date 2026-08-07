@@ -16,7 +16,7 @@ import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOver
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
 import { createDroidSettings, materializeDroidSettingsCredential } from '../src/droid-harness.mjs';
-import { assertDroidCredentialAbsent, isolatedDroidEnvironment, retireDroidCredentialSettings } from '../src/droid-sandbox.mjs';
+import { assertDroidCredentialAbsent, isolatedDroidEnvironment, openDroidCredentialDirectory, retireDroidCredentialSettings } from '../src/droid-sandbox.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'factory-droid', 'pi-coding-agent']);
@@ -61,6 +61,22 @@ test('Droid keeps its router credential out of the model command environment and
     assert.ok(retirement.settingsFilesRemoved >= 1);
     assert.ok(retirement.transientObservations >= 1);
     assert.deepEqual(await assertDroidCredentialAbsent({ runDirectory: root, apiKey }), { filesScanned: 0 });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Droid credential scanning tolerates a removed transient session directory but not a missing scan root', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-droid-scan-race-'));
+  const removedSessionDirectory = path.join(root, 'session.settings.json.lock');
+  try {
+    await mkdir(removedSessionDirectory);
+    await rm(removedSessionDirectory, { recursive: true });
+    assert.equal(await openDroidCredentialDirectory(removedSessionDirectory, { allowMissing: true }), null);
+    await assert.rejects(
+      () => openDroidCredentialDirectory(removedSessionDirectory),
+      (error) => error?.code === 'ENOENT' && error?.syscall === 'opendir',
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -424,8 +440,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.9\.0"/);
-  assert.match(config, /protocol_revision = "r10"/);
+  assert.match(config, /version = "6\.10\.0"/);
+  assert.match(config, /protocol_revision = "r11"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);

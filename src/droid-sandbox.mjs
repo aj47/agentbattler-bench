@@ -38,11 +38,24 @@ async function fileContainsLiteral(filePath, literal) {
   return false;
 }
 
-async function* regularFiles(directory) {
-  const entries = await opendir(directory);
+export async function openDroidCredentialDirectory(directory, { allowMissing = false } = {}) {
+  try {
+    return await opendir(directory);
+  } catch (error) {
+    if (allowMissing && error?.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function* regularFiles(directory, { allowMissing = false } = {}) {
+  const entries = await openDroidCredentialDirectory(directory, { allowMissing });
+  if (!entries) return;
   for await (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) yield* regularFiles(entryPath);
+    // Droid creates and removes session lock directories while its process is
+    // live. A child that disappears after readdir but before opendir contains
+    // no credential residue to inspect; the stable scan root must still exist.
+    if (entry.isDirectory()) yield* regularFiles(entryPath, { allowMissing: true });
     else if (entry.isFile()) yield entryPath;
   }
 }

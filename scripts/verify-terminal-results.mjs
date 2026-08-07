@@ -14,7 +14,7 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion === 'v6' ? 'v6-luna-max-r7' : challengeVersion);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion === 'v6' ? 'v6-luna-max-r8' : challengeVersion);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const resultRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_RESULT_ROOT
   ?? path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`));

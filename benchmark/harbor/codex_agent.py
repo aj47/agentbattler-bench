@@ -55,6 +55,11 @@ class AgentBattlerCodex(Codex):
 
     @override
     async def install(self, environment: BaseEnvironment) -> None:
+        # Harbor's Docker provider copies auth.json with the host UID and only
+        # normalizes it when a default container user is explicit. This image
+        # already runs as root; declaring that fact makes Harbor use the
+        # trusted installer's CHOWN capability before Codex reads the secret.
+        environment.default_user = "root"
         await super().install(environment)
         bwrap_wrapper = Path(__file__).with_name("codex_bwrap_wrapper.sh")
         await environment.upload_file(

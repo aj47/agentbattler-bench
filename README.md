@@ -224,7 +224,10 @@ configuration records a 272,000-token raw context window, a 258,400-token effect
 native compaction at 206,720 tokens, and a 32,768-token maximum output. Compaction stays on the
 active model. V5 reasoning is fixed to high; the sealed V6 Luna campaign supplies max reasoning
 through the same JSON-RPC session settings and adds a macOS sandbox that denies host user-home
-and shared temporary files outside the ephemeral run directory.
+and shared temporary files outside the ephemeral run directory. The adapter waits for Droid's
+atomic credential-settings write to settle, retires that file before the first model turn, and
+fails the run if the credential is present at any later boundary. Model-command children never
+inherit the credential in their environment.
 
 ```sh
 npm run droid:routing:smoke

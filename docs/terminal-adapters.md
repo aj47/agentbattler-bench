@@ -69,7 +69,9 @@ Use `--harness` to smoke-test one adapter subset before running the complete mat
 
 Codex defaults to the host's subscription `~/.codex/auth.json` through Harbor's explicit
 `CODEX_AUTH_JSON_PATH` setting. Pi derives an ephemeral `openai-codex` credential from the same
-subscription file inside its agent container, outside the transferred candidate artifact. Claude
+subscription file inside its agent container, outside the transferred candidate artifact. The
+sealed V6 image preinstalls the exact Pi version, so trial setup performs no network-dependent
+Node or package bootstrap. Claude
 Code defaults to the configured CLIProxy endpoint;
 set both `AGENTBATTLER_CLIPROXY_BASE_URL` and `AGENTBATTLER_CLIPROXY_API_KEY`. Override the
 comma-separated proxy roster with `AGENTBATTLER_CLIPROXY_HARNESSES` when needed. DotAgents
@@ -88,6 +90,10 @@ Droid uses the OpenAI Responses endpoint and preflights the exact upstream model
 `/v1/models` before starting a benchmark session. The sealed challenge binds the Droid adapter,
 custom-model/context policy, JSON-RPC client, route-selection, and runtime-verification sources
 independently. Both the version and the Darwin ARM64 binary SHA-256 are checked before a run.
+The router credential is absent from model-command environment variables. After Droid finishes
+its asynchronous atomic startup write, the adapter removes the credential settings and requires
+a quiet, residue-free interval before sending the first prompt; later boundaries fail closed if
+the credential reappears anywhere in the run directory.
 
 Each custom model declares a 272,000-token context window and a 32,768-token maximum output.
 The effective input budget is 95% (258,400 tokens), and native Droid auto-compaction is pinned

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -16,7 +16,7 @@ import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOver
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
 import { createDroidSettings, materializeDroidSettingsCredential } from '../src/droid-harness.mjs';
-import { assertDroidCredentialAbsent, isolatedDroidEnvironment } from '../src/droid-sandbox.mjs';
+import { assertDroidCredentialAbsent, isolatedDroidEnvironment, retireDroidCredentialSettings } from '../src/droid-sandbox.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'factory-droid', 'pi-coding-agent']);
@@ -44,6 +44,22 @@ test('Droid keeps its router credential out of the model command environment and
     await writeFile(transientSettings, JSON.stringify(runtime));
     await assert.rejects(() => assertDroidCredentialAbsent({ runDirectory: root, apiKey }), /credential residue/);
     await rm(transientSettings);
+
+    const factoryHome = path.join(root, 'factory');
+    const settingsPath = path.join(factoryHome, 'settings.json');
+    const temporarySettingsPath = path.join(factoryHome, 'settings.json.tmp-test');
+    await mkdir(factoryHome);
+    await writeFile(settingsPath, JSON.stringify(runtime));
+    const delayedAtomicRewrite = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await writeFile(temporarySettingsPath, JSON.stringify(runtime));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await rename(temporarySettingsPath, settingsPath);
+    })();
+    const retirement = await retireDroidCredentialSettings({ factoryHome, apiKey, timeoutMs: 1_000, quietMs: 75, pollMs: 5 });
+    await delayedAtomicRewrite;
+    assert.ok(retirement.settingsFilesRemoved >= 1);
+    assert.ok(retirement.transientObservations >= 1);
     assert.deepEqual(await assertDroidCredentialAbsent({ runDirectory: root, apiKey }), { filesScanned: 0 });
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -144,8 +160,10 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /pi_sandbox_extension\.mjs/);
   assert.match(source, /--extension/);
   assert.match(source, /command -v bwrap/);
+  assert.match(source, /command -v pi/);
+  assert.match(source, /test "\$\(pi --version\)"/);
   assert.match(source, /chown 0:0 \/tmp\/agentbattler-pi-sandbox\.mjs/);
-  assert.match(source, /\. ~\/\.nvm\/nvm\.sh; nvm use 22/);
+  assert.doesNotMatch(source, /nvm_node_install_snippet|nvm use|npm install/);
   assert.doesNotMatch(source, /apt-get/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
   const sandbox = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_sandbox_extension.mjs'), 'utf8');
@@ -406,8 +424,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.8\.0"/);
-  assert.match(config, /protocol_revision = "r9"/);
+  assert.match(config, /version = "6\.9\.0"/);
+  assert.match(config, /protocol_revision = "r10"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
@@ -420,6 +438,7 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   assert.match(agentImage, /socat/);
   assert.match(agentImage, /@openai\/codex@0\.144\.0/);
   assert.match(agentImage, /@anthropic-ai\/claude-code@2\.1\.220/);
+  assert.match(agentImage, /@earendil-works\/pi-coding-agent@0\.80\.7/);
   const agentCompose = await readFile(path.join(taskRoot, 'environment', 'docker-compose.yaml'), 'utf8');
   assert.match(agentCompose, /SYS_ADMIN/);
   assert.match(agentCompose, /NET_ADMIN/);

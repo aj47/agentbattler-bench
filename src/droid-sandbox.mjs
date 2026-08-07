@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { access, opendir } from 'node:fs/promises';
+import { access, opendir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -56,6 +56,68 @@ export async function assertDroidCredentialAbsent({ runDirectory, apiKey }) {
     invariant(!await fileContainsLiteral(filePath, apiKey), `Droid credential residue found in ${path.relative(runDirectory, filePath)}`);
   }
   return { filesScanned };
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function isTransientDroidSettings(relativePath) {
+  return /^settings\.json\.tmp-[^/]+$/.test(relativePath);
+}
+
+export async function retireDroidCredentialSettings({
+  factoryHome,
+  apiKey,
+  timeoutMs = 5_000,
+  quietMs = 500,
+  pollMs = 25,
+} = {}) {
+  invariant(typeof factoryHome === 'string' && path.isAbsolute(factoryHome), 'Droid Factory home must be absolute');
+  invariant(typeof apiKey === 'string' && apiKey.length > 0, 'Droid API key is required');
+  invariant(Number.isSafeInteger(timeoutMs) && timeoutMs > 0, 'Droid credential retirement timeout must be positive');
+  invariant(Number.isSafeInteger(quietMs) && quietMs >= 0 && quietMs < timeoutMs, 'Droid credential retirement quiet period must be non-negative and shorter than its timeout');
+  invariant(Number.isSafeInteger(pollMs) && pollMs > 0 && pollMs <= timeoutMs, 'Droid credential retirement poll interval must be positive');
+
+  const startedAt = Date.now();
+  let quietSince = null;
+  let filesScanned = 0;
+  let settingsFilesRemoved = 0;
+  let transientObservations = 0;
+  while (Date.now() - startedAt < timeoutMs) {
+    const residue = [];
+    filesScanned = 0;
+    for await (const filePath of regularFiles(factoryHome)) {
+      filesScanned += 1;
+      try {
+        if (await fileContainsLiteral(filePath, apiKey)) residue.push(filePath);
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+    }
+    const relativeResidue = residue.map((filePath) => path.relative(factoryHome, filePath));
+    const unexpected = relativeResidue.filter((relativePath) => relativePath !== 'settings.json' && !isTransientDroidSettings(relativePath));
+    invariant(unexpected.length === 0, `Droid credential escaped its transient settings boundary: ${unexpected.join(', ')}`);
+
+    const transient = relativeResidue.filter(isTransientDroidSettings);
+    if (transient.length > 0) {
+      // Droid writes settings atomically. Let an in-flight writer finish instead
+      // of unlinking its open temporary file and racing a later rename.
+      transientObservations += transient.length;
+      quietSince = null;
+    } else if (relativeResidue.includes('settings.json')) {
+      await rm(path.join(factoryHome, 'settings.json'), { force: true });
+      settingsFilesRemoved += 1;
+      quietSince = null;
+    } else {
+      quietSince ??= Date.now();
+      if (Date.now() - quietSince >= quietMs) {
+        return { filesScanned, settingsFilesRemoved, transientObservations, quietMs };
+      }
+    }
+    await wait(pollMs);
+  }
+  throw new Error(`Droid credential settings did not settle within ${timeoutMs} ms`);
 }
 
 export function createDroidSandboxProfile({

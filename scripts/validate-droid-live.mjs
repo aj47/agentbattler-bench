@@ -17,6 +17,7 @@ import {
   droidSandboxLauncher,
   isolatedDroidEnvironment,
   requireDroidSandboxRuntime,
+  retireDroidCredentialSettings,
 } from '../src/droid-sandbox.mjs';
 
 function invariant(condition, message) { if (!condition) throw new Error(message); }
@@ -58,7 +59,8 @@ try {
     const runtimeSettings = materializeDroidSettingsCredential(settings, router.apiKey);
     await writeFile(settingsPath, `${JSON.stringify(runtimeSettings, null, 2)}\n`, { mode: 0o600 });
     initialized = await session.start();
-    await rm(settingsPath, { force: true });
+    const retirement = await retireDroidCredentialSettings({ factoryHome: path.join(home, '.factory'), apiKey: router.apiKey });
+    invariant(retirement.settingsFilesRemoved >= 1, 'Droid did not retire its credential settings before the first turn');
     await assertDroidCredentialAbsent({ runDirectory: root, apiKey: router.apiKey });
     firstSummary = (await session.turn('Reply with exactly ROUTE_OK. Do not use tools.')).summary;
     invariant(firstSummary.finalText.trim() === 'ROUTE_OK', `Unexpected first response: ${firstSummary.finalText}`);
@@ -72,8 +74,8 @@ try {
     invariant(secondSummary.finalText.trim() === 'RESUME_OK', `Unexpected second response: ${secondSummary.finalText}`);
     await assertDroidCredentialAbsent({ runDirectory: root, apiKey: router.apiKey });
   } finally {
-    await rm(settingsPath, { force: true });
     await session.close();
+    await retireDroidCredentialSettings({ factoryHome: path.join(home, '.factory'), apiKey: router.apiKey });
     await assertDroidCredentialAbsent({ runDirectory: root, apiKey: router.apiKey });
   }
   console.log(JSON.stringify({
@@ -89,7 +91,7 @@ try {
     sessionId: initialized.sessionId,
     sameSessionProof: true,
     apiKeyInheritedByModelCommands: false,
-    apiKeyDelivery: 'ephemeral-settings-unlinked-before-first-turn',
+    apiKeyDelivery: 'ephemeral-settings-settled-and-retired-before-first-turn',
     filesystemIsolation: launcher.policy,
     contextLimit: initialized.settings.context.limit,
     restrictedToolIds: initialized.settings.restrictToolIds,

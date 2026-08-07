@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import override
 
 from harbor.agents.installed.base import CliFlag, with_prompt_template
-from harbor.agents.installed.node_install import nvm_node_install_snippet
 from harbor.agents.installed.pi import Pi
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
@@ -29,22 +28,18 @@ class AgentBattlerPi(Pi):
 
     @override
     async def install(self, environment: BaseEnvironment) -> None:
+        if not self._version:
+            raise ValueError("AgentBattler Pi requires a pinned runtime version")
         await self.exec_as_root(
             environment,
             command=(
                 "command -v bwrap >/dev/null && "
                 "command -v curl >/dev/null && "
-                "command -v rg >/dev/null"
-            ),
-        )
-        version_spec = f"@{self._version}" if self._version else "@latest"
-        await self.exec_as_agent(
-            environment,
-            command=(
-                "set -euo pipefail; "
-                f"{nvm_node_install_snippet()} && "
-                f"npm install -g @earendil-works/pi-coding-agent{version_spec} && "
-                "pi --version"
+                "command -v rg >/dev/null && "
+                "command -v node >/dev/null && "
+                "command -v npm >/dev/null && "
+                "command -v pi >/dev/null && "
+                f'test "$(pi --version)" = {shlex.quote(self._version)}'
             ),
         )
         sandbox_source = Path(__file__).with_name("pi_sandbox_extension.mjs")
@@ -58,11 +53,10 @@ class AgentBattlerPi(Pi):
                 "chmod 0644 /tmp/agentbattler-pi-sandbox.mjs"
             ),
         )
-        await self.exec_as_agent(
+        await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
-                ". ~/.nvm/nvm.sh; nvm use 22 >/dev/null; "
                 'root="$(npm root -g)/@earendil-works/pi-coding-agent"; '
                 'test -d "$root"; '
                 'mv /tmp/agentbattler-pi-sandbox.mjs '
@@ -138,7 +132,7 @@ class AgentBattlerPi(Pi):
         await self.exec_as_agent(
             environment,
             command=(
-                "set -euo pipefail; . ~/.nvm/nvm.sh; nvm use 22 >/dev/null; "
+                "set -euo pipefail; "
                 f"{continuation}"
                 "pi --mode json "
                 f"--provider {shlex.quote(provider)} --model {shlex.quote(model)} "

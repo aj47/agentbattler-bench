@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +20,7 @@ import {
   droidSandboxLauncher,
   isolatedDroidEnvironment,
   requireDroidSandboxRuntime,
+  retireDroidCredentialSettings,
 } from '../src/droid-sandbox.mjs';
 import { droidRouteModel, droidRouterConfig, preflightDroidRoute } from '../src/droid-routing.mjs';
 import { verifyDroidRuntime } from '../src/droid-runtime.mjs';
@@ -110,9 +111,10 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
     const runtimeSettings = materializeDroidSettingsCredential(settings, router.apiKey);
     await writeFile(settingsPath, `${canonicalJson(runtimeSettings, { space: 2 })}\n`, { mode: 0o600 });
     const initialized = await session.start();
-    await rm(settingsPath, { force: true });
+    const retirement = await retireDroidCredentialSettings({ factoryHome, apiKey: router.apiKey });
+    invariant(retirement.settingsFilesRemoved >= 1, 'Droid did not retire its credential settings before the first turn');
     credentialSettingsUnlinked = true;
-    credentialResidueScans.push({ boundary: 'before-first-turn', ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
+    credentialResidueScans.push({ boundary: 'before-first-turn', retirement, ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
     sessionId = initialized.sessionId;
     const redactedSettingsEvidence = redactCredential(initialized.settings, router.apiKey);
     sanitizationReplacements += redactedSettingsEvidence.replacements;
@@ -156,12 +158,12 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       credentialResidueScans.push({ boundary: `after-turn-${index + 1}`, ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
     }
   } finally {
-    await rm(settingsPath, { force: true });
     await session.close();
+    const retirement = await retireDroidCredentialSettings({ factoryHome, apiKey: router.apiKey });
     const stderr = publicTrace(session.stderrText(), { runDirectory, apiKey: router.apiKey });
     sanitizationReplacements += stderr.totalReplacements;
     await writeFile(path.join(runDirectory, 'droid.stderr'), stderr.content);
-    credentialResidueScans.push({ boundary: 'after-session-close', ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
+    credentialResidueScans.push({ boundary: 'after-session-close', retirement, ...await assertDroidCredentialAbsent({ runDirectory, apiKey: router.apiKey }) });
   }
   const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace, challenge, publicVerifier }) : null;
   const holdout = await holdoutVerifier.verifyHoldout({ workspace });
@@ -210,7 +212,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       hostFactorySettingsInherited: false,
       apiKeyStoredInPersistentSettings: false,
       apiKeyInheritedByModelCommands: false,
-      apiKeyDelivery: 'ephemeral-settings-unlinked-before-first-turn',
+      apiKeyDelivery: 'ephemeral-settings-settled-and-retired-before-first-turn',
       credentialSettingsUnlinked,
       credentialResidueScans,
       sanitizationReplacements,

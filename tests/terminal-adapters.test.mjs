@@ -124,6 +124,9 @@ test('Harbor Codex replaces the unsafe launcher flag with native command sandbox
   assert.match(bwrap, /args\+\=\(--cap-drop ALL\)/);
   assert.match(bwrap, /--clearenv/);
   assert.match(bwrap, /--setenv HOME \/app\/\.agentbattler-tmp/);
+  assert.match(bwrap, /AgentBattler command sandbox retained capabilities/);
+  assert.match(bwrap, /\/proc\/self\/status/);
+  assert.match(bwrap, /agentbattler-capability-guard/);
   assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
@@ -235,6 +238,9 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(bwrap, /isolated_root/);
   assert.match(bwrap, /--clearenv/);
   assert.match(bwrap, /--setenv HOME \/tmp/);
+  assert.match(bwrap, /AgentBattler command sandbox retained capabilities/);
+  assert.match(bwrap, /\/proc\/self\/status/);
+  assert.match(bwrap, /agentbattler-capability-guard/);
   assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
@@ -445,8 +451,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.11\.0"/);
-  assert.match(config, /protocol_revision = "r12"/);
+  assert.match(config, /version = "6\.12\.0"/);
+  assert.match(config, /protocol_revision = "r13"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);

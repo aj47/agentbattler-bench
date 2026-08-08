@@ -49,8 +49,14 @@ while [[ "$#" -gt 0 ]]; do
       --setenv LANG C
       --setenv LC_ALL C
       --setenv TMPDIR /tmp
+      --
+      /bin/sh
+      -c
+      'cap="$(sed -n "s/^CapEff:[[:space:]]*//p" /proc/self/status)"; case "$cap" in ""|*[!0]*) echo "AgentBattler command sandbox retained capabilities" >&2; exit 77;; esac; exec "$@"'
+      agentbattler-capability-guard
     )
     separator=1
+    continue
   fi
   args+=("$argument")
 done

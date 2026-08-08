@@ -17,6 +17,7 @@ pid_namespace=0
 isolated_root=0
 cap_drop=0
 separator=0
+inner_argv0=
 while [[ "$#" -gt 0 ]]; do
   argument="$1"
   shift
@@ -37,6 +38,13 @@ while [[ "$#" -gt 0 ]]; do
   if [[ "$argument" == "--cap-drop" && "${1:-}" == "ALL" ]]; then
     cap_drop=1
   fi
+  if [[ "$argument" == "--argv0" ]]; then
+    [[ -n "${1:-}" ]] || {
+      echo "AgentBattler Codex sandbox refused an empty inner argv0" >&2
+      exit 64
+    }
+    inner_argv0="$1"
+  fi
   if [[ "$argument" == "--" && "$separator" -eq 0 ]]; then
     if [[ "$cap_drop" -eq 0 ]]; then
       args+=(--cap-drop ALL)
@@ -50,10 +58,10 @@ while [[ "$#" -gt 0 ]]; do
       --setenv LC_ALL C
       --setenv TMPDIR /app/.agentbattler-tmp
       --
-      /bin/sh
+      /bin/bash
       -c
-      'cap="$(sed -n "s/^CapEff:[[:space:]]*//p" /proc/self/status)"; case "$cap" in ""|*[!0]*) echo "AgentBattler command sandbox retained capabilities" >&2; exit 77;; esac; exec "$@"'
-      agentbattler-capability-guard
+      'cap="$(sed -n "s/^CapEff:[[:space:]]*//p" /proc/self/status)"; case "$cap" in ""|*[!0]*) echo "AgentBattler command sandbox retained capabilities" >&2; exit 77;; esac; if [[ "$0" == agentbattler-capability-guard ]]; then exec "$@"; else exec -a "$0" "$@"; fi'
+      "${inner_argv0:-agentbattler-capability-guard}"
     )
     separator=1
     continue

@@ -4,13 +4,13 @@ artifacts = [{ source = "/app", destination = "candidate" }]
 
 [task]
 name = "agentbattler/mini-ledger-v6"
-version = "6.12.0"
+version = "6.13.0"
 description = "Fifteen-turn long-horizon deterministic ledger challenge"
 
 [metadata]
 benchmark = "AgentBattler"
 challenge = "mini-ledger-v6"
-protocol_revision = "r13"
+protocol_revision = "r14"
 harbor_version = "0.20.0"
 visible_points = 70
 holdout_points = 30

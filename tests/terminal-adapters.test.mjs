@@ -114,6 +114,7 @@ test('Harbor Codex replaces the unsafe launcher flag with native command sandbox
   assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-bwrap/);
   assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-wrapper/);
   assert.doesNotMatch(source, /--sandbox workspace-write/);
+  assert.match(source, /TMPDIR="\/app\/\.agentbattler-tmp"/);
   assert.match(source, /AgentBattlerCodex/);
   const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_bwrap_wrapper.sh'), 'utf8');
   assert.match(bwrap, /--unshare-user/);
@@ -124,9 +125,12 @@ test('Harbor Codex replaces the unsafe launcher flag with native command sandbox
   assert.match(bwrap, /args\+\=\(--cap-drop ALL\)/);
   assert.match(bwrap, /--clearenv/);
   assert.match(bwrap, /--setenv HOME \/app\/\.agentbattler-tmp/);
+  assert.match(bwrap, /--setenv TMPDIR \/app\/\.agentbattler-tmp/);
   assert.match(bwrap, /AgentBattler command sandbox retained capabilities/);
   assert.match(bwrap, /\/proc\/self\/status/);
   assert.match(bwrap, /agentbattler-capability-guard/);
+  assert.match(bwrap, /inner_argv0/);
+  assert.match(bwrap, /exec -a "\$0" "\$@"/);
   assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
@@ -451,8 +455,8 @@ test('generated Harbor V6 task archives every candidate and reevaluates final co
   const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
   const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
   assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
-  assert.match(config, /version = "6\.12\.0"/);
-  assert.match(config, /protocol_revision = "r13"/);
+  assert.match(config, /version = "6\.13\.0"/);
+  assert.match(config, /protocol_revision = "r14"/);
   assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
   assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
   assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);

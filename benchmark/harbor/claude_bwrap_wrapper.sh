@@ -15,6 +15,8 @@ args=()
 network=0
 pid_namespace=0
 cap_drop=0
+isolated_root=0
+separator=0
 while [[ "$#" -gt 0 ]]; do
   argument="$1"
   shift
@@ -26,13 +28,34 @@ while [[ "$#" -gt 0 ]]; do
   fi
   [[ "$argument" != "--unshare-net" ]] || network=1
   [[ "$argument" != "--unshare-pid" ]] || pid_namespace=1
+  if [[ "$argument" == "--ro-bind" && "${1:-}" == "/" && "${2:-}" == "/" ]]; then
+    isolated_root=1
+  fi
+  if [[ "$argument" == "--tmpfs" && "${1:-}" == "/" ]]; then
+    isolated_root=1
+  fi
   if [[ "$argument" == "--cap-drop" && "${1:-}" == "ALL" ]]; then
     cap_drop=1
+  fi
+  if [[ "$argument" == "--" && "$separator" -eq 0 ]]; then
+    if [[ "$cap_drop" -eq 0 ]]; then
+      args+=(--cap-drop ALL)
+      cap_drop=1
+    fi
+    args+=(
+      --clearenv
+      --setenv PATH /usr/local/bin:/usr/bin:/bin
+      --setenv HOME /tmp
+      --setenv LANG C
+      --setenv LC_ALL C
+      --setenv TMPDIR /tmp
+    )
+    separator=1
   fi
   args+=("$argument")
 done
 
-if [[ "$network" -ne 1 || "$pid_namespace" -ne 1 || "$cap_drop" -ne 1 ]]; then
+if [[ "$network" -ne 1 || "$pid_namespace" -ne 1 || "$isolated_root" -ne 1 || "$cap_drop" -ne 1 || "$separator" -ne 1 ]]; then
   echo "AgentBattler Claude sandbox refused an incomplete bwrap policy" >&2
   exit 64
 fi

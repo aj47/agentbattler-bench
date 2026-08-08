@@ -28,8 +28,8 @@ import { canonicalJson, sha256 } from '../src/provenance.mjs';
 import { sanitizePublicTrace } from '../src/trace-sanitizer.mjs';
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import {
-  assertTerminalTraceIsolation,
   captureTerminalCandidateSnapshot,
+  terminalTraceIsolationForChallenge,
   terminalTurnCompletion,
   verifyTerminalFinalPublic,
   verifyTerminalPublicStage,
@@ -124,7 +124,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       const turn = await session.turn(prompts[index], timeoutMs);
       const summary = turn.summary;
       const isolation = challenge.execution?.traceIsolationRequired === true
-        ? assertTerminalTraceIsolation({ trace: turn.messages, repositoryRoot: REPOSITORY_ROOT, workspace, turn: index + 1 })
+        ? terminalTraceIsolationForChallenge({ challenge, sandboxPolicy: launcher?.policy?.name, trace: turn.messages, repositoryRoot: REPOSITORY_ROOT, workspace, turn: index + 1 })
         : null;
       const traceContent = `${turn.messages.map((event) => canonicalJson(event)).join('\n')}\n`;
       const trace = publicTrace(traceContent, { runDirectory, apiKey: router.apiKey });

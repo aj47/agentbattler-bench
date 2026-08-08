@@ -42,6 +42,14 @@ while [[ "$#" -gt 0 ]]; do
       args+=(--cap-drop ALL)
       cap_drop=1
     fi
+    args+=(
+      --clearenv
+      --setenv PATH /usr/local/bin:/usr/bin:/bin
+      --setenv HOME /app/.agentbattler-tmp
+      --setenv LANG C
+      --setenv LC_ALL C
+      --setenv TMPDIR /app/.agentbattler-tmp
+    )
     separator=1
   fi
   args+=("$argument")

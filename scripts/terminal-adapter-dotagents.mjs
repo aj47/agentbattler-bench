@@ -27,8 +27,8 @@ import {
 } from '../src/dotagents-harness.mjs';
 import { canonicalJson } from '../src/provenance.mjs';
 import {
-  assertTerminalTraceIsolation,
   captureTerminalCandidateSnapshot,
+  terminalTraceIsolationForChallenge,
   terminalTurnCompletion,
   verifyTerminalFinalPublic,
   verifyTerminalPublicStage,
@@ -370,7 +370,7 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
         outputPath: path.join(runDirectory, `turn-${index + 1}.jsonl`),
       });
       const isolation = challenge.execution?.traceIsolationRequired === true
-        ? assertTerminalTraceIsolation({ trace: result.events, repositoryRoot: REPOSITORY_ROOT, workspace: '/workspace', turn: index + 1 })
+        ? terminalTraceIsolationForChallenge({ challenge, sandboxPolicy: 'dotagents-bwrap-r5', trace: result.events, repositoryRoot: REPOSITORY_ROOT, workspace: '/workspace', turn: index + 1 })
         : null;
       const telemetry = summarizeDotAgentsTrace(result.events, job.model, { maxIterations });
       invariant(telemetry.conversationId, `DotAgents turn ${index + 1} emitted no conversation ID`);

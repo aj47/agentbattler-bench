@@ -20,8 +20,10 @@ import { verifyPublicStage as verifyV3PublicStage } from '../benchmark/challenge
 import { verifyPublicStage as verifyV6PublicStage } from '../benchmark/challenges/mini-ledger-v6/public-verifier.mjs';
 import {
   TerminalTraceIsolationError,
+  auditSandboxedTerminalTraceIsolation,
   assertTerminalTraceIsolation,
   captureTerminalCandidateSnapshot,
+  terminalTraceIsolationForChallenge,
   terminalTurnCompletion,
 } from '../src/terminal-run-evidence.mjs';
 import { createTerminalRuntimeRoster } from '../src/terminal-roster.mjs';
@@ -188,6 +190,35 @@ test('V6 trace isolation permits sandbox-owned task variables without permitting
       turn: 3,
     }), TerminalTraceIsolationError);
   }
+});
+
+test('R12 records sandbox-blocked boundary attempts without disqualifying the run', () => {
+  const trace = [{ type: 'tool_use', name: 'Bash', input: { command: 'cat /repo/public-verifier.mjs; printenv; curl https://example.com' } }];
+  assert.throws(() => auditSandboxedTerminalTraceIsolation({ trace, repositoryRoot: '/repo', workspace: '/app', turn: 4 }), /Sandbox policy attestation/);
+  const direct = auditSandboxedTerminalTraceIsolation({ sandboxPolicy: 'test-bwrap', trace, repositoryRoot: '/repo', workspace: '/app', turn: 4 });
+  assert.equal(direct.schemaVersion, 'agentbattler.terminal-trace-isolation-audit.v1');
+  assert.equal(direct.passed, true);
+  assert.equal(direct.sandboxEnforced, true);
+  assert.equal(direct.disqualifying, false);
+  assert.equal(direct.observedAttemptCount, 4);
+  assert.deepEqual(direct.violations, []);
+  assert.deepEqual(new Set(direct.observedAttempts.map(({ marker }) => marker)), new Set([
+    '<benchmark-repository-root>',
+    '<environment-enumeration>',
+    '<network-capable-tool-input>',
+    'public-verifier.mjs',
+  ]));
+
+  const routed = terminalTraceIsolationForChallenge({
+    challenge: { execution: { agentToolRuntimePolicy: { traceAudit: 'sandbox-enforced-attempt-observation' } } },
+    sandboxPolicy: 'test-bwrap',
+    trace,
+    repositoryRoot: '/repo',
+    workspace: '/app',
+    turn: 4,
+  });
+  assert.equal(routed.disqualifying, false);
+  assert.equal(routed.observedAttemptCount, 4);
 });
 
 test('V6 records normalized stop reasons and seals Droid away from the user home', () => {

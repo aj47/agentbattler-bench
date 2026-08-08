@@ -13,11 +13,11 @@ const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 
 if (!['v4', 'v5', 'v6'].includes(challengeVersion)) throw new Error('Harbor task generation supports only V4, V5, and V6');
 const protocolRevision = challengeVersion === 'v5'
   ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2'
-  : challengeVersion === 'v6' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r11' : null;
+  : challengeVersion === 'v6' ? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r12' : null;
 if (protocolRevision && !/^r\d+$/.test(protocolRevision)) throw new Error('AGENTBATTLER_TERMINAL_PROTOCOL_REVISION must look like r2');
 const prompts = challengeVersion === 'v6' ? MINI_LEDGER_V6_TURN_PROMPTS : challengeVersion === 'v5' ? MINI_LEDGER_V5_TURN_PROMPTS : MINI_LEDGER_V4_TURN_PROMPTS;
 const versionNumber = challengeVersion === 'v6'
-  ? protocolRevision === 'r11' ? '6.10.0' : protocolRevision === 'r10' ? '6.9.0' : protocolRevision === 'r9' ? '6.8.0' : protocolRevision === 'r8' ? '6.7.0' : protocolRevision === 'r7' ? '6.6.0' : protocolRevision === 'r6' ? '6.5.0' : protocolRevision === 'r5' ? '6.4.0' : protocolRevision === 'r4' ? '6.3.0' : '6.2.0'
+  ? protocolRevision === 'r12' ? '6.11.0' : protocolRevision === 'r11' ? '6.10.0' : protocolRevision === 'r10' ? '6.9.0' : protocolRevision === 'r9' ? '6.8.0' : protocolRevision === 'r8' ? '6.7.0' : protocolRevision === 'r7' ? '6.6.0' : protocolRevision === 'r6' ? '6.5.0' : protocolRevision === 'r5' ? '6.4.0' : protocolRevision === 'r4' ? '6.3.0' : '6.2.0'
   : challengeVersion === 'v5'
   ? protocolRevision === 'r5' ? '5.4.0' : protocolRevision === 'r4' ? '5.3.0' : protocolRevision === 'r3' ? '5.2.0' : '5.1.0'
   : '4.2.0';
@@ -270,7 +270,9 @@ WORKDIR /
     }
   }
 }
-const v6RevisionNote = protocolRevision === 'r11'
+const v6RevisionNote = protocolRevision === 'r12'
+  ? 'R12 makes the sealed OS/native sandbox authoritative: forbidden filesystem, environment, and network attempts are blocked before access and recorded as non-disqualifying tool errors. Codex and Claude command children also receive a wrapper-forced minimal public environment.'
+  : protocolRevision === 'r11'
   ? 'R11 preserves R10 while tolerating only vanished transient Droid session-lock directories during credential-residue scans; stable scan roots and credential-bearing files still fail closed.'
   : protocolRevision === 'r10'
     ? 'R10 preinstalls the pinned Pi runtime in the sealed image and retires Droid credential settings only after its atomic startup write settles, before any model turn begins.'

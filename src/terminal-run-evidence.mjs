@@ -6,6 +6,7 @@ import { canonicalJson, sha256File } from './provenance.mjs';
 const CANDIDATE_SNAPSHOT_SCHEMA = 'agentbattler.terminal-candidate-snapshot.v1';
 const FINAL_PUBLIC_SCHEMA = 'agentbattler.terminal-final-public.v1';
 const TRACE_ISOLATION_SCHEMA = 'agentbattler.terminal-trace-isolation.v1';
+const TRACE_ISOLATION_AUDIT_SCHEMA = 'agentbattler.terminal-trace-isolation-audit.v1';
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -239,7 +240,7 @@ function staticEnvironmentKey(text, offset) {
 
 function environmentAccessMarkers(text) {
   const markers = new Set();
-  if (/(^|[;&|()\s])printenv(?=\s|$)|(^|[;&()\s])env\s*(?:$|[|;&])|\/proc\/(?:self|\d+)\/environ|\bgetenv\s*\(/i.test(text)) {
+  if (/(^|[;&|()\s])printenv(?=\s|[|;&()]|$)|(^|[;&()\s])env\s*(?:$|[|;&])|\/proc\/(?:self|\d+)\/environ|\bgetenv\s*\(/i.test(text)) {
     markers.add('<environment-enumeration>');
   }
   if (/(?:^|[\s"'=])(?:~(?=\/|\s|$)|\$HOME(?:\/|\b)|\$\{HOME\}|\$(?:\{)?[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH)[A-Z0-9_]*(?:\})?)/i.test(text)) {
@@ -259,7 +260,7 @@ function environmentAccessMarkers(text) {
   return [...markers];
 }
 
-export function assertTerminalTraceIsolation({ trace, repositoryRoot = null, workspace = null, turn = null }) {
+function terminalTraceIsolationEvidence({ trace, repositoryRoot = null, workspace = null, turn = null }) {
   const resolvedRepositoryRoot = repositoryRoot ? path.resolve(repositoryRoot) : null;
   const markers = [
     'benchmark/challenges',
@@ -287,7 +288,7 @@ export function assertTerminalTraceIsolation({ trace, repositoryRoot = null, wor
     }
     for (const marker of environmentAccessMarkers(payload.text)) violations.push({ tool: String(payload.tool), marker });
   }
-  const evidence = {
+  return {
     schemaVersion: TRACE_ISOLATION_SCHEMA,
     turn,
     checkedToolPayloads: payloads.length,
@@ -295,10 +296,39 @@ export function assertTerminalTraceIsolation({ trace, repositoryRoot = null, wor
     passed: violations.length === 0,
     violations,
   };
-  if (violations.length > 0) {
-    throw new TerminalTraceIsolationError(`Turn ${turn ?? 'unknown'} violated the sealed trace-isolation policy`, evidence);
+}
+
+export function assertTerminalTraceIsolation(options) {
+  const evidence = terminalTraceIsolationEvidence(options);
+  if (evidence.violations.length > 0) {
+    throw new TerminalTraceIsolationError(`Turn ${options.turn ?? 'unknown'} violated the sealed trace-isolation policy`, evidence);
   }
   return evidence;
+}
+
+export function auditSandboxedTerminalTraceIsolation({ sandboxPolicy, ...options }) {
+  invariant(typeof sandboxPolicy === 'string' && sandboxPolicy.length > 0, 'Sandbox policy attestation is required for non-disqualifying trace auditing');
+  const observed = terminalTraceIsolationEvidence(options);
+  // R12 makes the sealed runtime boundary authoritative. Tool inputs remain
+  // useful audit evidence, but a blocked attempt is an ordinary tool error,
+  // not proof that the model crossed the boundary or grounds to discard it.
+  return {
+    ...observed,
+    schemaVersion: TRACE_ISOLATION_AUDIT_SCHEMA,
+    passed: true,
+    sandboxEnforced: true,
+    sandboxPolicy,
+    disqualifying: false,
+    observedAttemptCount: observed.violations.length,
+    observedAttempts: observed.violations,
+    violations: [],
+  };
+}
+
+export function terminalTraceIsolationForChallenge({ challenge, ...options }) {
+  const audit = challenge?.execution?.agentToolRuntimePolicy?.traceAudit;
+  if (audit === 'sandbox-enforced-attempt-observation') return auditSandboxedTerminalTraceIsolation(options);
+  return assertTerminalTraceIsolation(options);
 }
 
 export function terminalTurnCompletion({

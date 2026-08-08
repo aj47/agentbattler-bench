@@ -10,8 +10,8 @@ import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.m
 import { claudeCompactionPolicy, claudeCompactionTelemetry, compactionDelta } from '../src/claude-compaction.mjs';
 import { terminalHarnessVersion } from '../src/terminal-harness-versions.mjs';
 import {
-  assertTerminalTraceIsolation,
   captureTerminalCandidateSnapshot,
+  terminalTraceIsolationForChallenge,
   terminalTurnCompletion,
 } from '../src/terminal-run-evidence.mjs';
 
@@ -375,7 +375,7 @@ export async function importHarborResult({ raw, trialRoot, challenge, job, harne
       trajectory = JSON.parse(await readFile(path.join(trialRoot, 'steps', step.step_name, 'agent', 'trajectory.json'), 'utf8'));
     } catch { /* ATIF is optional for a custom Harbor agent. */ }
     const isolation = challenge.execution?.traceIsolationRequired === true
-      ? assertTerminalTraceIsolation({ trace: { trajectory, nativeEvents: nativeEvidence.events }, repositoryRoot: REPO_ROOT, workspace: '/app', turn: index + 1 })
+      ? terminalTraceIsolationForChallenge({ challenge, sandboxPolicy: `${job.harness}-sealed-command-sandbox`, trace: { trajectory, nativeEvents: nativeEvidence.events }, repositoryRoot: REPO_ROOT, workspace: '/app', turn: index + 1 })
       : null;
     const candidate = challenge.execution?.candidateSnapshotsRequired === true
       ? await captureTerminalCandidateSnapshot({

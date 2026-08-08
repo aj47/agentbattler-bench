@@ -17,7 +17,7 @@ COPY benchmark/challenges/mini-ledger-v7/verifier.mjs /tests/benchmark/challenge
 COPY benchmark/challenges/mini-ledger-v7/requirement-map.json /tests/benchmark/challenges/mini-ledger-v7/requirement-map.json
 COPY benchmark/challenges/mini-ledger-v7/starter /tests/benchmark/challenges/mini-ledger-v7/starter
 COPY benchmark/challenges/mini-ledger-v7/tickets /tests/benchmark/challenges/mini-ledger-v7/tickets
-COPY benchmark/verifier/mini-ledger-v7/run.mjs /tests/run.mjs
+COPY benchmark/verifier/mini-ledger-v7/run.mjs /tests/benchmark/verifier/mini-ledger-v7/run.mjs
 
 RUN printf '%s\n' \
       '#!/bin/sh' \
@@ -33,9 +33,10 @@ RUN printf '%s\n' \
 
 RUN find /tests -type d -exec chmod 0755 {} + \
     && find /tests -type f -exec chmod 0444 {} + \
-    && chmod 0555 /tests/run.mjs \
+    && chmod 0555 /tests/benchmark/verifier/mini-ledger-v7/run.mjs \
     && command -v bwrap >/dev/null \
-    && command -v strace >/dev/null
+    && command -v strace >/dev/null \
+    && node --input-type=module --eval "await import('/tests/benchmark/verifier/mini-ledger-v7/run.mjs')"
 
 WORKDIR /
-ENTRYPOINT ["node", "/tests/run.mjs"]
+ENTRYPOINT ["node", "/tests/benchmark/verifier/mini-ledger-v7/run.mjs"]

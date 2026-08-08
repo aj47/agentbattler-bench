@@ -174,7 +174,7 @@ export async function assertTerminalV7BaseGatesFromFiles(options = {}) {
 }
 
 export async function main({ env = process.env, root = ROOT } = {}) {
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const resultRoot = path.resolve(env.AGENTBATTLER_TERMINAL_RESULT_ROOT
     ?? path.join(root, 'results', `terminal-mini-ledger-v7-calibration-${revision}`));
   const stateRoot = env.CODEX_HOME ?? path.join(os.homedir(), '.codex');

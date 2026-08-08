@@ -51,7 +51,7 @@ export async function main({
   now = () => new Date().toISOString(),
   expectedReleaseIdentity = null,
 } = {}) {
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const evidenceArgument = argv.find((value) => !value.startsWith('--'));
   const evidencePath = path.resolve(env.AGENTBATTLER_V7_RETIREMENT_EVIDENCE_PATH ?? evidenceArgument ?? '');
   invariant(evidenceArgument || env.AGENTBATTLER_V7_RETIREMENT_EVIDENCE_PATH, 'V7 retirement requires an evidence JSON path');

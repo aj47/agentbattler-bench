@@ -57,7 +57,7 @@ async function evaluatorSeedKey(pack) {
   if (pack.pool === 'dev') return null;
   if (typeof process.env.AGENTBATTLER_V7_SEED_KEY === 'string' && process.env.AGENTBATTLER_V7_SEED_KEY.length >= 16) return process.env.AGENTBATTLER_V7_SEED_KEY;
   const stateRoot = process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex');
-  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const keyPath = process.env.AGENTBATTLER_V7_SEED_KEY_FILE ?? path.join(stateRoot, 'automations', 'mini-ledger-v6-scheduled-check', `mini-ledger-v7-${revision}.seed-key`);
   const key = (await readFile(keyPath, 'utf8')).trim();
   invariant(key.length >= 16, 'V7 evaluator seed key is invalid');

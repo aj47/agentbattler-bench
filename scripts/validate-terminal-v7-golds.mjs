@@ -416,7 +416,7 @@ export async function assertTerminalV7GoldReportArtifacts({
 }
 
 export async function validateTerminalV7Golds({
-  revision = 'r1',
+  revision = 'r2',
   pools = ['dev', 'release', 'reserve'],
   variants = ['clean', 'decoy'],
   verifierSeeds = 100,
@@ -537,7 +537,7 @@ export async function validateTerminalV7Golds({
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const revision = argument('revision') ?? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = argument('revision') ?? process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const outputDirectory = path.resolve(argument('output') ?? path.join(ROOT, 'results', `terminal-mini-ledger-v7-calibration-${revision}`, 'gold'));
   const pools = (argument('pools') ?? 'dev,release,reserve').split(',').map((value) => value.trim()).filter(Boolean);
   const variants = (argument('variants') ?? 'clean,decoy').split(',').map((value) => value.trim()).filter(Boolean);

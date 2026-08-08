@@ -7,20 +7,26 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJson, canonicalJsonSha256, sha256, sha256File } from './provenance.mjs';
 import { sealTerminalV7VerifierEvaluationArtifact } from './terminal-v7-verifier-evidence.mjs';
 
-export const TERMINAL_V7_VERIFIER_IMAGE = 'agentbattler-mini-ledger-v7-verifier:r1';
+export const TERMINAL_V7_VERIFIER_IMAGE = 'agentbattler-mini-ledger-v7-verifier:r2';
 export const TERMINAL_V7_VERIFIER_SOURCE_LABEL = 'org.agentbattler.v7.verifier-source-sha256';
+export const TERMINAL_V7_VERIFIER_IMAGE_ENTRYPOINT = '/tests/benchmark/verifier/mini-ledger-v7/run.mjs';
+
+export const TERMINAL_V7_VERIFIER_IMAGE_COPY_LAYOUT = Object.freeze([
+  Object.freeze({ source: 'benchmark/challenges/candidate-process.mjs', destination: '/tests/benchmark/challenges/candidate-process.mjs' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/pack.mjs', destination: '/tests/benchmark/challenges/mini-ledger-v7/pack.mjs' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/requirements.mjs', destination: '/tests/benchmark/challenges/mini-ledger-v7/requirements.mjs' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/verifier.mjs', destination: '/tests/benchmark/challenges/mini-ledger-v7/verifier.mjs' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/requirement-map.json', destination: '/tests/benchmark/challenges/mini-ledger-v7/requirement-map.json' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/starter', destination: '/tests/benchmark/challenges/mini-ledger-v7/starter' }),
+  Object.freeze({ source: 'benchmark/challenges/mini-ledger-v7/tickets', destination: '/tests/benchmark/challenges/mini-ledger-v7/tickets' }),
+  Object.freeze({ source: 'benchmark/verifier/mini-ledger-v7/run.mjs', destination: TERMINAL_V7_VERIFIER_IMAGE_ENTRYPOINT }),
+]);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DOCKERFILE_PATH = 'benchmark/verifier/mini-ledger-v7/Dockerfile';
 const SOURCE_PATHS = Object.freeze([
-  'benchmark/challenges/candidate-process.mjs',
-  'benchmark/challenges/mini-ledger-v7/pack.mjs',
-  'benchmark/challenges/mini-ledger-v7/requirement-map.json',
-  'benchmark/challenges/mini-ledger-v7/requirements.mjs',
-  'benchmark/challenges/mini-ledger-v7/starter',
-  'benchmark/challenges/mini-ledger-v7/tickets',
-  'benchmark/challenges/mini-ledger-v7/verifier.mjs',
-  'benchmark/verifier/mini-ledger-v7/Dockerfile',
-  'benchmark/verifier/mini-ledger-v7/run.mjs',
+  ...TERMINAL_V7_VERIFIER_IMAGE_COPY_LAYOUT.map(({ source }) => source),
+  DOCKERFILE_PATH,
 ]);
 
 function invariant(condition, message) {
@@ -41,8 +47,31 @@ async function sourceRecords(absolute, relative) {
   return records;
 }
 
+function dockerfileCopyLayout(dockerfile) {
+  return dockerfile.split(/\r?\n/).flatMap((line) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('COPY ')) return [];
+    const tokens = trimmed.split(/\s+/);
+    invariant(tokens.length === 3 && tokens[0] === 'COPY', 'V7 verifier Dockerfile COPY must use one explicit source and destination');
+    return [{ source: tokens[1], destination: tokens[2] }];
+  });
+}
+
+async function assertVerifierDockerfileLayout(root) {
+  const dockerfile = await readFile(path.join(root, DOCKERFILE_PATH), 'utf8');
+  invariant(
+    canonicalJson(dockerfileCopyLayout(dockerfile)) === canonicalJson(TERMINAL_V7_VERIFIER_IMAGE_COPY_LAYOUT),
+    'V7 verifier Dockerfile COPY layout differs from the source commitment',
+  );
+  invariant(
+    dockerfile.split(/\r?\n/).includes(`ENTRYPOINT ["node", "${TERMINAL_V7_VERIFIER_IMAGE_ENTRYPOINT}"]`),
+    'V7 verifier Dockerfile entrypoint differs from the committed image layout',
+  );
+}
+
 export async function terminalV7VerifierSourceDescriptor({ root = ROOT } = {}) {
   invariant(path.isAbsolute(root), 'V7 verifier source root must be absolute');
+  await assertVerifierDockerfileLayout(root);
   const records = [];
   for (const relative of SOURCE_PATHS) records.push(...await sourceRecords(path.join(root, relative), relative));
   records.sort((left, right) => left.path.localeCompare(right.path));

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { readFile, rename, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { loadV7Pack } from '../../challenges/mini-ledger-v7/pack.mjs';
 import { verifyFinal, verifyPhaseTrajectory } from '../../challenges/mini-ledger-v7/verifier.mjs';
@@ -63,47 +64,51 @@ async function nativeBoundaryProbe() {
   return 'bubblewrap-v1';
 }
 
-const request = JSON.parse(await readFile('/input/request.json', 'utf8'));
-invariant(request?.schemaVersion === 'agentbattler.terminal-v7-verifier-request.v1', 'Unsupported V7 verifier request');
-invariant(['phase', 'final'].includes(request.mode), 'V7 verifier request mode is invalid');
-invariant(typeof request.instanceId === 'string' && ['clean', 'decoy'].includes(request.variant), 'V7 verifier request instance is invalid');
-const seedKey = await readFile('/input/seed-key', 'utf8').then((value) => value.trim()).catch((error) => {
-  if (error?.code === 'ENOENT') return undefined;
-  throw error;
-});
-process.env.AGENTBATTLER_CANDIDATE_UID = '1000';
-process.env.AGENTBATTLER_CANDIDATE_GID = '1000';
-process.env.AGENTBATTLER_CANDIDATE_NATIVE_SANDBOX = 'bubblewrap-v1';
-const pack = loadV7Pack(request.instanceId, { variant: request.variant });
-const capabilityMask = await zeroCapabilityProbe();
-const nativeBoundary = await nativeBoundaryProbe();
-const common = {
-  instance: pack,
-  pack,
-  workspace: '/candidate',
-  seedKey,
-  verifierSeedIndex: request.verifierSeedIndex ?? 0,
-  durabilityTraceDirectory: '/evidence/durability',
-};
-const result = request.mode === 'phase'
-  ? await verifyPhaseTrajectory({
-      ...common,
-      phase: request.phase,
-      contract: request.contract ?? null,
-      phaseContracts: request.phaseContracts ?? null,
-      phaseResults: request.phaseResults ?? [],
-    })
-  : await verifyFinal({
-      ...common,
-      phaseResults: request.phaseResults ?? [],
-      phaseContracts: request.phaseContracts ?? null,
-    });
-const output = {
-  schemaVersion: 'agentbattler.terminal-v7-verifier-container-result.v1',
-  candidateCapabilityMask: capabilityMask,
-  candidateNativeBoundary: nativeBoundary,
-  evaluation: result,
-};
-const temporary = `/output/result.${process.pid}.tmp`;
-await writeFile(temporary, `${JSON.stringify(output)}\n`, { mode: 0o600, flag: 'wx' });
-await rename(temporary, '/output/result.json');
+export async function runTerminalV7Verifier() {
+  const request = JSON.parse(await readFile('/input/request.json', 'utf8'));
+  invariant(request?.schemaVersion === 'agentbattler.terminal-v7-verifier-request.v1', 'Unsupported V7 verifier request');
+  invariant(['phase', 'final'].includes(request.mode), 'V7 verifier request mode is invalid');
+  invariant(typeof request.instanceId === 'string' && ['clean', 'decoy'].includes(request.variant), 'V7 verifier request instance is invalid');
+  const seedKey = await readFile('/input/seed-key', 'utf8').then((value) => value.trim()).catch((error) => {
+    if (error?.code === 'ENOENT') return undefined;
+    throw error;
+  });
+  process.env.AGENTBATTLER_CANDIDATE_UID = '1000';
+  process.env.AGENTBATTLER_CANDIDATE_GID = '1000';
+  process.env.AGENTBATTLER_CANDIDATE_NATIVE_SANDBOX = 'bubblewrap-v1';
+  const pack = loadV7Pack(request.instanceId, { variant: request.variant });
+  const capabilityMask = await zeroCapabilityProbe();
+  const nativeBoundary = await nativeBoundaryProbe();
+  const common = {
+    instance: pack,
+    pack,
+    workspace: '/candidate',
+    seedKey,
+    verifierSeedIndex: request.verifierSeedIndex ?? 0,
+    durabilityTraceDirectory: '/evidence/durability',
+  };
+  const result = request.mode === 'phase'
+    ? await verifyPhaseTrajectory({
+        ...common,
+        phase: request.phase,
+        contract: request.contract ?? null,
+        phaseContracts: request.phaseContracts ?? null,
+        phaseResults: request.phaseResults ?? [],
+      })
+    : await verifyFinal({
+        ...common,
+        phaseResults: request.phaseResults ?? [],
+        phaseContracts: request.phaseContracts ?? null,
+      });
+  const output = {
+    schemaVersion: 'agentbattler.terminal-v7-verifier-container-result.v1',
+    candidateCapabilityMask: capabilityMask,
+    candidateNativeBoundary: nativeBoundary,
+    evaluation: result,
+  };
+  const temporary = `/output/result.${process.pid}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(output)}\n`, { mode: 0o600, flag: 'wx' });
+  await rename(temporary, '/output/result.json');
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) await runTerminalV7Verifier();

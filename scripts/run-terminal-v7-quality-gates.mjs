@@ -26,7 +26,7 @@ function invariant(condition, message) {
 }
 
 function parseArguments(argv) {
-  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   invariant(/^r[1-9]\d*$/.test(revision), 'V7 quality-gate revision must look like r1');
   const stateRoot = process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex');
   const options = {

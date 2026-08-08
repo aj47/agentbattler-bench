@@ -23,7 +23,7 @@ function invariant(condition, message) {
 }
 
 export async function main({ env = process.env, root = ROOT, now = () => new Date().toISOString() } = {}) {
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const resultRoot = path.resolve(env.AGENTBATTLER_TERMINAL_RESULT_ROOT
     ?? path.join(root, 'results', `terminal-mini-ledger-v7-calibration-${revision}`));
   const referencesPath = path.resolve(env.AGENTBATTLER_V7_SCRIPTED_REFERENCES_PATH

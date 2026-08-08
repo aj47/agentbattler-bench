@@ -335,7 +335,7 @@ function normalizeReleaseInstances(instances) {
 export function createTerminalV7Challenge({
   id = 'terminal-mini-ledger-v7',
   title = 'Mini Ledger v7',
-  protocolRevision = 'r1',
+  protocolRevision = 'r2',
   promptPath = 'benchmark/challenges/mini-ledger-v7.md',
   promptSha256,
   publicVerifierPath = 'benchmark/challenges/mini-ledger-v7/public-verifier.mjs',

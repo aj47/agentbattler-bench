@@ -12,7 +12,7 @@ function invariant(condition, message) {
 }
 export async function main({ env = process.env, root = ROOT } = {}) {
   invariant(process.platform === 'darwin' && process.arch === 'arm64', 'V7 test/preflight evidence must run on the M4 Pro execution host');
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const reviewedCommit = env.AGENTBATTLER_V7_REVIEWED_COMMIT;
   invariant(/^[0-9a-f]{40}$/.test(reviewedCommit ?? ''), 'AGENTBATTLER_V7_REVIEWED_COMMIT is required');
   const evidenceRoot = path.resolve(env.AGENTBATTLER_V7_PREFLIGHT_EVIDENCE_ROOT

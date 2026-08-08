@@ -13,7 +13,7 @@ import {
 } from '../src/terminal-v7-revision-control.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REVISION = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+const REVISION = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
 const RESULT_TAG = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? `v7-${REVISION}`;
 const RESULT_ROOT = path.join(ROOT, `results/terminal-mini-ledger-${RESULT_TAG}`);
 const REVISION_CONTROL_ROOT = resolveTerminalV7RevisionControlRoot({ root: ROOT, revision: REVISION });

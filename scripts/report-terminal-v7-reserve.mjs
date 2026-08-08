@@ -19,7 +19,7 @@ function invariant(condition, message) {
 }
 
 export async function main({ env = process.env, root = ROOT } = {}) {
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   invariant(/^r[1-9]\d*$/.test(revision), 'V7 reserve report revision must look like r1');
   const releaseResultRoot = path.resolve(env.AGENTBATTLER_V7_RELEASE_RESULT_ROOT
     ?? path.join(root, 'results', `terminal-mini-ledger-v7-${revision}`));

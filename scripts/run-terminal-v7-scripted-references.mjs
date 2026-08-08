@@ -16,7 +16,7 @@ async function readJson(file) {
 }
 
 export async function main({ env = process.env, root = ROOT, now = () => new Date().toISOString() } = {}) {
-  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   invariant(/^r[1-9]\d*$/.test(revision), 'V7 scripted-reference revision must look like r1');
   const resultRoot = path.resolve(env.AGENTBATTLER_TERMINAL_RESULT_ROOT
     ?? path.join(root, 'results', `terminal-mini-ledger-v7-calibration-${revision}`));

@@ -324,7 +324,7 @@ export async function exportTerminalV7Traces({
 }
 
 async function main() {
-  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+  const revision = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
   const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? `v7-${revision}`;
   invariant(/^r[1-9]\d*$/.test(revision), 'V7 protocol revision must look like r1');
   invariant(/^v7-r[1-9]\d*$/.test(resultTag), 'V7 result tag must look like v7-r1');

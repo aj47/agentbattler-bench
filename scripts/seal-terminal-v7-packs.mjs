@@ -12,7 +12,7 @@ import {
 } from '../src/terminal-v7-seals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const REVISION = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r1';
+const REVISION = process.env.AGENTBATTLER_TERMINAL_PROTOCOL_REVISION ?? 'r2';
 const CODEX_STATE_ROOT = process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex');
 const KEY_PATH = path.resolve(process.env.AGENTBATTLER_V7_SEED_KEY_FILE ?? path.join(CODEX_STATE_ROOT, 'automations', 'mini-ledger-v6-scheduled-check', `mini-ledger-v7-${REVISION}.seed-key`));
 const OUTPUT = path.resolve(ROOT, process.env.AGENTBATTLER_V7_SEALS_PATH ?? `benchmark/challenges/mini-ledger-v7/seals/${REVISION}.json`);

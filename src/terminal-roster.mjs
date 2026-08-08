@@ -29,10 +29,12 @@ export function createTerminalRuntimeRoster({
   harnesses = Object.keys(SEALED_TERMINAL_HARNESS_VERSIONS),
   models = DEFAULT_TERMINAL_MODELS,
   generationsPerHarnessModel = DEFAULT_TERMINAL_GENERATIONS,
+  reasoningEffort = 'high',
 } = {}) {
   uniqueNonEmpty(harnesses, 'Terminal harnesses');
   uniqueNonEmpty(models, 'Terminal models');
   invariant(Number.isSafeInteger(generationsPerHarnessModel) && generationsPerHarnessModel > 0, 'generationsPerHarnessModel must be a positive integer');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'reasoningEffort is required');
   for (const harness of harnesses) terminalHarnessVersion(harness);
 
   const agents = harnesses.flatMap((harness) => models.flatMap((model) => {
@@ -53,7 +55,7 @@ export function createTerminalRuntimeRoster({
           harnessVersion: terminalHarnessVersion(harness),
           modelRequested: model,
           modelFamilyId: family,
-          reasoningEffort: 'high',
+          reasoningEffort,
           generationIndex,
           generationSettings: {
             identity: 'fresh-independent-terminal-run',
@@ -73,7 +75,7 @@ export function createTerminalRuntimeRoster({
       harnesses: [...harnesses],
       models: [...models],
       generationsPerHarnessModel,
-      reasoningEffort: 'high',
+      reasoningEffort,
     },
     agents,
   };

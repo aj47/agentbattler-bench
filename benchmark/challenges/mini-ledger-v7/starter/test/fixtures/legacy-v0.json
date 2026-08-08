@@ -1,0 +1,10 @@
+{
+  "schema": "northstar-ledger/v0",
+  "status": "deprecated",
+  "records": [
+    {
+      "type": "memo",
+      "value": "fixture retained for the retired importer"
+    }
+  ]
+}

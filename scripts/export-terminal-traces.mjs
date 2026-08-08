@@ -13,7 +13,7 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v4';
 if (!/^v\d+$/.test(version)) throw new Error('Challenge version must look like v4');
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (version === 'v5' ? 'v5-r2' : version === 'v6' ? 'v6-luna-max-r14' : version);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('Result tag must look like v4-harbor');
 const resultRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_RESULT_ROOT
   ?? path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`));
@@ -78,6 +78,9 @@ function runSummary(run) {
     toolCalls: run.toolCalls,
     usage: run.usage,
     turns: run.turns,
+    stages: run.stages ?? null,
+    finalPublic: run.finalPublic ?? null,
+    holdout: run.holdout ?? null,
     compaction: run.compaction ?? null,
     resources: run.resources ?? null,
     adapter: run.adapter ?? null,
@@ -167,6 +170,30 @@ async function firstExistingFile(files) {
     }
   }
   return null;
+}
+
+async function writeCandidateSnapshot(stream, run, turn, sourceFiles) {
+  const snapshotRoot = path.join(workRoot, run.runKey);
+  const directory = path.join(snapshotRoot, 'candidate-snapshots', `turn-${String(turn).padStart(2, '0')}`);
+  const metadataFile = path.join(directory, 'metadata.json');
+  let metadata;
+  try { metadata = await readJson(metadataFile); } catch (error) {
+    if (error?.code === 'ENOENT' && run.challengeId !== 'terminal-mini-ledger-v6') return;
+    throw error;
+  }
+  sourceFiles.push({ turn, kind: 'candidate-snapshot-metadata', ...(await sourceMetadata(snapshotRoot, metadataFile)) });
+  let source = null;
+  if (metadata.archived) {
+    const sourceFile = path.join(directory, 'ledger.mjs');
+    invariant(await fileSha256(sourceFile) === metadata.sha256, `${run.artifactId} turn ${turn} candidate snapshot hash mismatch`);
+    source = await readFile(sourceFile, 'utf8');
+    sourceFiles.push({ turn, kind: 'candidate-source', ...(await sourceMetadata(snapshotRoot, sourceFile)) });
+  }
+  await writeLine(stream, { type: 'candidate_snapshot', turn, metadata, source });
+}
+
+function invariant(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
 function harborNativeLogNames(harness) {
@@ -265,6 +292,7 @@ async function exportHarborRun(run) {
     const detail = await readJson(detailFile);
     sourceFiles.push({ turn, ...(await sourceMetadata(trialRoot, detailFile)) });
     await writeLine(gzip, { type: 'verifier_result', turn, ...detail });
+    await writeCandidateSnapshot(gzip, run, turn, sourceFiles);
 
     const verifierOutput = path.join(trialRoot, 'steps', step.step_name, 'verifier', 'test-stdout.txt');
     try {
@@ -371,6 +399,7 @@ async function exportRun(run) {
       if (error?.code !== 'ENOENT') throw error;
     }
     sourceFiles.push(source);
+    await writeCandidateSnapshot(gzip, run, turn, sourceFiles);
   }
 
   await writeLine(gzip, { type: 'trace_footer', omittedStreamingEvents, sourceFiles });
@@ -418,10 +447,10 @@ const manifestUnsigned = {
     scope: allowIncomplete
       ? `${runs.length} completed run traces currently available from a ${schedule.jobs.length}-job sealed schedule, with all 15 turns per exported run.`
       : `All ${schedule.jobs.length} successful run traces and all 15 turns per run.`,
-    retained: 'Normalized run and per-turn duration, token/cache usage, compaction and resource summaries; final messages; tool calls and results; session metadata; verifier diagnostics; and non-empty stderr.',
+    retained: 'Normalized run and per-turn duration, token/cache usage, compaction and resource summaries; final messages; tool calls and results; session metadata; verifier diagnostics; exact per-turn candidate-source snapshots when present; and non-empty stderr.',
     omitted: 'Only cumulative streaming snapshots whose final semantic content is retained.',
     redaction: 'Credential-shaped object values and bearer/JWT/API-key patterns are replaced with [REDACTED]; host paths are normalized.',
-    rawWorkspaces: 'Not included. They contain transient harness profiles, credentials, repeated trace snapshots, and reproducible candidate files rather than additional model interaction evidence.',
+    rawWorkspaces: 'Not included. V6 candidate source is published through explicit per-turn snapshot records; remaining workspace content is transient state, harness profiles, credentials, and repeated trace material.',
   },
   totals: {
     runs: traces.length,

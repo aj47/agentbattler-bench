@@ -31,5 +31,5 @@ export async function verifyDroidRuntime(environment = process.env) {
   const version = stdout.trim();
   invariant(version === DROID_VERSION, `Droid must be version ${DROID_VERSION}; got ${version || 'unavailable'}`);
   invariant(binarySha256 === DROID_BINARY_SHA256, `Droid ${DROID_VERSION} binary SHA-256 is ${binarySha256}, expected ${DROID_BINARY_SHA256}`);
-  return { version, binarySha256 };
+  return { version, binarySha256, binaryPath };
 }

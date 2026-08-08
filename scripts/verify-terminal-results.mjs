@@ -14,7 +14,7 @@ import { canonicalJson, canonicalJsonSha256 } from '../src/provenance.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion === 'v6' ? 'v6-luna-max-r14' : challengeVersion);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const resultRoot = path.resolve(process.env.AGENTBATTLER_TERMINAL_RESULT_ROOT
   ?? path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`));
@@ -50,8 +50,8 @@ for (const job of schedule.jobs) {
     const run = await readJson(file);
     invariant(run.runKey === job.runKey, 'runKey does not match schedule');
     invariant(run.comboId === job.comboId && run.artifactId === job.artifactId, 'run identity does not match schedule');
-    if (run.status === 'infrastructure-invalid') {
-      invalid.push({ runKey: job.runKey, file: path.relative(ROOT, file), error: run.error ?? 'infrastructure-invalid', status: run.status });
+    if (['infrastructure-invalid', 'protocol-invalid'].includes(run.status)) {
+      invalid.push({ runKey: job.runKey, file: path.relative(ROOT, file), error: run.error ?? run.status, status: run.status });
       continue;
     }
     const score = scoreTerminalRun(run, challenge);

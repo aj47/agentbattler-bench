@@ -1,1 +1,5 @@
 *
+!Dockerfile.v7
+!runtime-tools-sandbox.patch
+!runtime-tools-sandbox-v7.patch
+!enable-max-reasoning.mjs

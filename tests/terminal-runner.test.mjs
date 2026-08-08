@@ -38,6 +38,24 @@ test('terminal runner records infrastructure-invalid and retries it explicitly',
   assert.equal(second.completed, 2); assert.equal(calls, 4);
 });
 
+test('terminal runner rejects trace-isolation violations without retrying them as infrastructure', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-protocol-invalid-'));
+  const s = createExhaustiveTerminalSchedule({ challenge, agents: [agent('codex-cli', 'terra', 1)], expectedHarnesses: ['codex-cli'], expectedModels: ['terra'], generationsPerCombo: 1 });
+  let calls = 0;
+  const violation = new Error('attempted to inspect sealed verifier source');
+  violation.code = 'TRACE_ISOLATION_VIOLATION';
+  violation.evidence = { schemaVersion: 'agentbattler.terminal-trace-isolation.v1', turn: 1, passed: false, violations: [{ tool: 'Read', marker: 'public-verifier.mjs' }] };
+  await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, runTerminalJob: async () => { calls += 1; throw violation; } });
+  const retry = await runTerminalSchedule({ challenge, schedule: s, resultRoot: root, challengeRoot: root, retryInvalid: true, runTerminalJob: async ({ job }) => { calls += 1; return completed(job); } });
+  const saved = JSON.parse(await readFile(terminalRunPath(root, s.jobs[0].runKey), 'utf8'));
+  assert.equal(saved.status, 'protocol-invalid');
+  assert.equal(saved.validity, 'protocol-invalid');
+  assert.equal(saved.stopReason, 'trace_isolation_violation');
+  assert.deepEqual(saved.protocolViolation, violation.evidence);
+  assert.equal(retry.skipped, 1);
+  assert.equal(calls, 1);
+});
+
 test('terminal retries archive the failed workspace and start from an empty attempt', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-attempts-'));
   const s = createExhaustiveTerminalSchedule({ challenge, agents: [agent('codex-cli', 'terra', 1)], expectedHarnesses: ['codex-cli'], expectedModels: ['terra'], generationsPerCombo: 1 });
@@ -109,4 +127,67 @@ test('terminal runner gives every combo first coverage before later generations'
   assert.deepEqual(calls.map((job) => job.generationIndex), [1, 1, 2, 2]);
   assert.equal(new Set(calls.slice(0, 2).map((job) => job.comboId)).size, 2);
   assert.deepEqual(orderTerminalJobsBreadthFirst([...breadthSchedule.jobs].reverse(), breadthSchedule.coverage).map((job) => job.generationIndex), [1, 1, 2, 2]);
+});
+
+test('terminal runner rechecks an external stop predicate at every job boundary', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-boundary-stop-'));
+  const s = schedule();
+  let boundaryChecks = 0;
+  let calls = 0;
+  const result = await runTerminalSchedule({
+    challenge,
+    schedule: s,
+    resultRoot: root,
+    challengeRoot: root,
+    shouldStopBeforeJob: async () => {
+      boundaryChecks += 1;
+      return boundaryChecks > 1;
+    },
+    runTerminalJob: async ({ job }) => {
+      calls += 1;
+      return completed(job);
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(boundaryChecks, 2);
+  assert.equal(result.completed, 1);
+  assert.equal(result.paused, true);
+});
+
+test('terminal runner preserves a completed attempt and stops when its post-persist callback fails', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'terminal-runner-post-persist-stop-'));
+  const fiveJobSchedule = createExhaustiveTerminalSchedule({
+    challenge,
+    agents: Array.from({ length: 5 }, (_, index) => agent('codex-cli', 'terra', index + 1)),
+    expectedHarnesses: ['codex-cli'],
+    expectedModels: ['terra'],
+    generationsPerCombo: 5,
+  });
+  let calls = 0;
+  await assert.rejects(runTerminalSchedule({
+    challenge,
+    schedule: fiveJobSchedule,
+    resultRoot: root,
+    challengeRoot: root,
+    runTerminalJob: async ({ job }) => {
+      calls += 1;
+      return completed(job);
+    },
+    shouldStop: async () => {
+      throw new Error('saturation marker storage unavailable');
+    },
+  }), /saturation marker storage unavailable/);
+
+  assert.equal(calls, 1, 'the reproduced five-job campaign must stop after the first completion');
+  const first = fiveJobSchedule.jobs[0];
+  const current = JSON.parse(await readFile(terminalRunPath(root, first.runKey), 'utf8'));
+  assert.equal(current.status, 'completed');
+  assert.equal(current.validity, 'valid');
+  const attempts = await readdir(path.join(root, 'attempts', first.runKey));
+  assert.equal(attempts.length, 1);
+  const attempt = JSON.parse(await readFile(path.join(root, 'attempts', first.runKey, attempts[0]), 'utf8'));
+  assert.deepEqual(attempt, current);
+  for (const job of fiveJobSchedule.jobs.slice(1)) {
+    await assert.rejects(access(terminalRunPath(root, job.runKey)), /ENOENT/);
+  }
 });

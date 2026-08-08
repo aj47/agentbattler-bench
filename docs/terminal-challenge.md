@@ -222,6 +222,60 @@ local and ignored because they can contain ephemeral credentials and redundant s
 snapshots. Infrastructure-invalid attempts are published as compact failure records and are
 never scored.
 
+## V6 Luna/max campaign
+
+V6 is a new sealed protocol rather than an amendment to V5. Its schedule contains exactly
+five harnesses × one model (`gpt-5.6-luna`) × five independent runs, and every combo requests
+`max` reasoning. Every turn has a sealed one-hour (`3,600,000` ms) wall-clock limit, enforced
+by each adapter and disclosed in every prompt. The schedule builder rejects any other V6
+model, reasoning level, or turn limit. Build, run, verify, and export the 25-run campaign with:
+
+```sh
+npm run terminal:matrix:v6
+npm run terminal:run:v6
+npm run terminal:verify:v6
+npm run terminal:traces:v6
+```
+
+Run the hardware-dependent campaign from the clean M4 checkout after sourcing the same pinned
+provider environment used for V5. The local M1 checkout is for orchestration and tests.
+
+V6 corrects the main validity and harness failures observed in V5:
+
+- Every prompt says that the workspace starts empty and only the self-contained `ledger.mjs`
+  source is copied to a verifier. Example events are disposable CLI fixtures, never source
+  defaults.
+- `--limit` and `--keep` are explicitly restricted to integers of at least one. The reserved
+  stale-lock interoperability artifact is the regular file `ledger.lock`; normal concurrency
+  may still use another correct mechanism.
+- The exact source is archived after every turn. The evaluator retains the historical
+  per-turn trajectory, then reruns all fifteen public stages against the final source. That
+  final matrix plus the holdout is the primary 0–100 score.
+- Every turn records a normalized completion reason. DotAgents has 32 iterations instead of
+  12 and can explicitly call `mark_work_complete`, so hitting the old iteration ceiling is no
+  longer silently reported as ordinary completion.
+- Harbor, Pi, and DotAgents keep their container boundaries. Droid additionally runs beneath
+  a macOS sandbox that denies the whole user home and shared temporary roots except its
+  ephemeral run directory. All harness traces are checked for attempts to inspect
+  verifier/benchmark source, access the environment, or invoke network-capable tool inputs.
+  Such attempts become non-retryable
+  `protocol-invalid` records rather than scores or infrastructure retries.
+- Harbor 0.20 requires a networked separate-verifier container, so V6 also launches every
+  untrusted `ledger.mjs` verifier process under Node's permission model without network,
+  child-process, worker, native-addon, or WASI capabilities. The trusted verifier itself has no
+  credentials and makes no network requests. V6 R2 explicitly disclosed the permission model's
+  durability API boundary: `FileHandle.sync()` and `FileHandle.datasync()` perform real barriers,
+  while Node disables the descriptor-only `fs.fsync*` and `fs.fdatasync*` variants. A withdrawn
+  R1 partial run exposed this mismatch before any complete run was recorded.
+- V6 R3 publishes the exact grammar for all eleven commands in every turn, including positional
+  `export PATH` and `import PATH`. Its batch trajectory check validates state and idempotency using
+  only the turn-two surface (`append`, `get`, and `append-batch`), so it no longer tests `query`
+  one turn before that feature is assigned. The withdrawn R2 traces remain diagnostic evidence.
+
+Published V6 semantic traces include the source text and checksum for every candidate snapshot,
+the turn completion evidence, the trajectory stage results, the final public matrix, and the
+holdout. Raw homes and runtime state remain local because they can contain credentials.
+
 ## Mini Ledger v3
 
 `terminal-mini-ledger-v3` is the harder follow-on challenge. It keeps the same exhaustive

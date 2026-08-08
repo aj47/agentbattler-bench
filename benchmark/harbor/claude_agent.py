@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from typing import override
@@ -148,6 +149,23 @@ fi
 exit "$agent_status"
 """
 
+_SANDBOX_SETTINGS = {
+    "sandbox": {
+        "enabled": True,
+        "autoAllowBashIfSandboxed": True,
+        "allowUnsandboxedCommands": False,
+        "failIfUnavailable": True,
+        "bwrapPath": "/usr/local/bin/agentbattler-bwrap",
+        "network": {"allowedDomains": [], "deniedDomains": []},
+        "filesystem": {
+            "denyRead": ["/root", "/logs", "/tests", "/proc"],
+            "allowRead": ["/app"],
+            "allowWrite": ["/app", "/tmp"],
+            "denyWrite": ["/root", "/logs", "/tests"],
+        },
+    }
+}
+
 
 class AgentBattlerClaude(ClaudeCode):
     """Claude Code with deterministic termination after its terminal result event."""
@@ -155,6 +173,46 @@ class AgentBattlerClaude(ClaudeCode):
     @override
     async def install(self, environment: BaseEnvironment) -> None:
         await super().install(environment)
+        bwrap_wrapper = Path(__file__).with_name("claude_bwrap_wrapper.sh")
+        await environment.upload_file(
+            bwrap_wrapper, "/tmp/agentbattler-claude-bwrap"
+        )
+        await self.exec_as_root(
+            environment,
+            command=(
+                "set -euo pipefail; "
+                "chown 0:0 /tmp/agentbattler-claude-bwrap; "
+                "chmod 0755 /tmp/agentbattler-claude-bwrap; "
+                "mv /tmp/agentbattler-claude-bwrap "
+                "/usr/local/bin/agentbattler-bwrap"
+            ),
+        )
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+            json.dump(_SANDBOX_SETTINGS, handle)
+            settings = Path(handle.name)
+        try:
+            await environment.upload_file(
+                settings, "/tmp/agentbattler-claude-settings.json"
+            )
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-claude-settings.json; "
+                    "chmod 0600 /tmp/agentbattler-claude-settings.json"
+                ),
+            )
+            await self.exec_as_agent(
+                environment,
+                command=(
+                    "set -euo pipefail; "
+                    'mkdir -p "$HOME/.claude"; '
+                    "mv /tmp/agentbattler-claude-settings.json "
+                    '"$HOME/.claude/settings.json"; '
+                    'chmod 0600 "$HOME/.claude/settings.json"'
+                ),
+            )
+        finally:
+            settings.unlink(missing_ok=True)
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
             handle.write(_WRAPPER)
             wrapper = Path(handle.name)
@@ -162,13 +220,23 @@ class AgentBattlerClaude(ClaudeCode):
             await environment.upload_file(
                 wrapper, "/tmp/agentbattler-claude-wrapper"
             )
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-claude-wrapper; "
+                    "chmod 0755 /tmp/agentbattler-claude-wrapper"
+                ),
+            )
             await self.exec_as_agent(
                 environment,
                 command=(
                     "set -euo pipefail; "
-                    'real="$HOME/.local/bin/claude"; '
-                    'test -e "$real"; '
-                    'mv "$real" "$HOME/.local/bin/claude-agentbattler-real"; '
+                    'mkdir -p "$HOME/.local/bin"; '
+                    'real="$(command -v claude)"; '
+                    'resolved="$(readlink -f "$real")"; '
+                    'test -x "$resolved"; '
+                    'ln -sf "$resolved" '
+                    '"$HOME/.local/bin/claude-agentbattler-real"; '
                     "mv /tmp/agentbattler-claude-wrapper $HOME/.local/bin/claude; "
                     "chmod 0755 $HOME/.local/bin/claude "
                     "$HOME/.local/bin/claude-agentbattler-real"

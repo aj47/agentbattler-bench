@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { assertTerminalV7ExecutionIdentity } from '../src/terminal-v7-execution-identity.mjs';
 import { sha256File } from '../src/provenance.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,13 +19,13 @@ const legacyByHarness = new Map([codex, pi, claude, dotagents, droid].flatMap((a
 const harborByHarness = new Map(harbor.harnesses.map((harness) => [harness, harbor]));
 export const harnesses = [...legacyByHarness.keys()].sort();
 
-async function verifyHarborAdapters(challenge, harness) {
+async function verifyLegacyHarborAdapters(challenge, harness) {
   const expected = challenge.execution?.adapters;
-  if (!expected) throw new Error('V4 challenge does not bind adapter source');
+  if (!expected) throw new Error('Harbor challenge does not bind adapter source');
   const kind = harborByHarness.has(harness) ? 'harbor' : harness === 'dotagents-mono' ? 'dotagents' : 'droid';
   const common = ['dispatcher', kind, 'claudeCompaction', 'anthropicOverflowCompat'];
   if (kind === 'droid') common.push('droidHarness', 'droidJsonRpc', 'droidRouting', 'droidRuntime');
-  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalPrompts', 'harnessVersions', 'terminalRoster']) {
+  for (const optional of ['candidateProcess', 'publicVerifier', 'holdoutVerifier', 'challengeRuntime', 'terminalChallenge', 'terminalRunner', 'terminalPrompts', 'harnessVersions', 'terminalRoster', 'codexHarbor', 'codexBwrapWrapper', 'piSandboxExtension', 'claudeBwrapWrapper', 'dotagentsHarness', 'dotagentsDockerfile', 'dotagentsDockerignore', 'dotagentsCommandSandbox', 'dotagentsMaxReasoning', 'dotagentsSandboxPatchR5', 'dotagentsSandboxPatchV7', 'droidSandbox', 'runEvidence', 'v7Runtime', 'v7Direct', 'v7Overlay', 'v7VerifierEvidence', 'v7HumanTwins', 'v7BaseGateAssembler', 'v7Retirement', 'v7RevisionControl', 'candidateTree', 'v7Control', 'v7CodexHarbor', 'v7PiHarbor', 'v7ClaudeHarbor', 'verifier', 'verifierContainer', 'verifierContainerDockerfile', 'verifierContainerRunner', 'pack', 'requirements', 'requirementMap']) {
     if (expected[optional]) common.push(optional);
   }
   for (const name of common) {
@@ -34,8 +35,12 @@ async function verifyHarborAdapters(challenge, harness) {
 }
 
 export async function runTerminalJob(args) {
-  const harborChallenge = args.challenge?.execution?.substrate === 'harbor';
-  if (harborChallenge) await verifyHarborAdapters(args.challenge, args.job?.harness);
+  const v7Challenge = args.challenge?.id === 'terminal-mini-ledger-v7';
+  const harborChallenge = args.challenge?.execution?.substrate === 'harbor' || v7Challenge;
+  if (v7Challenge) {
+    if (!args.job?.harness) throw new Error('V7 execution harness identity is missing');
+    await assertTerminalV7ExecutionIdentity({ root: ROOT, challenge: args.challenge });
+  } else if (harborChallenge) await verifyLegacyHarborAdapters(args.challenge, args.job?.harness);
   const adapter = harborChallenge
     ? (harborByHarness.get(args.job?.harness) ?? legacyByHarness.get(args.job?.harness))
     : legacyByHarness.get(args.job?.harness);

@@ -10,6 +10,8 @@ export function Header() {
         </Link>
         <nav className="nav-links" aria-label="Primary navigation">
           <Link href="/#investigations">investigate</Link>
+          <Link href="/submit/">submit</Link>
+          <Link href="/agent-guide/">agent guide</Link>
           <Link href="/#chess-challenge">chess</Link>
           <Link href="/combos/">combos</Link>
           <Link href="/methodology/">methodology</Link>

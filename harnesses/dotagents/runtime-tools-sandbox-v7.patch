@@ -1,0 +1,123 @@
+diff --git a/apps/desktop/src/main/runtime-tools.ts b/apps/desktop/src/main/runtime-tools.ts
+index 697dbb35..83d33901 100644
+--- a/apps/desktop/src/main/runtime-tools.ts
++++ b/apps/desktop/src/main/runtime-tools.ts
+@@ -18,11 +18,66 @@ import { readMoreContext } from "./context-budget"
+ import { getRootAppSessionForAcpSession, setAcpSessionTitleOverride } from "./acp-session-state"
+ import { emitAgentProgress } from "./emit-agent-progress"
+ import { promises as fs } from "fs"
+-import { exec } from "child_process"
++import { execFile } from "child_process"
+ import { promisify } from "util"
+ import path from "path"
+-
++
+-const execAsync = promisify(exec)
++const execFileAsync = promisify(execFile)
++const AGENTBATTLER_WORKSPACE = "/workspace"
++// Arbitrary POSIX children can enumerate their own environment. Clear to a
++// fixed non-secret set; do not claim the variable names themselves are hidden.
++const AGENTBATTLER_COMMAND_ENV: NodeJS.ProcessEnv = Object.freeze({
++  PATH: "/usr/local/bin:/usr/bin:/bin",
++  HOME: "/tmp",
++  LANG: "C",
++  LC_ALL: "C",
++  TZ: "UTC",
++  TMPDIR: "/tmp",
++})
++const AGENTBATTLER_CAPABILITY_GUARD = 'cap="$(sed -n "s/^CapEff:[[:space:]]*//p" /proc/self/status)"; case "$cap" in ""|*[!0]*) echo "AgentBattler V7 command sandbox retained capabilities" >&2; exit 77;; esac; exec /bin/bash -lc "$1"'
++
++function agentBattlerSandboxArguments(command: string, cwd: string): string[] {
++  const resolvedCwd = path.resolve(cwd)
++  if (resolvedCwd !== AGENTBATTLER_WORKSPACE && !resolvedCwd.startsWith(`${AGENTBATTLER_WORKSPACE}${path.sep}`)) {
++    throw new Error("AgentBattler command working directory is outside /workspace")
++  }
++  const readOnlyControlRoot = process.env.AGENTBATTLER_V7_CONTROL_ROOT
++  if (readOnlyControlRoot !== `${AGENTBATTLER_WORKSPACE}/.agentbattler`) {
++    throw new Error("AgentBattler V7 control root is invalid")
++  }
++  return [
++    "--die-with-parent",
++    "--new-session",
++    "--unshare-pid",
++    "--unshare-net",
++    "--unshare-ipc",
++    "--unshare-uts",
++    "--cap-drop", "ALL",
++    "--tmpfs", "/",
++    "--proc", "/proc",
++    "--ro-bind", "/usr", "/usr",
++    "--dir", "/etc",
++    "--ro-bind", "/etc/passwd", "/etc/passwd",
++    "--ro-bind", "/etc/group", "/etc/group",
++    "--symlink", "usr/bin", "/bin",
++    "--symlink", "usr/lib", "/lib",
++    "--symlink", "usr/lib64", "/lib64",
++    "--dir", AGENTBATTLER_WORKSPACE,
++    "--bind", AGENTBATTLER_WORKSPACE, AGENTBATTLER_WORKSPACE,
++    "--ro-bind", readOnlyControlRoot, readOnlyControlRoot,
++    "--tmpfs", "/tmp",
++    "--dev", "/dev",
++    "--clearenv",
++    "--setenv", "PATH", AGENTBATTLER_COMMAND_ENV.PATH!,
++    "--setenv", "HOME", AGENTBATTLER_COMMAND_ENV.HOME!,
++    "--setenv", "LANG", AGENTBATTLER_COMMAND_ENV.LANG!,
++    "--setenv", "LC_ALL", AGENTBATTLER_COMMAND_ENV.LC_ALL!,
++    "--setenv", "TZ", AGENTBATTLER_COMMAND_ENV.TZ!,
++    "--setenv", "TMPDIR", AGENTBATTLER_COMMAND_ENV.TMPDIR!,
++    "--chdir", resolvedCwd,
++    "--", "/bin/bash", "-c", AGENTBATTLER_CAPABILITY_GUARD, "agentbattler-v7-capability-guard", command,
++  ]
++}
+-
++
+ // Re-export from the dependency-free definitions module.
+ // This breaks the circular dependency: profile-service -> runtime-tool-definitions (no cycle)
+@@ -937,27 +992,11 @@ const toolHandlers: Record<string, ToolHandler> = {
+       }
+     }
+-
++
+-    let runtimeFilesystemEnv: Record<string, string> = {}
+-    try {
+-      const {
+-        ensureRuntimeFilesystemDirectories,
+-        getRuntimeFilesystemEnv,
+-      } = await import("./runtime-filesystem-paths")
+-      await ensureRuntimeFilesystemDirectories(context.sessionId)
+-      runtimeFilesystemEnv = getRuntimeFilesystemEnv(context.sessionId)
+-    } catch {
+-      // Runtime filesystem env vars are convenience metadata; command execution
+-      // should still work if they cannot be prepared.
+-    }
+-
+     try {
+-      const execOptions: { cwd?: string; timeout?: number; maxBuffer?: number; shell?: string; env?: NodeJS.ProcessEnv } = {
++      const execOptions: { cwd?: string; timeout?: number; maxBuffer?: number; env?: NodeJS.ProcessEnv; encoding: BufferEncoding } = {
+         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large outputs
+-        shell: process.platform === "win32" ? "cmd.exe" : "/bin/bash",
+-        env: {
+-          ...process.env,
+-          ...runtimeFilesystemEnv,
+-        },
++        env: AGENTBATTLER_COMMAND_ENV,
++        encoding: "utf8",
+       }
+-
++
+       execOptions.cwd = effectiveCwd
+@@ -966,7 +1005,11 @@ const toolHandlers: Record<string, ToolHandler> = {
+         execOptions.timeout = timeout
+       }
+-
++
+-      const { stdout, stderr } = await execAsync(effectiveCommand, execOptions)
++      const { stdout, stderr } = await execFileAsync(
++        "/usr/bin/bwrap",
++        agentBattlerSandboxArguments(effectiveCommand, effectiveCwd),
++        execOptions,
++      )
+-
++
+       // Truncate large outputs to prevent context bloat
+       // Keep first 5K + last 5K chars so agent sees both beginning and end

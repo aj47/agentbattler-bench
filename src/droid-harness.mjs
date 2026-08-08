@@ -23,6 +23,11 @@ export const DROID_MODEL_FAMILIES = Object.freeze([
 ]);
 
 export const DROID_RESTRICTED_TOOLS = Object.freeze(['Read', 'ApplyPatch', 'Execute', 'Glob', 'Grep', 'LS']);
+// V7 cannot expose Droid's in-process filesystem helpers because those helpers
+// execute in the credential-bearing parent process. Candidate work is routed
+// exclusively through Execute, whose process is confined by the V7 SBPL
+// boundary. Keep the broader V6 catalog above byte-for-byte compatible.
+export const DROID_V7_RESTRICTED_TOOLS = Object.freeze(['Execute']);
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -62,8 +67,12 @@ export function createDroidSettings({
   baseUrl,
   apiKeyEnvironmentVariable = 'AGENTBATTLER_DROID_API_KEY',
   upstreamModelPrefix = 'cx/',
+  reasoningEffort = DROID_REASONING_EFFORT,
+  llmRequestTimeout = 1_800_000,
 } = {}) {
   invariant(/^[A-Z][A-Z0-9_]*$/.test(apiKeyEnvironmentVariable), 'Droid API key environment variable is invalid');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'Droid reasoning effort is required');
+  invariant(Number.isSafeInteger(llmRequestTimeout) && llmRequestTimeout > 0, 'Droid LLM request timeout must be a positive integer');
   const normalizedBaseUrl = normalizeDroidBaseUrl(baseUrl);
   const customModels = DROID_MODEL_FAMILIES.map((family) => ({
     model: droidUpstreamModel(family.model, upstreamModelPrefix),
@@ -80,7 +89,7 @@ export function createDroidSettings({
   }));
   return {
     model: droidCustomModelId('gpt-5.6-terra'),
-    reasoningEffort: DROID_REASONING_EFFORT,
+    reasoningEffort,
     sessionDefaultSettings: { interactionMode: 'auto', autonomyLevel: 'medium' },
     cloudSessionSync: false,
     completionSound: 'off',
@@ -96,20 +105,37 @@ export function createDroidSettings({
     ])),
     compactionModel: 'same',
     modelFallbacks: {},
-    llmRequestTimeout: 1_800_000,
+    llmRequestTimeout,
     customModels,
   };
 }
 
-export function droidExecArgs({ workspace, model, sessionId = null, promptFile = null, outputFormat = 'stream-json' }) {
+export function materializeDroidSettingsCredential(settings, apiKey, environmentVariable = 'AGENTBATTLER_DROID_API_KEY') {
+  invariant(settings && typeof settings === 'object', 'Droid settings are required');
+  invariant(typeof apiKey === 'string' && apiKey.length > 0, 'Droid API key is required');
+  const placeholder = `\${${environmentVariable}}`;
+  let replacements = 0;
+  const visit = (value) => {
+    if (Array.isArray(value)) return value.map(visit);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, visit(child)]));
+    if (value === placeholder) { replacements += 1; return apiKey; }
+    return value;
+  };
+  const materialized = visit(settings);
+  invariant(replacements === settings.customModels?.length, `Expected one Droid API credential placeholder per custom model; replaced ${replacements}`);
+  return materialized;
+}
+
+export function droidExecArgs({ workspace, model, sessionId = null, promptFile = null, outputFormat = 'stream-json', reasoningEffort = DROID_REASONING_EFFORT }) {
   invariant(typeof workspace === 'string' && workspace.length > 0, 'Droid workspace is required');
+  invariant(typeof reasoningEffort === 'string' && reasoningEffort.length > 0, 'Droid reasoning effort is required');
   const args = [
     'exec',
     '--auto', 'medium',
     '--disable-builtin-skills',
     '--restrict-tools', DROID_RESTRICTED_TOOLS.join(','),
     '--model', droidCustomModelId(model),
-    '--reasoning-effort', DROID_REASONING_EFFORT,
+    '--reasoning-effort', reasoningEffort,
     '--output-format', outputFormat,
     '--cwd', workspace,
   ];

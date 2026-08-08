@@ -72,8 +72,9 @@ export function buildPiDockerArgs({
   user,
   sessionPath = null,
   continueSession = false,
+  reasoningEffort = 'high',
 }) {
-  for (const [name, value] of Object.entries({ image, model, prompt, workspace, piHome, user })) {
+  for (const [name, value] of Object.entries({ image, model, prompt, workspace, piHome, user, reasoningEffort })) {
     invariant(typeof value === 'string' && value.length > 0, `${name} is required to run Pi`);
   }
 
@@ -100,7 +101,7 @@ export function buildPiDockerArgs({
     '--mode', 'json',
     '--provider', REQUIRED_PROVIDER,
     '--model', model,
-    '--thinking', 'high',
+    '--thinking', reasoningEffort,
     '--tools', PI_TOOLS.join(','),
     '--no-extensions',
     '--no-skills',

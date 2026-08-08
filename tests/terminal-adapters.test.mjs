@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,10 +11,12 @@ import * as claude from '../scripts/terminal-adapter-claude.mjs';
 import * as dotagents from '../scripts/terminal-adapter-dotagents.mjs';
 import * as droid from '../scripts/terminal-adapter-droid.mjs';
 import * as harbor from '../scripts/terminal-adapter-harbor.mjs';
-import { candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
+import { CANDIDATE_NODE_OPTIONS, candidateSpawnOptions } from '../benchmark/challenges/candidate-process.mjs';
 import { isContextOverflowResponse, normalizeContextOverflow, startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
 import { bindTerminalHarnessRuntime, SEALED_TERMINAL_HARNESS_VERSIONS } from '../src/terminal-harness-versions.mjs';
+import { createDroidSettings, materializeDroidSettingsCredential } from '../src/droid-harness.mjs';
+import { assertDroidCredentialAbsent, isolatedDroidEnvironment, openDroidCredentialDirectory, retireDroidCredentialSettings } from '../src/droid-sandbox.mjs';
 
 test('all terminal harness adapters advertise the exhaustive matrix roster', () => {
   assert.deepEqual(all.harnesses, ['claude-code', 'codex-cli', 'dotagents-mono', 'factory-droid', 'pi-coding-agent']);
@@ -22,6 +24,62 @@ test('all terminal harness adapters advertise the exhaustive matrix roster', () 
   assert.deepEqual(harbor.harnesses, ['claude-code', 'codex-cli', 'pi-coding-agent']);
   assert.deepEqual(dotagents.harnesses, ['dotagents-mono']);
   assert.deepEqual(droid.harnesses, ['factory-droid']);
+});
+
+test('Droid keeps its router credential out of the model command environment and persistent run files', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-droid-credential-'));
+  const apiKey = 'credential-that-must-never-reach-model-commands';
+  try {
+    const environment = isolatedDroidEnvironment(path.join(root, 'home'), path.join(root, 'tmp'));
+    assert.equal(environment.AGENTBATTLER_DROID_API_KEY, undefined);
+    assert.equal(Object.values(environment).includes(apiKey), false);
+
+    const template = createDroidSettings({ baseUrl: 'http://127.0.0.1:20128' });
+    const runtime = materializeDroidSettingsCredential(template, apiKey);
+    assert.ok(runtime.customModels.every((entry) => entry.apiKey === apiKey));
+    assert.ok(template.customModels.every((entry) => entry.apiKey === '${AGENTBATTLER_DROID_API_KEY}'));
+
+    await mkdir(root, { recursive: true });
+    const transientSettings = path.join(root, 'settings.json');
+    await writeFile(transientSettings, JSON.stringify(runtime));
+    await assert.rejects(() => assertDroidCredentialAbsent({ runDirectory: root, apiKey }), /credential residue/);
+    await rm(transientSettings);
+
+    const factoryHome = path.join(root, 'factory');
+    const settingsPath = path.join(factoryHome, 'settings.json');
+    const temporarySettingsPath = path.join(factoryHome, 'settings.json.tmp-test');
+    await mkdir(factoryHome);
+    await writeFile(settingsPath, JSON.stringify(runtime));
+    const delayedAtomicRewrite = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await writeFile(temporarySettingsPath, JSON.stringify(runtime));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await rename(temporarySettingsPath, settingsPath);
+    })();
+    const retirement = await retireDroidCredentialSettings({ factoryHome, apiKey, timeoutMs: 1_000, quietMs: 75, pollMs: 5 });
+    await delayedAtomicRewrite;
+    assert.ok(retirement.settingsFilesRemoved >= 1);
+    assert.ok(retirement.transientObservations >= 1);
+    assert.deepEqual(await assertDroidCredentialAbsent({ runDirectory: root, apiKey }), { filesScanned: 0 });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Droid credential scanning tolerates a removed transient session directory but not a missing scan root', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-droid-scan-race-'));
+  const removedSessionDirectory = path.join(root, 'session.settings.json.lock');
+  try {
+    await mkdir(removedSessionDirectory);
+    await rm(removedSessionDirectory, { recursive: true });
+    assert.equal(await openDroidCredentialDirectory(removedSessionDirectory, { allowMissing: true }), null);
+    await assert.rejects(
+      () => openDroidCredentialDirectory(removedSessionDirectory),
+      (error) => error?.code === 'ENOENT' && error?.syscall === 'opendir',
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
@@ -37,6 +95,60 @@ test('Harbor V4 invocation is pinned, containerized, and resumable', () => {
   assert.equal(args[args.indexOf('--agent-timeout') + 1], '1800');
   assert.ok(args.some((value) => value.endsWith('/.codex/auth.json') && value.startsWith('CODEX_AUTH_JSON_PATH=')));
   assert.ok(!args.includes('CODEX_FORCE_AUTH_JSON=true'));
+  assert.ok(args.includes('reasoning_effort=high'));
+  assert.equal(args[args.indexOf('--agent') + 1], 'benchmark.harbor.codex_agent:AgentBattlerCodex');
+});
+
+test('Harbor Codex replaces the unsafe launcher flag with native command sandboxing', async () => {
+  const source = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_agent.py'), 'utf8');
+  assert.match(source, /--ignore-user-config/);
+  assert.match(source, /--strict-config/);
+  assert.match(source, /approval_policy="never"/);
+  assert.match(source, /default_permissions="agentbattler_workspace"/);
+  assert.match(source, /filesystem=\{":root"="deny",":minimal"="read"/);
+  assert.match(source, /HOME="\/app\/\.agentbattler-tmp"/);
+  assert.doesNotMatch(source, /HOME="\/tmp/);
+  assert.match(source, /permissions\.agentbattler_workspace\.network\.enabled=false/);
+  assert.match(source, /shell_environment_policy\.inherit="none"/);
+  assert.equal((source.match(/environment\.default_user = "root"/g) ?? []).length, 2);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-bwrap/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-codex-wrapper/);
+  assert.doesNotMatch(source, /--sandbox workspace-write/);
+  assert.match(source, /TMPDIR="\/app\/\.agentbattler-tmp"/);
+  assert.match(source, /AgentBattlerCodex/);
+  const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'codex_bwrap_wrapper.sh'), 'utf8');
+  assert.match(bwrap, /--unshare-user/);
+  assert.match(bwrap, /--unshare-net/);
+  assert.match(bwrap, /--unshare-pid/);
+  assert.match(bwrap, /--ro-bind/);
+  assert.match(bwrap, /--tmpfs/);
+  assert.match(bwrap, /args\+\=\(--cap-drop ALL\)/);
+  assert.match(bwrap, /--clearenv/);
+  assert.match(bwrap, /--setenv HOME \/app\/\.agentbattler-tmp/);
+  assert.match(bwrap, /--setenv TMPDIR \/app\/\.agentbattler-tmp/);
+  assert.match(bwrap, /AgentBattler command sandbox retained capabilities/);
+  assert.match(bwrap, /\/proc\/self\/status/);
+  assert.match(bwrap, /agentbattler-capability-guard/);
+  assert.match(bwrap, /inner_argv0/);
+  assert.match(bwrap, /exec -a "\$0" "\$@"/);
+  assert.match(bwrap, /refused an incomplete bwrap policy/);
+});
+
+test('Harbor maps the sealed max reasoning level into every native harness', () => {
+  for (const [harness, expected] of [
+    ['claude-code', 'reasoning_effort=max'],
+    ['codex-cli', 'reasoning_effort=max'],
+    ['pi-coding-agent', 'thinking=max'],
+  ]) {
+    const args = harbor.buildHarborArgs({
+      job: { harness, model: 'gpt-5.6-luna', reasoningEffort: 'max', maxWallTimeMs: 3_600_000 },
+      trialsDir: '/tmp/trials',
+      trialName: `max-${harness}`,
+    });
+    assert.ok(args.includes(expected));
+    assert.equal(args[args.indexOf('--model') + 1], harness === 'pi-coding-agent' ? 'openai-codex/gpt-5.6-luna' : 'gpt-5.6-luna');
+    assert.equal(args[args.indexOf('--agent-timeout') + 1], '3600');
+  }
 });
 
 test('terminal schedules bind declared harness versions to launched runtimes', () => {
@@ -67,8 +179,26 @@ test('Harbor Pi uses the pinned AgentBattler fork and native session adapter', a
   assert.match(source, /@earendil-works\/pi-coding-agent/);
   assert.match(source, /--session/);
   assert.match(source, /--continue/);
+  assert.match(source, /"max"/);
+  assert.match(source, /self\.build_cli_flags\(\)/);
   assert.match(source, /upload_file/);
+  assert.match(source, /pi_sandbox_extension\.mjs/);
+  assert.match(source, /--extension/);
+  assert.match(source, /command -v bwrap/);
+  assert.match(source, /command -v pi/);
+  assert.match(source, /test "\$\(pi --version\)"/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-pi-sandbox\.mjs/);
+  assert.doesNotMatch(source, /nvm_node_install_snippet|nvm use|npm install/);
+  assert.doesNotMatch(source, /apt-get/);
   assert.doesNotMatch(source, /! grep -q .*stopReason/);
+  const sandbox = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'pi_sandbox_extension.mjs'), 'utf8');
+  assert.match(sandbox, /'--unshare-net'/);
+  assert.match(sandbox, /'--unshare-pid'/);
+  assert.match(sandbox, /'--cap-drop', 'ALL'/);
+  assert.match(sandbox, /'--clearenv'/);
+  assert.doesNotMatch(sandbox, /SandboxManager/);
+  assert.match(sandbox, /SAFE_ENVIRONMENT/);
+  assert.match(sandbox, /restricted to \/app/);
 });
 
 test('Harbor Claude terminates the native CLI after a terminal result event', async () => {
@@ -89,6 +219,11 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /CLAUDE_CODE_MAX_CONTEXT_TOKENS="200000"/);
   assert.match(source, /CLAUDE_CODE_AUTO_COMPACT_WINDOW="200000"/);
   assert.match(source, /CLAUDE_AUTOCOMPACT_PCT_OVERRIDE="80"/);
+  assert.match(source, /"allowUnsandboxedCommands": False/);
+  assert.match(source, /"failIfUnavailable": True/);
+  assert.match(source, /"bwrapPath": "\/usr\/local\/bin\/agentbattler-bwrap"/);
+  assert.match(source, /"allowedDomains": \[\]/);
+  assert.match(source, /chown 0:0 \/tmp\/agentbattler-claude-bwrap/);
   assert.match(source, /claude-agentbattler-real/);
   assert.match(source, /event\.type === "result"/);
   assert.match(source, /kill -TERM -- "-\$agent_pid"/);
@@ -99,6 +234,18 @@ test('Harbor Claude terminates the native CLI after a terminal result event', as
   assert.match(source, /mkdir -p "\$\(dirname "\$active"\)"/);
   assert.match(source, /kill -TERM "\$previous"/);
   assert.match(source, /pkill -TERM -f "\^\$real\( \|\$\)"/);
+  const bwrap = await readFile(path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'claude_bwrap_wrapper.sh'), 'utf8');
+  assert.match(bwrap, /--unshare-user/);
+  assert.match(bwrap, /--unshare-net/);
+  assert.match(bwrap, /--unshare-pid/);
+  assert.match(bwrap, /--cap-drop/);
+  assert.match(bwrap, /isolated_root/);
+  assert.match(bwrap, /--clearenv/);
+  assert.match(bwrap, /--setenv HOME \/tmp/);
+  assert.match(bwrap, /AgentBattler command sandbox retained capabilities/);
+  assert.match(bwrap, /\/proc\/self\/status/);
+  assert.match(bwrap, /agentbattler-capability-guard/);
+  assert.match(bwrap, /refused an incomplete bwrap policy/);
 });
 
 test('DotAgents turn streaming tolerates quiet SSE intervals without fetch body timeouts', async () => {
@@ -304,21 +451,105 @@ test('generated Harbor V5 R5 task declares the Droid harness revision', async ()
   assert.match(source, /protocolRevision === 'r5' \? '5\.4\.0'/);
 });
 
+test('generated Harbor V6 task archives every candidate and reevaluates final correctness', async () => {
+  const taskRoot = path.resolve(import.meta.dirname, '..', 'benchmark', 'harbor', 'mini-ledger-v6');
+  const config = await readFile(path.join(taskRoot, 'task.toml'), 'utf8');
+  assert.equal((config.match(/\[\[steps\]\]/g) ?? []).length, 15);
+  assert.match(config, /version = "6\.13\.0"/);
+  assert.match(config, /protocol_revision = "r14"/);
+  assert.match(config, /agent_time_policy = "hard-60-minutes-per-turn-with-agent-notice"/);
+  assert.match(config, /primary_score_policy = "final-public-matrix-plus-holdout"/);
+  assert.match(config, /candidate_snapshot_policy = "every-turn-exact-ledger-source"/);
+  assert.match(config, /candidate_network_policy = "node-permission-model-deny-network-and-child-process"/);
+  assert.match(config, /candidate_durability_policy = "filehandle-sync-and-datasync"/);
+  assert.match(config, /agent_command_sandbox_policy = "workspace-filesystem-minimal-environment-no-network"/);
+  assert.match(config, /agent_command_sandbox_host_compat = "trusted-parent-namespace-caps-model-child-cap-drop"/);
+  const agentImage = await readFile(path.join(taskRoot, 'environment', 'Dockerfile'), 'utf8');
+  assert.match(agentImage, /bubblewrap/);
+  assert.match(agentImage, /socat/);
+  assert.match(agentImage, /@openai\/codex@0\.144\.0/);
+  assert.match(agentImage, /@anthropic-ai\/claude-code@2\.1\.220/);
+  assert.match(agentImage, /@earendil-works\/pi-coding-agent@0\.80\.7/);
+  const agentCompose = await readFile(path.join(taskRoot, 'environment', 'docker-compose.yaml'), 'utf8');
+  assert.match(agentCompose, /SYS_ADMIN/);
+  assert.match(agentCompose, /NET_ADMIN/);
+  assert.match(agentCompose, /CHOWN/);
+  assert.match(agentCompose, /seccomp=unconfined/);
+  const runner = await readFile(path.join(taskRoot, 'tests', 'run-stage.mjs'), 'utf8');
+  assert.match(runner, /candidateSnapshotsRequired = true/);
+  assert.match(runner, /finalPublicRequired = true/);
+  assert.match(runner, /candidate-ledger\.mjs/);
+  assert.match(runner, /all-public-stages-from-final-source-only-candidate/);
+  assert.match(runner, /nodePermissionModel: true/);
+  assert.match(runner, /supported: \['FileHandle\.sync', 'FileHandle\.datasync'\]/);
+  assert.match(runner, /mini-ledger-v6\/public-verifier\.mjs/);
+  assert.match(runner, /mini-ledger-v6\/holdout-verifier\.mjs/);
+  const v6BatchVerifier = await readFile(path.join(taskRoot, 'tests', 'mini-ledger-v6', 'public-verifier.mjs'), 'utf8');
+  assert.match(v6BatchVerifier, /stageBatch/);
+  assert.doesNotMatch(v6BatchVerifier, /\['query'/);
+  const candidateProcess = await readFile(path.join(taskRoot, 'tests', 'candidate-process.mjs'), 'utf8');
+  assert.match(candidateProcess, /--permission --allow-fs-read=\. --allow-fs-write=\./);
+  const firstPrompt = await readFile(path.join(taskRoot, 'steps', '01-foundation', 'instruction.md'), 'utf8');
+  assert.match(firstPrompt, /must never be embedded as source defaults/);
+  assert.match(firstPrompt, /hard 60-minute wall-clock limit enforced by the benchmark/);
+  assert.match(firstPrompt, /fs\.promises\.open\(\).*FileHandle\.sync\(\)/);
+  assert.match(firstPrompt, /export PATH; import PATH/);
+});
+
 test('candidate verifier process identity is opt-in and validated', () => {
   const previousUid = process.env.AGENTBATTLER_CANDIDATE_UID;
   const previousGid = process.env.AGENTBATTLER_CANDIDATE_GID;
   try {
     delete process.env.AGENTBATTLER_CANDIDATE_UID;
     delete process.env.AGENTBATTLER_CANDIDATE_GID;
-    assert.deepEqual(candidateSpawnOptions(), {});
+    assert.deepEqual(candidateSpawnOptions(), { env: { PATH: process.env.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C', NODE_OPTIONS: CANDIDATE_NODE_OPTIONS } });
     process.env.AGENTBATTLER_CANDIDATE_UID = '1000';
     process.env.AGENTBATTLER_CANDIDATE_GID = '1001';
-    assert.deepEqual(candidateSpawnOptions(), { uid: 1000, gid: 1001 });
+    assert.deepEqual(candidateSpawnOptions(), { uid: 1000, gid: 1001, env: { PATH: process.env.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C', NODE_OPTIONS: CANDIDATE_NODE_OPTIONS } });
     process.env.AGENTBATTLER_CANDIDATE_UID = 'root';
     assert.throws(() => candidateSpawnOptions(), /positive integers/);
   } finally {
     if (previousUid === undefined) delete process.env.AGENTBATTLER_CANDIDATE_UID; else process.env.AGENTBATTLER_CANDIDATE_UID = previousUid;
     if (previousGid === undefined) delete process.env.AGENTBATTLER_CANDIDATE_GID; else process.env.AGENTBATTLER_CANDIDATE_GID = previousGid;
+  }
+});
+
+test('candidate verifier permits real FileHandle durability while denying unsupported fd sync, network, and outside files', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentbattler-candidate-permission-'));
+  try {
+    await writeFile(path.join(root, 'allowed.txt'), 'allowed');
+    const result = await new Promise((resolve, reject) => {
+      const stdout = [];
+      const child = spawn(process.execPath, ['-e', `
+        const fs = require('node:fs');
+        (async () => {
+          console.log(fs.readFileSync('allowed.txt', 'utf8'));
+          const handle = await fs.promises.open('durable.txt', 'w');
+          await handle.writeFile('durable');
+          await handle.sync();
+          await handle.datasync();
+          await handle.close();
+          console.log('FILEHANDLE_DURABILITY_OK');
+          const fd = fs.openSync('sync-only.txt', 'w');
+          try { fs.fsyncSync(fd); process.exit(7); } catch (error) { console.log(error.code); } finally { fs.closeSync(fd); }
+          try { require('node:child_process').spawnSync(process.execPath, ['--version']); process.exit(6); } catch (error) { console.log(error.code); }
+          try { fs.readFileSync('/etc/hosts'); process.exit(8); } catch (error) { console.log(error.code); }
+          await fetch('https://example.com').then(() => process.exit(9), (error) => console.log(error.cause?.code ?? error.code ?? error.name));
+        })().catch((error) => { console.error(error); process.exit(10); });
+      `], {
+        ...candidateSpawnOptions(),
+        cwd: root,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      child.stdout.on('data', (chunk) => stdout.push(chunk));
+      child.once('error', reject);
+      child.once('close', (code, signal) => resolve({ code, signal, stdout: Buffer.concat(stdout).toString('utf8') }));
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.signal, null);
+    assert.match(result.stdout, /^allowed\nFILEHANDLE_DURABILITY_OK\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\nERR_ACCESS_DENIED\n$/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

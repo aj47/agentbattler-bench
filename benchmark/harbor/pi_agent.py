@@ -6,8 +6,7 @@ from pathlib import Path
 
 from typing import override
 
-from harbor.agents.installed.base import with_prompt_template
-from harbor.agents.installed.node_install import nvm_node_install_snippet
+from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.pi import Pi
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
@@ -17,22 +16,52 @@ class AgentBattlerPi(Pi):
     """Harbor Pi adapter for AgentBattler's pinned, session-capable fork."""
 
     _SESSION_PATH = "$HOME/.pi/agent/sessions/agentbattler.jsonl"
+    CLI_FLAGS = [
+        CliFlag(
+            "thinking",
+            cli="--thinking",
+            type="enum",
+            choices=["off", "minimal", "low", "medium", "high", "xhigh", "max"],
+            default="high",
+        )
+    ]
 
     @override
     async def install(self, environment: BaseEnvironment) -> None:
+        if not self._version:
+            raise ValueError("AgentBattler Pi requires a pinned runtime version")
         await self.exec_as_root(
             environment,
-            command="apt-get update && apt-get install -y curl",
-            env={"DEBIAN_FRONTEND": "noninteractive"},
+            command=(
+                "command -v bwrap >/dev/null && "
+                "command -v curl >/dev/null && "
+                "command -v rg >/dev/null && "
+                "command -v node >/dev/null && "
+                "command -v npm >/dev/null && "
+                "command -v pi >/dev/null && "
+                f'test "$(pi --version)" = {shlex.quote(self._version)}'
+            ),
         )
-        version_spec = f"@{self._version}" if self._version else "@latest"
-        await self.exec_as_agent(
+        sandbox_source = Path(__file__).with_name("pi_sandbox_extension.mjs")
+        await environment.upload_file(
+            sandbox_source, "/tmp/agentbattler-pi-sandbox.mjs"
+        )
+        await self.exec_as_root(
+            environment,
+            command=(
+                "chown 0:0 /tmp/agentbattler-pi-sandbox.mjs; "
+                "chmod 0644 /tmp/agentbattler-pi-sandbox.mjs"
+            ),
+        )
+        await self.exec_as_root(
             environment,
             command=(
                 "set -euo pipefail; "
-                f"{nvm_node_install_snippet()} && "
-                f"npm install -g @earendil-works/pi-coding-agent{version_spec} && "
-                "pi --version"
+                'root="$(npm root -g)/@earendil-works/pi-coding-agent"; '
+                'test -d "$root"; '
+                'mv /tmp/agentbattler-pi-sandbox.mjs '
+                '"$root/agentbattler-sandbox.mjs"; '
+                'chmod 0644 "$root/agentbattler-sandbox.mjs"'
             ),
         )
         auth_path = self._get_env("CODEX_AUTH_JSON_PATH")
@@ -61,6 +90,13 @@ class AgentBattlerPi(Pi):
             temporary_auth = Path(handle.name)
         try:
             await environment.upload_file(temporary_auth, "/tmp/agentbattler-pi-auth.json")
+            await self.exec_as_root(
+                environment,
+                command=(
+                    "chown 0:0 /tmp/agentbattler-pi-auth.json; "
+                    "chmod 0600 /tmp/agentbattler-pi-auth.json"
+                ),
+            )
             await self.exec_as_agent(
                 environment,
                 command=(
@@ -83,6 +119,11 @@ class AgentBattlerPi(Pi):
         if not self.model_name or "/" not in self.model_name:
             raise ValueError("Model name must be in provider/model format")
         provider, model = self.model_name.split("/", 1)
+        thinking_flags = self.build_cli_flags()
+        sandbox_extension = (
+            "$(npm root -g)/@earendil-works/pi-coding-agent/"
+            "agentbattler-sandbox.mjs"
+        )
         continuation = (
             "mkdir -p $HOME/.pi/agent/sessions; "
             f"if test -s {self._SESSION_PATH}; "
@@ -91,11 +132,12 @@ class AgentBattlerPi(Pi):
         await self.exec_as_agent(
             environment,
             command=(
-                "set -euo pipefail; . ~/.nvm/nvm.sh; nvm use 22 >/dev/null; "
+                "set -euo pipefail; "
                 f"{continuation}"
                 "pi --mode json "
                 f"--provider {shlex.quote(provider)} --model {shlex.quote(model)} "
-                "--thinking high --tools read,bash,edit,write "
+                f"{thinking_flags} --tools read,bash,edit,write "
+                f"--extension {sandbox_extension} "
                 "--no-extensions --no-skills --no-prompt-templates --no-themes "
                 "--no-context-files --no-approve "
                 f"--session {self._SESSION_PATH} $continue_flag "
@@ -107,4 +149,5 @@ class AgentBattlerPi(Pi):
         context.metadata = {
             "native_session_path": "<harbor-persistent-workspace>",
             "session_continuity": True,
+            "thinking": self._resolved_flags.get("thinking"),
         }

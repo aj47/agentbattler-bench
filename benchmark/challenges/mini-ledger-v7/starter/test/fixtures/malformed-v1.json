@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "agentbattler.ledger.v1",
+  "fixtureStatus": "expected-invalid",
+  "events": "not-an-array"
+}

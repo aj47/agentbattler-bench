@@ -4,7 +4,6 @@ import readline from 'node:readline';
 
 import {
   DROID_CONTEXT_POLICY,
-  DROID_REASONING_EFFORT,
   DROID_RESTRICTED_TOOLS,
   droidCustomModelId,
 } from './droid-harness.mjs';
@@ -53,6 +52,7 @@ export function summarizeDroidRpcTurn(messages, { sessionId, startedAt = Date.no
   return {
     sessionId,
     success: errors.length === 0 && (!completion || completion.reason === 'completed'),
+    stopReason: completion?.reason ?? (errors.length > 0 ? 'error' : null),
     finalText,
     durationMs: completion?.durationMs ?? Date.now() - startedAt,
     eventCount: messages.length,
@@ -77,12 +77,27 @@ export function summarizeDroidRpcTurn(messages, { sessionId, startedAt = Date.no
 }
 
 export class DroidJsonRpcSession {
-  constructor({ workspace, model, env, timeoutMs = null, onMessage = null }) {
+  constructor({
+    workspace,
+    model,
+    env,
+    timeoutMs = null,
+    onMessage = null,
+    reasoningEffort = 'high',
+    launcher = null,
+    allowedTools = DROID_RESTRICTED_TOOLS,
+  }) {
+    invariant(Array.isArray(allowedTools) && allowedTools.length > 0, 'Droid allowedTools must be a non-empty array');
+    invariant(allowedTools.every((name) => typeof name === 'string' && DROID_RESTRICTED_TOOLS.includes(name)), 'Droid allowedTools contains an unsupported tool');
+    invariant(new Set(allowedTools).size === allowedTools.length, 'Droid allowedTools contains duplicates');
     this.workspace = workspace;
     this.model = model;
     this.env = env;
     this.timeoutMs = timeoutMs;
     this.onMessage = onMessage;
+    this.reasoningEffort = reasoningEffort;
+    this.launcher = launcher;
+    this.allowedTools = Object.freeze([...allowedTools]);
     this.messages = [];
     this.stderr = [];
     this.pending = new Map();
@@ -95,7 +110,9 @@ export class DroidJsonRpcSession {
 
   async start() {
     invariant(!this.child, 'Droid JSON-RPC session is already started');
-    this.child = spawn('droid', ['exec', '--input-format', 'stream-jsonrpc', '--output-format', 'stream-jsonrpc'], {
+    const command = this.launcher?.command ?? 'droid';
+    const args = [...(this.launcher?.argsPrefix ?? []), 'exec', '--input-format', 'stream-jsonrpc', '--output-format', 'stream-jsonrpc'];
+    this.child = spawn(command, args, {
       cwd: this.workspace,
       env: this.env,
       shell: false,
@@ -121,7 +138,7 @@ export class DroidJsonRpcSession {
       modelId: droidCustomModelId(this.model),
       interactionMode: 'auto',
       autonomyLevel: 'medium',
-      reasoningEffort: DROID_REASONING_EFFORT,
+      reasoningEffort: this.reasoningEffort,
       compactionThresholdCheckEnabled: true,
       disableBuiltinSkills: true,
     });
@@ -130,8 +147,8 @@ export class DroidJsonRpcSession {
     this.sessionId = init.sessionId;
 
     const catalog = await this.request('droid.list_tools', {});
-    const allowed = (catalog?.tools ?? []).filter((tool) => DROID_RESTRICTED_TOOLS.includes(tool.llmId));
-    invariant(allowed.length === DROID_RESTRICTED_TOOLS.length, `Droid tool catalog is missing: ${DROID_RESTRICTED_TOOLS.filter((name) => !allowed.some((tool) => tool.llmId === name)).join(', ')} (available: ${(catalog?.tools ?? []).map((tool) => tool.llmId).join(', ')})`);
+    const allowed = (catalog?.tools ?? []).filter((tool) => this.allowedTools.includes(tool.llmId));
+    invariant(allowed.length === this.allowedTools.length, `Droid tool catalog is missing: ${this.allowedTools.filter((name) => !allowed.some((tool) => tool.llmId === name)).join(', ')} (available: ${(catalog?.tools ?? []).map((tool) => tool.llmId).join(', ')})`);
     const restrictToolIds = allowed.map((tool) => tool.id).sort();
     await this.request('droid.update_session_settings', {
       restrictToolIds,
@@ -140,7 +157,7 @@ export class DroidJsonRpcSession {
     });
     const settingsEvidence = await this.request('droid.get_context_stats', {});
     invariant(settingsEvidence?.limit === DROID_CONTEXT_POLICY.compactionTokenLimit, `Droid context limit is ${settingsEvidence?.limit ?? 'missing'}, expected ${DROID_CONTEXT_POLICY.compactionTokenLimit}`);
-    this.settingsEvidence = { init: init.settings, restrictToolIds, context: settingsEvidence };
+    this.settingsEvidence = { init: init.settings, allowedTools: [...this.allowedTools], restrictToolIds, context: settingsEvidence };
     return { sessionId: this.sessionId, settings: this.settingsEvidence };
   }
 
@@ -250,7 +267,7 @@ export class DroidJsonRpcSession {
     let result;
     if (message.method === 'droid.request_permission') {
       const names = (message.params?.toolUses ?? []).map((entry) => entry.toolUse?.name).filter(Boolean);
-      const allowed = names.length > 0 && names.every((name) => DROID_RESTRICTED_TOOLS.includes(name));
+      const allowed = names.length > 0 && names.every((name) => this.allowedTools.includes(name));
       result = { selectedOption: allowed ? 'proceed_once' : 'cancel' };
     } else if (message.method === 'droid.ask_user') {
       result = { cancelled: true, answers: [] };

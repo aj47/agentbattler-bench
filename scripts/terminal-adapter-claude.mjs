@@ -5,13 +5,21 @@ import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { terminalChallengeRuntime } from '../src/terminal-challenge-runtime.mjs';
 import { startAnthropicOverflowCompat } from '../src/anthropic-overflow-compat.mjs';
 import { claudeCompactionPolicy, claudeCompactionTelemetry } from '../src/claude-compaction.mjs';
+import {
+  assertTerminalTraceIsolation,
+  captureTerminalCandidateSnapshot,
+  terminalTurnCompletion,
+  verifyTerminalFinalPublic,
+  verifyTerminalPublicStage,
+} from '../src/terminal-run-evidence.mjs';
 
 const CLAUDE_VERSION = process.env.AGENTBATTLER_CLAUDE_VERSION ?? '2.1.220';
-const REASONING = 'high';
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ADAPTER_BINARY = process.env.AGENTBATTLER_CLAUDE_ADAPTER_BIN;
 const AUTH_BROKER_DIR = process.env.AGENTBATTLER_CLAUDE_AUTH_BROKER_DIR ?? path.join(os.tmpdir(), 'agentbattler-claude-auth-broker');
 const CLIPROXY_BASE_URL = process.env.AGENTBATTLER_CLIPROXY_BASE_URL;
@@ -193,6 +201,7 @@ function summarize(events, expectedModel) {
     cachedInputTokens: usage.cacheReadInputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     reasoningTokens: usage.reasoningTokens ?? 0,
+    nativeStopReason: result.stop_reason ?? result.stopReason ?? result.subtype ?? null,
     compaction,
   };
 }
@@ -259,11 +268,11 @@ async function stopGateway(gateway) {
   if (!gateway.state.closed) gateway.child.kill('SIGKILL');
 }
 
-function claudeArgs({ model, sessionId, prompt }) {
+function claudeArgs({ model, sessionId, prompt, reasoningEffort }) {
   const session = sessionId ? ['--resume', sessionId] : ['--session-id', randomUUID()];
   return [
     ...session, '--bare', '--print', '--verbose', '--output-format', 'stream-json', '--model', model,
-    '--effort', REASONING, '--permission-mode', 'bypassPermissions', '--allow-dangerously-skip-permissions',
+    '--effort', reasoningEffort, '--permission-mode', 'bypassPermissions', '--allow-dangerously-skip-permissions',
     '--tools', 'Read,Edit,Write,Bash', '--allowedTools', 'Read,Edit,Write,Bash',
     '--disable-slash-commands', '--mcp-config', '{"mcpServers":{}}', '--strict-mcp-config', prompt,
   ];
@@ -280,14 +289,19 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
   const usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningTokens: 0 };
   const compaction = { count: 0, boundaries: [] };
   const runStartedAt = new Date().toISOString(); let sessionId = null; let toolCalls = 0;
+  const reasoningEffort = job.reasoningEffort ?? 'high';
+  const v6Evidence = challenge.execution?.candidateSnapshotsRequired === true;
   try {
     gateway = proxy ? await prepareCliProxy(runDirectory, proxy, job.model) : await prepareGateway(runDirectory, job.model);
     for (let index = 0; index < prompts.length; index += 1) {
       const startedAt = new Date().toISOString(); const startedClock = Date.now();
       const outputPath = path.join(runDirectory, `turn-${index + 1}.jsonl`); const errorPath = path.join(runDirectory, `turn-${index + 1}.stderr`);
-      const result = await runClaude({ args: claudeArgs({ model: job.model, sessionId, prompt: prompts[index] }), cwd: workspace, env: gateway.env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
+      const result = await runClaude({ args: claudeArgs({ model: job.model, sessionId, prompt: prompts[index], reasoningEffort }), cwd: workspace, env: gateway.env, outputPath, errorPath, timeoutMs: job.maxWallTimeMs });
       invariant(!result.timedOut && result.exitCode === 0 && !result.signal, `Claude turn ${index + 1} failed (exit ${result.exitCode}, signal ${result.signal ?? 'none'})`);
       const telemetry = summarize(result.events, job.model);
+      const isolation = challenge.execution?.traceIsolationRequired === true
+        ? assertTerminalTraceIsolation({ trace: result.events, repositoryRoot: REPOSITORY_ROOT, workspace, turn: index + 1 })
+        : null;
       invariant(telemetry.sessionId, `Claude turn ${index + 1} emitted no session ID`);
       if (!sessionId) sessionId = telemetry.sessionId;
       invariant(telemetry.sessionId === sessionId, `Claude session changed on turn ${index + 1}`);
@@ -295,12 +309,14 @@ export async function runTerminalJob({ challenge, job, runDirectory }) {
       for (const key of ['inputTokens', 'cachedInputTokens', 'outputTokens', 'reasoningTokens']) usage[key] += telemetry[key];
       compaction.count += telemetry.compaction.count;
       compaction.boundaries.push(...telemetry.compaction.boundaries.map((boundary) => ({ ...boundary, turn: index + 1 })));
-      const stage = await publicVerifier.verifyPublicStage({ workspace, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
+      const candidate = v6Evidence ? await captureTerminalCandidateSnapshot({ sourcePath: path.join(workspace, 'ledger.mjs'), runDirectory, turn: index + 1 }) : null;
+      const stage = await verifyTerminalPublicStage({ workspace, publicVerifier, stageId: job.challengeStageIds?.[index] ?? challenge?.stages?.[index]?.id });
       stages.push({ ...stage, id: stage.id ?? stage.stageId });
-      turns.push({ index: index + 1, sessionId: telemetry.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry, compaction: telemetry.compaction });
+      turns.push({ index: index + 1, sessionId: telemetry.sessionId, exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, startedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - startedClock, usage: telemetry, compaction: telemetry.compaction, completion: terminalTurnCompletion({ nativeReason: telemetry.nativeStopReason, timedOut: result.timedOut }), ...(candidate ? { candidate } : {}), ...(isolation ? { isolation } : {}) });
     }
+    const finalPublic = challenge.execution?.finalPublicEvaluationRequired === true ? await verifyTerminalFinalPublic({ workspace, challenge, publicVerifier }) : null;
     const holdout = await holdoutVerifier.verifyHoldout({ workspace });
-    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort: REASONING, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, compaction, stages, holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { transport: proxy ? proxy.provenance : { name: 'claude-adapter', mode: 'native-brokered-oauth' }, resourcePolicy: { compaction: claudeCompactionPolicy(job.model) }, ...(gateway?.overflowCompat ? { overflowCompatibility: { name: 'agentbattler-anthropic-overflow-compat', normalizedStatus: 400, normalizedType: 'invalid_request_error', ...gateway.overflowCompat.stats } } : {}) } };
+    return { ...job, schemaVersion: 'agentbattler.terminal-run.v1', status: 'completed', validity: 'valid', harness: 'claude-code', harnessVersion: CLAUDE_VERSION, model: job.model, reasoningEffort, sessionId, sameSessionProof: sessionIds.length === prompts.length && sessionIds.every((id) => id === sessionId), startedAt: runStartedAt, endedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(runStartedAt), turns, toolCalls, usage, compaction, stages, ...(finalPublic ? { finalPublic } : {}), holdout, humanIntervention: 'none', workspace: { path: '<ephemeral-run-workspace>' }, adapter: { transport: proxy ? proxy.provenance : { name: 'claude-adapter', mode: 'native-brokered-oauth' }, resourcePolicy: { compaction: claudeCompactionPolicy(job.model) }, ...(gateway?.overflowCompat ? { overflowCompatibility: { name: 'agentbattler-anthropic-overflow-compat', normalizedStatus: 400, normalizedType: 'invalid_request_error', ...gateway.overflowCompat.stats } } : {}) } };
   } finally {
     await stopGateway(gateway);
     if (authBroker) {

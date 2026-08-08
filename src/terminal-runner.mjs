@@ -4,6 +4,12 @@ import path from 'node:path';
 
 import { canonicalJson, canonicalJsonSha256 } from './provenance.mjs';
 import { TERMINAL_RUN_SCHEMA, validateMiniLedgerChallenge, validateTerminalSchedule } from './terminal-challenge.mjs';
+import {
+  TERMINAL_V7_CHALLENGE_SCHEMA,
+  validateTerminalV7Challenge,
+  validateTerminalV7Schedule,
+} from './terminal-v7.mjs';
+import { captureTerminalV7VerifierEvidence } from './terminal-v7-verifier-evidence.mjs';
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -45,7 +51,10 @@ async function prepareAttemptWorkspace(resultRoot, runKey) {
 
 export function validateTerminalJobIdentity(job, run) {
   invariant(run?.schemaVersion === TERMINAL_RUN_SCHEMA, 'Terminal result schema mismatch');
-  for (const field of ['runKey', 'challengeId', 'challengeSha256', 'comboId', 'artifactId', 'generationIndex', 'repeat', 'seed']) {
+  const fields = job.instanceId
+    ? ['runKey', 'challengeId', 'challengeSha256', 'instanceId', 'instanceSha256', 'generationIndex', 'repeat', 'seed']
+    : ['runKey', 'challengeId', 'challengeSha256', 'comboId', 'artifactId', 'generationIndex', 'repeat', 'seed'];
+  for (const field of fields) {
     invariant(run[field] === job[field], `Terminal result ${field} does not match its scheduled job`);
   }
   return run;
@@ -53,22 +62,36 @@ export function validateTerminalJobIdentity(job, run) {
 
 export function createInfrastructureInvalidRun(job, error, { adapter = null, startedAt = null, endedAt = null } = {}) {
   const reason = String(error?.message ?? error ?? 'unknown infrastructure failure').slice(0, 2_000);
+  const protocolViolation = error?.code === 'TRACE_ISOLATION_VIOLATION';
+  const status = protocolViolation ? 'protocol-invalid' : 'infrastructure-invalid';
+  const identity = job.instanceId
+    ? {
+        instanceId: job.instanceId,
+        instanceSha256: job.instanceSha256,
+        generationIndex: job.generationIndex,
+        repeat: job.repeat,
+        seed: job.seed,
+      }
+    : {
+        comboId: job.comboId,
+        artifactId: job.artifactId,
+        generationIndex: job.generationIndex,
+        repeat: job.repeat,
+        seed: job.seed,
+      };
   const result = {
     schemaVersion: TERMINAL_RUN_SCHEMA,
     runKey: job.runKey,
     challengeId: job.challengeId,
     challengeSha256: job.challengeSha256,
-    comboId: job.comboId,
-    artifactId: job.artifactId,
-    generationIndex: job.generationIndex,
-    repeat: job.repeat,
-    seed: job.seed,
-    status: 'infrastructure-invalid',
-    validity: 'infrastructure-invalid',
+    ...identity,
+    status,
+    validity: status,
     adapter,
     startedAt,
     endedAt,
     error: reason,
+    ...(protocolViolation ? { stopReason: 'trace_isolation_violation', protocolViolation: error?.evidence ?? null } : {}),
   };
   return { ...result, resultSha256: canonicalJsonSha256(result) };
 }
@@ -95,7 +118,7 @@ async function readExistingRun(file, job) {
   if (!await exists(file)) return null;
   const run = JSON.parse(await readFile(file, 'utf8'));
   validateTerminalJobIdentity(job, run);
-  invariant(['completed', 'infrastructure-invalid'].includes(run.status), `Unsupported persisted terminal status ${run.status}`);
+  invariant(['completed', 'infrastructure-invalid', 'protocol-invalid'].includes(run.status), `Unsupported persisted terminal status ${run.status}`);
   return run;
 }
 
@@ -121,31 +144,45 @@ export async function runTerminalSchedule({
   onlyGenerationIndices = null,
   concurrency = 1,
   onProgress = () => {},
+  shouldStopBeforeJob = () => false,
+  shouldStop = () => false,
 }) {
-  validateMiniLedgerChallenge(challenge);
-  validateTerminalSchedule(schedule, challenge);
+  const isV7 = challenge?.schemaVersion === TERMINAL_V7_CHALLENGE_SCHEMA;
+  if (isV7) {
+    validateTerminalV7Challenge(challenge);
+    validateTerminalV7Schedule(schedule, challenge);
+  } else {
+    validateMiniLedgerChallenge(challenge);
+    validateTerminalSchedule(schedule, challenge);
+  }
   invariant(typeof runTerminalJob === 'function', 'A terminal adapter is required');
+  invariant(typeof shouldStopBeforeJob === 'function', 'Terminal before-job stop predicate must be a function');
+  invariant(typeof shouldStop === 'function', 'Terminal stop predicate must be a function');
   invariant(Number.isSafeInteger(concurrency) && concurrency > 0, 'Terminal concurrency must be a positive integer');
   await mkdir(path.join(resultRoot, 'runs'), { recursive: true });
 
-  const selected = orderTerminalJobsBreadthFirst(schedule.jobs.filter((job) => {
-    const combo = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo;
+  const filtered = schedule.jobs.filter((job) => {
+    const combo = isV7 ? { harness: job.harness, model: job.model } : schedule.coverage.find((entry) => entry.combo.comboId === job.comboId)?.combo;
     return (!onlyHarnesses?.length || onlyHarnesses.includes(combo?.harness.id))
       && (!onlyModels?.length || onlyModels.includes(combo?.model.id))
       && (!onlyGenerationIndices?.length || onlyGenerationIndices.includes(job.generationIndex));
-  }), schedule.coverage);
+  });
+  const selected = isV7 ? filtered : orderTerminalJobsBreadthFirst(filtered, schedule.coverage);
   const summary = { expected: selected.length, skipped: 0, completed: 0, invalid: 0, failed: 0 };
+  let stopRequested = false;
   async function executeJob(job) {
-    const coverage = schedule.coverage.find((entry) => entry.combo.comboId === job.comboId);
+    const coverage = isV7 ? null : schedule.coverage.find((entry) => entry.combo.comboId === job.comboId);
+    const scheduledHarness = isV7 ? job.harness : coverage?.combo.harness;
+    const scheduledModel = isV7 ? job.model : coverage?.combo.model;
     const adapterJob = {
       ...job,
-      harness: coverage?.combo.harness.id,
-      harnessVersion: coverage?.combo.harness.version,
-      model: coverage?.combo.model.id,
-      modelFamilyId: coverage?.combo.model.familyId,
-      reasoningEffort: coverage?.combo.model.reasoningEffort,
-      generationSettings: coverage?.combo.generationSettings ?? {},
-      maxWallTimeMs: challenge.protocol.maxWallTimeMs,
+      harness: scheduledHarness?.id,
+      harnessVersion: scheduledHarness?.version,
+      model: scheduledModel?.id,
+      modelFamilyId: scheduledModel?.familyId,
+      reasoningEffort: scheduledModel?.reasoningEffort,
+      generationSettings: isV7 ? {} : coverage?.combo.generationSettings ?? {},
+      maxWallTimeMs: challenge.protocol.maxPhaseTimeMs ?? challenge.protocol.maxTurnTimeMs ?? challenge.protocol.maxWallTimeMs,
       executionConcurrency: concurrency,
     };
     const file = terminalRunPath(resultRoot, job.runKey);
@@ -155,7 +192,7 @@ export async function runTerminalSchedule({
       onProgress({ job, status: 'invalid-persisted-result', error: error.message });
       return;
     }
-    if (existing?.status === 'completed' || (existing?.status === 'infrastructure-invalid' && !retryInvalid)) {
+    if (existing?.status === 'completed' || existing?.status === 'protocol-invalid' || (existing?.status === 'infrastructure-invalid' && !retryInvalid)) {
       summary.skipped += 1;
       if (existing.status === 'completed') summary.completed += 1;
       else summary.invalid += 1;
@@ -163,17 +200,30 @@ export async function runTerminalSchedule({
       return;
     }
 
+    // This check is deliberately adjacent to the runnable-job boundary. In
+    // particular, do not prepare a new attempt workspace or invoke an adapter
+    // after another V7 campaign has published a revision-wide stop. Existing
+    // terminal records remain resumable evidence and do not count as adapter
+    // boundaries.
+    if (await shouldStopBeforeJob({ job })) {
+      stopRequested = true;
+      return;
+    }
+    if (stopRequested) return;
+
     const attemptId = createAttemptId();
     const runDirectory = await prepareAttemptWorkspace(resultRoot, job.runKey);
     const startedAt = new Date().toISOString();
     onProgress({ job, status: 'started', startedAt, attemptId });
+    let normalized = null;
     try {
       const result = await runTerminalJob({ challenge, job: adapterJob, challengeRoot, runDirectory });
-      const normalized = normalizeCompletedRun(job, { ...result, attemptId });
+      const verifierEvidence = isV7 && challenge.execution?.verifierEvidencePolicy
+        ? await captureTerminalV7VerifierEvidence({ runDirectory, run: result })
+        : null;
+      normalized = normalizeCompletedRun(job, { ...result, ...(verifierEvidence ? { verifierEvidence } : {}), attemptId });
       await atomicWriteJson(terminalAttemptPath(resultRoot, job.runKey, attemptId), normalized);
       await atomicWriteJson(file, normalized);
-      summary.completed += 1;
-      onProgress({ job, status: 'completed', result: normalized });
     } catch (error) {
       const invalid = createInfrastructureInvalidRun(job, error, {
         adapter: error?.adapter ?? null,
@@ -186,19 +236,28 @@ export async function runTerminalSchedule({
       await atomicWriteJson(terminalAttemptPath(resultRoot, job.runKey, attemptId), sealedAttempt);
       await atomicWriteJson(file, sealedAttempt);
       summary.invalid += 1;
-      onProgress({ job, status: 'infrastructure-invalid', result: sealedAttempt });
+      onProgress({ job, status: sealedAttempt.status, result: sealedAttempt });
+      return;
     }
+    // The completed attempt and current record are durable at this point.
+    // Marker/scoring/progress callback failures are orchestrator failures, not
+    // adapter failures: propagate them without rewriting the scored evidence.
+    summary.completed += 1;
+    onProgress({ job, status: 'completed', result: normalized });
+    if (await shouldStop({ job, result: normalized })) stopRequested = true;
   }
 
   let cursor = 0;
   async function worker() {
     while (true) {
+      if (stopRequested) return;
       const index = cursor;
       cursor += 1;
       if (index >= selected.length) return;
-      await executeJob(selected[index]);
+      const job = selected[index];
+      await executeJob(job);
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, selected.length) }, () => worker()));
-  return summary;
+  return { ...summary, paused: stopRequested };
 }

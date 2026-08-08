@@ -1,0 +1,13 @@
+{
+  "name": "northstar-mini-ledger",
+  "version": "7.0.0-starter",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "ledger": "node bin/ledger.mjs",
+    "test": "node --test test/args.test.mjs test/canonical.test.mjs"
+  }
+}

@@ -23,6 +23,11 @@ export const DROID_MODEL_FAMILIES = Object.freeze([
 ]);
 
 export const DROID_RESTRICTED_TOOLS = Object.freeze(['Read', 'ApplyPatch', 'Execute', 'Glob', 'Grep', 'LS']);
+// V7 cannot expose Droid's in-process filesystem helpers because those helpers
+// execute in the credential-bearing parent process. Candidate work is routed
+// exclusively through Execute, whose process is confined by the V7 SBPL
+// boundary. Keep the broader V6 catalog above byte-for-byte compatible.
+export const DROID_V7_RESTRICTED_TOOLS = Object.freeze(['Execute']);
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);

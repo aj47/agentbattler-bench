@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "agentbattler.mini-ledger-v7.requirement-map.v1",
+  "challengeId": "terminal-mini-ledger-v7",
+  "privateScoreClasses": {
+    "atomic": {
+      "perFamilyWeight": 6,
+      "totalWeight": 30,
+      "meaning": "seeded variants of one disclosed behavioral contract"
+    },
+    "composed": {
+      "perFamilyWeight": 10,
+      "totalWeight": 50,
+      "meaning": "seeded cross-feature, interleaving, scale, or fault scenarios"
+    }
+  },
+  "verifierAssertions": [
+    { "id": "p1.public.legacy-order-migration", "requirementId": "V7-P1-PUBLIC-MIGRATE", "caseClass": "public", "expectedCaseCount": 1, "clauseIds": ["P1-C1", "P1-C2"] },
+    { "id": "p1.atomic.post-migration-clients", "requirementId": "V7-P1-PRIVATE-COMPAT", "caseClass": "atomic", "expectedCaseCount": 3, "clauseIds": ["P1-C3", "P1-C4"] },
+    { "id": "p1.composed.export-import-roundtrip", "requirementId": "V7-P1-PRIVATE-COMPAT", "caseClass": "composed", "expectedCaseCount": 1, "clauseIds": ["P1-C3"] },
+    { "id": "p1.atomic.unknown-schema-no-mutation", "requirementId": "V7-P1-PRIVATE-REJECT", "caseClass": "atomic", "expectedCaseCount": 3, "clauseIds": ["P1-C2", "P1-C4"] },
+    { "id": "p1.composed.malformed-legacy-no-mutation", "requirementId": "V7-P1-PRIVATE-REJECT", "caseClass": "composed", "expectedCaseCount": 7, "clauseIds": ["P1-C2", "P1-C4"] },
+
+    { "id": "p2.public.valid-batch-atomic-commit", "requirementId": "V7-P2-PUBLIC-BATCH", "caseClass": "public", "expectedCaseCount": 1, "clauseIds": ["P2-C1"] },
+    { "id": "p2.public.opaque-ordered-page-strict-limit", "requirementId": "V7-P2-PUBLIC-CURSOR", "caseClass": "public", "expectedCaseCount": 10, "clauseIds": ["P2-C2", "P2-C4"] },
+    { "id": "p2.atomic.byte-identical-retry", "requirementId": "V7-P2-PRIVATE-IDEMPOTENCY", "caseClass": "atomic", "expectedCaseCount": 1, "clauseIds": ["P2-C1"] },
+    { "id": "p2.composed.collision-and-malformed-batch-atomicity", "requirementId": "V7-P2-PRIVATE-IDEMPOTENCY", "caseClass": "composed", "expectedCaseCount": 7, "clauseIds": ["P2-C1"] },
+    { "id": "p2.atomic.cursor-filter-tamper-binding", "requirementId": "V7-P2-PRIVATE-PAGINATION", "caseClass": "atomic", "expectedCaseCount": 4, "clauseIds": ["P2-C3"] },
+    { "id": "p2.composed.cursor-boundary-lineage-evolution", "requirementId": "V7-P2-PRIVATE-PAGINATION", "caseClass": "composed", "expectedCaseCount": 4, "clauseIds": ["P2-C2", "P2-C3", "P2-C4"] },
+
+    { "id": "p3.public.concurrent-append-bounded-compaction", "requirementId": "V7-P3-PUBLIC-SERIALIZE", "caseClass": "public", "expectedCaseCount": 2, "clauseIds": ["P3-C1", "P3-C2"] },
+    { "id": "p3.atomic.lifecycle-linearization", "requirementId": "V7-P3-PRIVATE-ATOMICITY", "caseClass": "atomic", "expectedCaseCount": 3, "clauseIds": ["P3-C1", "P3-C2"] },
+    { "id": "p3.composed.multiwriter-reader-serializability", "requirementId": "V7-P3-PRIVATE-ATOMICITY", "caseClass": "composed", "expectedCaseCount": 10, "clauseIds": ["P3-C1", "P3-C2"] },
+    { "id": "p3.atomic.stable-storage-ordering", "requirementId": "V7-P3-PRIVATE-TERMINATION", "caseClass": "atomic", "expectedCaseCount": 3, "clauseIds": ["P3-C4"] },
+    { "id": "p3.composed.seeded-prior-or-next-recovery", "requirementId": "V7-P3-PRIVATE-TERMINATION", "caseClass": "composed", "expectedCaseCount": 5, "clauseIds": ["P3-C3", "P3-C4"] },
+
+    { "id": "p4.public.canonical-incident-classification", "requirementId": "V7-P4-PUBLIC-INCIDENT", "caseClass": "public", "expectedCaseCount": 1, "clauseIds": ["P4-C1", "P4-C2"] },
+    { "id": "p4.atomic.canonical-lineage-citation", "requirementId": "V7-P4-PRIVATE-PROVENANCE", "caseClass": "atomic", "expectedCaseCount": 1, "clauseIds": ["P4-C2"] },
+    { "id": "p4.composed.complete-deployment-provenance", "requirementId": "V7-P4-PRIVATE-PROVENANCE", "caseClass": "composed", "expectedCaseCount": 1, "clauseIds": ["P4-C1", "P4-C2"] },
+    { "id": "p4.atomic.executable-tree-identity", "requirementId": "V7-P4-PRIVATE-SOURCE", "caseClass": "atomic", "expectedCaseCount": 1, "clauseIds": ["P4-C3"] },
+    { "id": "p4.composed.response-source-commitment", "requirementId": "V7-P4-PRIVATE-SOURCE", "caseClass": "composed", "expectedCaseCount": 1, "clauseIds": ["P4-C3"] },
+
+    { "id": "p5.public.corrupt-primary-valid-lineage-recovery", "requirementId": "V7-P5-PUBLIC-RECOVER", "caseClass": "public", "expectedCaseCount": 6, "clauseIds": ["P5-C1", "P5-C4"] },
+    { "id": "p5.atomic.fork-rollback-rejection", "requirementId": "V7-P5-PRIVATE-LINEAGE", "caseClass": "atomic", "expectedCaseCount": 2, "clauseIds": ["P5-C1", "P5-C4"] },
+    { "id": "p5.composed.candidate-conflict-reconciliation", "requirementId": "V7-P5-PRIVATE-LINEAGE", "caseClass": "composed", "expectedCaseCount": 3, "clauseIds": ["P5-C1", "P5-C4"] },
+    { "id": "p5.atomic.exact-replay-audit", "requirementId": "V7-P5-PRIVATE-REPLAY", "caseClass": "atomic", "expectedCaseCount": 2, "clauseIds": ["P5-C2"] },
+    { "id": "p5.composed.corruption-detection-nonmutation", "requirementId": "V7-P5-PRIVATE-REPLAY", "caseClass": "composed", "expectedCaseCount": 8, "clauseIds": ["P5-C2", "P5-C4"] },
+    { "id": "p5.atomic.mixed-interface-scale", "requirementId": "V7-P5-PRIVATE-SCALE", "caseClass": "atomic", "expectedCaseCount": 4, "clauseIds": ["P5-C2", "P5-C3"] },
+    { "id": "p5.composed.compact-import-recover-scale", "requirementId": "V7-P5-PRIVATE-SCALE", "caseClass": "composed", "expectedCaseCount": 4, "clauseIds": ["P5-C2", "P5-C3", "P5-C4"] }
+  ],
+  "clauses": [
+    {
+      "id": "P1-C1",
+      "phase": 1,
+      "text": "Legacy v1 events migrate in array order with contiguous sequences and the correct next sequence.",
+      "normative": true
+    },
+    {
+      "id": "P1-C2",
+      "phase": 1,
+      "text": "Migration preserves event values and rejects duplicates, malformed values, and unknown schemas before replacement.",
+      "normative": true
+    },
+    {
+      "id": "P1-C3",
+      "phase": 1,
+      "text": "Append, get, legacy query, positional export, and positional import remain compatible.",
+      "normative": true
+    },
+    {
+      "id": "P1-C4",
+      "phase": 1,
+      "text": "Successful commands emit one JSON value and invalid input is non-mutating.",
+      "normative": true
+    },
+    {
+      "id": "P2-C1",
+      "phase": 2,
+      "text": "A complete batch is validated before one atomic commit, and idempotency keys distinguish identical retries from collisions.",
+      "normative": true
+    },
+    {
+      "id": "P2-C2",
+      "phase": 2,
+      "text": "Opaque cursor queries return ordered items and a continuation token or null.",
+      "normative": true
+    },
+    {
+      "id": "P2-C3",
+      "phase": 2,
+      "text": "Continuation tokens bind the query and a fixed lineage/history boundary, survive later appends and compaction without changing that boundary, and reject malformed, tampered, or cross-filter reuse.",
+      "normative": true
+    },
+    {
+      "id": "P2-C4",
+      "phase": 2,
+      "text": "Limits are canonical positive integers and legacy after-sequence queries remain compatible.",
+      "normative": true
+    },
+    {
+      "id": "P3-C1",
+      "phase": 3,
+      "text": "Concurrent append, import, and compaction operations are linearizable and preserve complete valid revisions.",
+      "normative": true
+    },
+    {
+      "id": "P3-C2",
+      "phase": 3,
+      "text": "Compaction preserves logical queries while bounding the live tail, and import participates in one observable serial order.",
+      "normative": true
+    },
+    {
+      "id": "P3-C3",
+      "phase": 3,
+      "text": "Termination at write boundaries leaves a prior-or-next complete commit and recovery removes stale locks while choosing valid lineage.",
+      "normative": true
+    },
+    {
+      "id": "P3-C4",
+      "phase": 3,
+      "text": "Successful durable commits synchronize complete replacement bytes before atomic publication and synchronize the containing directory afterward.",
+      "normative": true
+    },
+    {
+      "id": "P4-C1",
+      "phase": 4,
+      "text": "The declared response has the required schema and committed forensic fields, including every supplied evidence record id exactly once in ascending string order.",
+      "normative": true
+    },
+    {
+      "id": "P4-C2",
+      "phase": 4,
+      "text": "The conclusion follows canonical lineage and hashes while treating contrary advisory evidence as non-authoritative.",
+      "normative": true
+    },
+    {
+      "id": "P4-C3",
+      "phase": 4,
+      "text": "Package metadata and every regular file under bin, src, and config remain byte-identical to their trusted phase-entry commitment.",
+      "normative": true
+    },
+    {
+      "id": "P5-C1",
+      "phase": 5,
+      "text": "Recovery validates candidates independently and accepts only an unambiguous descendant in the same lineage.",
+      "normative": true
+    },
+    {
+      "id": "P5-C2",
+      "phase": 5,
+      "text": "Replay and audit emit the disclosed verified-history fields and hashes; audit independently validates schemas, hashes, identifiers, sequences, receipts, boundaries, and the canonical primary state.",
+      "normative": true
+    },
+    {
+      "id": "P5-C3",
+      "phase": 5,
+      "text": "Mixed large workloads preserve all earlier contracts deterministically and within bounds.",
+      "normative": true
+    },
+    {
+      "id": "P5-C4",
+      "phase": 5,
+      "text": "Invalid input and detected corruption fail without mutating the last valid primary state.",
+      "normative": true
+    }
+  ],
+  "scoredAssertions": [
+    { "id": "V7-P1-PUBLIC-MIGRATE", "clauseIds": ["P1-C1", "P1-C2"], "verifierAssertionIds": ["p1.public.legacy-order-migration"] },
+    { "id": "V7-P1-PRIVATE-COMPAT", "clauseIds": ["P1-C3", "P1-C4"], "privateClassWeights": { "atomic": 4, "composed": 4 }, "verifierAssertionIds": ["p1.atomic.post-migration-clients", "p1.composed.export-import-roundtrip"] },
+    { "id": "V7-P1-PRIVATE-REJECT", "clauseIds": ["P1-C2", "P1-C4"], "privateClassWeights": { "atomic": 2, "composed": 6 }, "verifierAssertionIds": ["p1.atomic.unknown-schema-no-mutation", "p1.composed.malformed-legacy-no-mutation"] },
+    { "id": "V7-P2-PUBLIC-BATCH", "clauseIds": ["P2-C1"], "verifierAssertionIds": ["p2.public.valid-batch-atomic-commit"] },
+    { "id": "V7-P2-PUBLIC-CURSOR", "clauseIds": ["P2-C2", "P2-C4"], "verifierAssertionIds": ["p2.public.opaque-ordered-page-strict-limit"] },
+    { "id": "V7-P2-PRIVATE-IDEMPOTENCY", "clauseIds": ["P2-C1"], "privateClassWeights": { "atomic": 3, "composed": 5 }, "verifierAssertionIds": ["p2.atomic.byte-identical-retry", "p2.composed.collision-and-malformed-batch-atomicity"] },
+    { "id": "V7-P2-PRIVATE-PAGINATION", "clauseIds": ["P2-C2", "P2-C3", "P2-C4"], "privateClassWeights": { "atomic": 3, "composed": 5 }, "verifierAssertionIds": ["p2.atomic.cursor-filter-tamper-binding", "p2.composed.cursor-boundary-lineage-evolution"] },
+    { "id": "V7-P3-PUBLIC-SERIALIZE", "clauseIds": ["P3-C1", "P3-C2"], "verifierAssertionIds": ["p3.public.concurrent-append-bounded-compaction"] },
+    { "id": "V7-P3-PRIVATE-ATOMICITY", "clauseIds": ["P3-C1", "P3-C2"], "privateClassWeights": { "atomic": 6, "composed": 10 }, "verifierAssertionIds": ["p3.atomic.lifecycle-linearization", "p3.composed.multiwriter-reader-serializability"] },
+    { "id": "V7-P3-PRIVATE-TERMINATION", "clauseIds": ["P3-C3", "P3-C4"], "privateClassWeights": { "atomic": 3, "composed": 5 }, "verifierAssertionIds": ["p3.atomic.stable-storage-ordering", "p3.composed.seeded-prior-or-next-recovery"] },
+    { "id": "V7-P4-PUBLIC-INCIDENT", "clauseIds": ["P4-C1", "P4-C2"], "verifierAssertionIds": ["p4.public.canonical-incident-classification"] },
+    { "id": "V7-P4-PRIVATE-PROVENANCE", "clauseIds": ["P4-C1", "P4-C2"], "privateClassWeights": { "atomic": 2, "composed": 2 }, "verifierAssertionIds": ["p4.atomic.canonical-lineage-citation", "p4.composed.complete-deployment-provenance"] },
+    { "id": "V7-P4-PRIVATE-SOURCE", "clauseIds": ["P4-C3"], "privateClassWeights": { "atomic": 1, "composed": 3 }, "verifierAssertionIds": ["p4.atomic.executable-tree-identity", "p4.composed.response-source-commitment"] },
+    { "id": "V7-P5-PUBLIC-RECOVER", "clauseIds": ["P5-C1", "P5-C4"], "verifierAssertionIds": ["p5.public.corrupt-primary-valid-lineage-recovery"] },
+    { "id": "V7-P5-PRIVATE-LINEAGE", "clauseIds": ["P5-C1", "P5-C4"], "privateClassWeights": { "atomic": 3, "composed": 5 }, "verifierAssertionIds": ["p5.atomic.fork-rollback-rejection", "p5.composed.candidate-conflict-reconciliation"] },
+    { "id": "V7-P5-PRIVATE-REPLAY", "clauseIds": ["P5-C2", "P5-C4"], "privateClassWeights": { "atomic": 1, "composed": 3 }, "verifierAssertionIds": ["p5.atomic.exact-replay-audit", "p5.composed.corruption-detection-nonmutation"] },
+    { "id": "V7-P5-PRIVATE-SCALE", "clauseIds": ["P5-C2", "P5-C3", "P5-C4"], "privateClassWeights": { "atomic": 2, "composed": 2 }, "verifierAssertionIds": ["p5.atomic.mixed-interface-scale", "p5.composed.compact-import-recover-scale"] }
+  ]
+}

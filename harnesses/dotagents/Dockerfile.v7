@@ -1,0 +1,53 @@
+FROM node:22-bookworm-slim
+
+ARG DOTAGENTS_REPOSITORY=https://github.com/aj47/dotagents-mono.git
+ARG DOTAGENTS_COMMIT=fd76e502e551d5266ce50a5ed4b1536ed7323e26
+ARG DOTAGENTS_VERSION=1.1.9
+ARG AGENTBATTLER_V7_SOURCE_SHA256
+
+LABEL org.opencontainers.image.source="https://github.com/aj47/dotagents-mono" \
+      org.opencontainers.image.revision="${DOTAGENTS_COMMIT}" \
+      org.opencontainers.image.version="${DOTAGENTS_VERSION}" \
+      org.opencontainers.image.title="AgentBattler DotAgents V7 harness" \
+      io.agentbattler.command-sandbox="v7-r1" \
+      io.agentbattler.v7.source-sha256="${AGENTBATTLER_V7_SOURCE_SHA256}"
+
+RUN test -n "${AGENTBATTLER_V7_SOURCE_SHA256}" \
+    && test "${#AGENTBATTLER_V7_SOURCE_SHA256}" = 64
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      bubblewrap build-essential ca-certificates git python3 tini xauth xvfb \
+      libasound2 libatk-bridge2.0-0 libatspi2.0-0 libcups2 libdbus-1-3 \
+      libdrm2 libgbm1 libgtk-3-0 libnss3 libx11-6 libx11-xcb1 libxcb1 \
+      libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 \
+      libxrandr2 libxrender1 libxshmfence1 libxss1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@9.12.1 --activate
+RUN git init /opt/dotagents \
+    && git -C /opt/dotagents remote add origin "${DOTAGENTS_REPOSITORY}" \
+    && git -C /opt/dotagents fetch --depth 1 origin "${DOTAGENTS_COMMIT}" \
+    && git -C /opt/dotagents checkout --detach FETCH_HEAD \
+    && test "$(git -C /opt/dotagents rev-parse HEAD)" = "${DOTAGENTS_COMMIT}"
+
+COPY runtime-tools-sandbox-v7.patch /tmp/runtime-tools-sandbox.patch
+RUN git -C /opt/dotagents apply --check /tmp/runtime-tools-sandbox.patch \
+    && git -C /opt/dotagents apply /tmp/runtime-tools-sandbox.patch \
+    && rm /tmp/runtime-tools-sandbox.patch
+
+COPY enable-max-reasoning.mjs /tmp/enable-max-reasoning.mjs
+
+WORKDIR /opt/dotagents
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN sdk_dist="$(find /opt/dotagents/node_modules/.pnpm -type d -path '*/node_modules/@ai-sdk/openai/dist' -print -quit)" \
+    && test -n "$sdk_dist" \
+    && node /tmp/enable-max-reasoning.mjs "$sdk_dist" \
+    && rm /tmp/enable-max-reasoning.mjs
+RUN node node_modules/electron/install.js \
+    && test -x node_modules/electron/dist/electron
+RUN pnpm build:shared \
+    && pnpm build:core \
+    && pnpm --filter @dotagents/desktop exec electron-vite build
+
+WORKDIR /workspace
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/bin/xvfb-run", "--auto-servernum", "/opt/dotagents/node_modules/electron/dist/electron", "--no-sandbox", "/opt/dotagents/apps/desktop/out/main/index.js", "--headless"]

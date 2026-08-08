@@ -1,7 +1,14 @@
 const version = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 
 export const terminalChallengeVersion = version;
-export const terminalChallengeRuntime = version === 'v6'
+export const terminalChallengeRuntime = version === 'v7'
+  ? {
+      prompts: Object.freeze(Array.from({ length: 5 }, () => null)),
+      publicVerifier: null,
+      holdoutVerifier: null,
+      descriptorDrivenPhases: true,
+    }
+  : version === 'v6'
   ? {
       prompts: (await import('./terminal-prompts-v6.mjs')).MINI_LEDGER_V6_TURN_PROMPTS,
       publicVerifier: await import('../benchmark/challenges/mini-ledger-v6/public-verifier.mjs'),

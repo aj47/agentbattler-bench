@@ -152,6 +152,16 @@ export async function verifyTerminalFinalPublic({ workspace, challenge, publicVe
   };
 }
 
+// V7 replaces the legacy one-file checkpoint with a normalized, allowlisted
+// tree overlay. Older protocol revisions continue to use the functions above.
+export {
+  applyTerminalCandidateTreeOverlay,
+  captureTerminalCandidateTree,
+  snapshotTerminalCandidateTree,
+  validateCapturedTerminalCandidateTree,
+  validateTerminalCandidateTree,
+} from './terminal-candidate-tree.mjs';
+
 function isToolLike(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const type = String(value.type ?? value.kind ?? '').toLowerCase();

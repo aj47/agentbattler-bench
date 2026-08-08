@@ -304,6 +304,18 @@ export function validateTerminalSchedule(schedule, challenge) {
   return schedule;
 }
 
+// V7 keeps its stricter descriptor and schedule schemas isolated from the
+// immutable V3-V6 challenge formats while exposing them from this canonical
+// challenge entry point.
+export {
+  createTerminalV7Challenge,
+  createTerminalV7InstanceDescriptorFromPack,
+  createTerminalV7Schedule,
+  validateTerminalV7Challenge,
+  validateTerminalV7InstanceDescriptor,
+  validateTerminalV7Schedule,
+} from './terminal-v7.mjs';
+
 export function scoreTerminalRun(run, challenge) {
   validateMiniLedgerChallenge(challenge);
   invariant(run?.schemaVersion === TERMINAL_RUN_SCHEMA, 'Unsupported terminal run schema');

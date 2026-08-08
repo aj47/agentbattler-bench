@@ -6,12 +6,20 @@ import test from 'node:test';
 import {
   DOTAGENTS_IMAGE,
   DOTAGENTS_SANDBOX_REVISION,
+  DOTAGENTS_V7_IMAGE,
+  DOTAGENTS_V7_IMAGE_SCHEMA,
+  DOTAGENTS_V7_IMAGE_SOURCE_SCHEMA,
+  DOTAGENTS_V7_SANDBOX_REVISION,
+  DOTAGENTS_V7_SOURCE_LABEL,
+  DOTAGENTS_V7_SOURCE_PATHS,
   buildDotAgentsDockerArgs,
   createDotAgentsConfig,
+  dotAgentsV7ImageSourceDescriptor,
   dotAgentsCumulativeUsageDelta,
   dotAgentsTerminalUsage,
   networkCommandReason,
   summarizeDotAgentsTrace,
+  validateDotAgentsV7ImageInspection,
 } from '../src/dotagents-harness.mjs';
 
 test('creates an isolated DotAgents configuration for the requested model', () => {
@@ -134,11 +142,15 @@ test('builds a locked-down loopback-only Docker invocation', () => {
   assert.ok(args.includes('DOTAGENTS_WORKSPACE_DIR=/workspace'));
 });
 
-test('DotAgents image sandboxes model-generated commands and forwards max reasoning', async () => {
-  const [dockerfile, sandboxPatch, maxReasoningPatch] = await Promise.all([
+test('DotAgents images preserve R5 and add a separately tagged V7 control boundary', async () => {
+  const [dockerfile, v7Dockerfile, dockerignore, sandboxPatch, v7SandboxPatch, maxReasoningPatch, packageDocument] = await Promise.all([
     readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'Dockerfile'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'Dockerfile.v7'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', '.dockerignore'), 'utf8'),
     readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'runtime-tools-sandbox.patch'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'runtime-tools-sandbox-v7.patch'), 'utf8'),
     readFile(path.resolve(import.meta.dirname, '..', 'harnesses', 'dotagents', 'enable-max-reasoning.mjs'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'package.json'), 'utf8').then(JSON.parse),
   ]);
   assert.match(dockerfile, /bubblewrap/);
   assert.match(dockerfile, /git -C \/opt\/dotagents apply --check/);
@@ -150,7 +162,21 @@ test('DotAgents image sandboxes model-generated commands and forwards max reason
   const additions = sandboxPatch.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).join('\n');
   assert.doesNotMatch(additions, /\.\.\.process\.env/);
   assert.match(sandboxPatch, /--bind\", AGENTBATTLER_WORKSPACE, AGENTBATTLER_WORKSPACE/);
-  assert.match(dockerfile, /enable-max-reasoning\.mjs/);
+  assert.doesNotMatch(sandboxPatch, /readOnlyControlRoot/);
+  assert.match(v7SandboxPatch, /--ro-bind\", readOnlyControlRoot, readOnlyControlRoot/);
+  assert.equal(DOTAGENTS_V7_SANDBOX_REVISION, 'v7-r1');
+  assert.match(DOTAGENTS_V7_IMAGE, /-v7-r1$/);
+  assert.match(dockerfile, /io\.agentbattler\.command-sandbox="r5"/);
+  assert.match(dockerfile, /COPY runtime-tools-sandbox\.patch/);
+  assert.doesNotMatch(dockerfile, /runtime-tools-sandbox-v7|AGENTBATTLER_V7_SOURCE_SHA256/);
+  assert.match(v7Dockerfile, /ARG AGENTBATTLER_V7_SOURCE_SHA256/);
+  assert.match(v7Dockerfile, /io\.agentbattler\.v7\.source-sha256="\$\{AGENTBATTLER_V7_SOURCE_SHA256\}"/);
+  assert.match(v7Dockerfile, /io\.agentbattler\.command-sandbox="v7-r1"/);
+  assert.match(v7Dockerfile, /COPY runtime-tools-sandbox-v7\.patch/);
+  assert.equal(packageDocument.scripts['dotagents:image:v7'], 'node scripts/build-dotagents-v7-image.mjs');
+  assert.match(dockerignore, /^!Dockerfile\.v7$/m);
+  assert.match(dockerignore, /^!runtime-tools-sandbox-v7\.patch$/m);
+  assert.match(v7Dockerfile, /enable-max-reasoning\.mjs/);
   assert.match(maxReasoningPatch, /"xhigh", "max"/);
   assert.match(maxReasoningPatch, /reasoning_effort/);
 });
@@ -162,4 +188,73 @@ test('can attach the DotAgents container to an isolated proxy network', () => {
     network: 'agentbattler-cliproxy',
   });
   assert.deepEqual(args.slice(args.indexOf('--network'), args.indexOf('--network') + 2), ['--network', 'agentbattler-cliproxy']);
+});
+
+test('V7 can make its trusted current-control subtree read-only inside model commands', () => {
+  const args = buildDotAgentsDockerArgs({
+    name: 'agentbattler-dotagents-v7-test', hostPort: 40124,
+    home: '/tmp/home', configRoot: '/tmp/config', workspace: '/tmp/workspace',
+    readOnlyControl: true,
+  });
+  assert.ok(args.includes('AGENTBATTLER_V7_CONTROL_ROOT=/workspace/.agentbattler'));
+  assert.throws(() => buildDotAgentsDockerArgs({
+    name: 'agentbattler-dotagents-v7-test', hostPort: 40124,
+    home: '/tmp/home', configRoot: '/tmp/config', workspace: '/tmp/workspace',
+    readOnlyControl: 'yes',
+  }), /readOnlyControl/);
+});
+
+test('V7 binds the mutable DotAgents tag to one reviewed, labeled Linux arm64 image ID', async () => {
+  const source = await dotAgentsV7ImageSourceDescriptor({ repositoryRoot: path.resolve(import.meta.dirname, '..') });
+  assert.equal(source.schemaVersion, DOTAGENTS_V7_IMAGE_SOURCE_SCHEMA);
+  assert.deepEqual(source.files.map(({ path: sourcePath }) => sourcePath), DOTAGENTS_V7_SOURCE_PATHS);
+  assert.match(source.sourceSha256, /^[0-9a-f]{64}$/);
+  const imageId = `sha256:${'a'.repeat(64)}`;
+  const inspection = [{
+    Id: imageId,
+    Os: 'linux',
+    Architecture: 'arm64',
+    RepoTags: [DOTAGENTS_V7_IMAGE],
+    Config: { Labels: {
+      'org.opencontainers.image.revision': 'fd76e502e551d5266ce50a5ed4b1536ed7323e26',
+      'org.opencontainers.image.version': '1.1.9',
+      'io.agentbattler.command-sandbox': DOTAGENTS_V7_SANDBOX_REVISION,
+      [DOTAGENTS_V7_SOURCE_LABEL]: source.sourceSha256,
+    } },
+  }];
+  const descriptor = validateDotAgentsV7ImageInspection(inspection, {
+    expectedImageId: imageId,
+    expectedSourceSha256: source.sourceSha256,
+  });
+  assert.equal(descriptor.schemaVersion, DOTAGENTS_V7_IMAGE_SCHEMA);
+  assert.equal(descriptor.imageId, imageId);
+  assert.equal(descriptor.sourceSha256, source.sourceSha256);
+  assert.throws(
+    () => validateDotAgentsV7ImageInspection(inspection, {
+      expectedImageId: `sha256:${'b'.repeat(64)}`,
+      expectedSourceSha256: source.sourceSha256,
+    }),
+    /does not match the sealed runtime/,
+  );
+  const retagged = structuredClone(inspection);
+  retagged[0].RepoTags = ['agentbattler-dotagents:retagged'];
+  assert.throws(() => validateDotAgentsV7ImageInspection(retagged, { expectedSourceSha256: source.sourceSha256 }), /tag does not resolve/);
+  const relabeled = structuredClone(inspection);
+  relabeled[0].Config.Labels['io.agentbattler.command-sandbox'] = 'r5';
+  assert.throws(() => validateDotAgentsV7ImageInspection(relabeled, { expectedSourceSha256: source.sourceSha256 }), /sandbox label changed/);
+  const sourceRelabeled = structuredClone(inspection);
+  sourceRelabeled[0].Config.Labels[DOTAGENTS_V7_SOURCE_LABEL] = 'b'.repeat(64);
+  assert.throws(() => validateDotAgentsV7ImageInspection(sourceRelabeled, { expectedSourceSha256: source.sourceSha256 }), /reviewed source label changed/);
+});
+
+test('V7 DotAgents adapter and strict verifier re-inspect the sealed image and run its immutable ID', async () => {
+  const [adapter, verifier] = await Promise.all([
+    readFile(path.resolve(import.meta.dirname, '..', 'scripts', 'terminal-adapter-dotagents.mjs'), 'utf8'),
+    readFile(path.resolve(import.meta.dirname, '..', 'scripts', 'verify-terminal-v7-results.mjs'), 'utf8'),
+  ]);
+  assert.match(adapter, /const executionImage = imageIdentity\?\.imageId \?\? image/);
+  assert.match(adapter, /startContainer\(runDirectory, job, \{ image: executionImage/);
+  assert.match(verifier, /inspectDotAgentsV7Image\(\{/);
+  assert.match(verifier, /inspectTerminalV7VerifierImage\(\{/);
+  assert.match(verifier, /runtime image differs from the sealed descriptor/);
 });

@@ -1,0 +1,13 @@
+{
+  "$id": "northstar-ledger/v0",
+  "status": "deprecated",
+  "supersededBy": "agentbattler.ledger.v1",
+  "description": "Historical example only; not accepted by the active import graph.",
+  "shape": {
+    "records": "array",
+    "recordFields": [
+      "type",
+      "value"
+    ]
+  }
+}

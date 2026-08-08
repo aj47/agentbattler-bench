@@ -1,12 +1,27 @@
+import { execFile } from 'node:child_process';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
-import { canonicalJsonSha256 } from './provenance.mjs';
+import { canonicalJsonSha256, sha256File } from './provenance.mjs';
 import { terminalHarnessVersion } from './terminal-harness-versions.mjs';
 
 export const DOTAGENTS_COMMIT = 'fd76e502e551d5266ce50a5ed4b1536ed7323e26';
 export const DOTAGENTS_VERSION = terminalHarnessVersion('dotagents-mono');
 export const DOTAGENTS_SANDBOX_REVISION = 'r5';
 export const DOTAGENTS_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}-${DOTAGENTS_SANDBOX_REVISION}`;
+export const DOTAGENTS_V7_SANDBOX_REVISION = 'v7-r1';
+export const DOTAGENTS_V7_IMAGE = `agentbattler-dotagents:${DOTAGENTS_COMMIT.slice(0, 12)}-${DOTAGENTS_V7_SANDBOX_REVISION}`;
+export const DOTAGENTS_V7_IMAGE_SCHEMA = 'agentbattler.dotagents-v7-image.v1';
+export const DOTAGENTS_V7_IMAGE_SOURCE_SCHEMA = 'agentbattler.dotagents-v7-image-source.v1';
+export const DOTAGENTS_V7_SOURCE_LABEL = 'io.agentbattler.v7.source-sha256';
+export const DOTAGENTS_V7_SOURCE_PATHS = Object.freeze([
+  'harnesses/dotagents/Dockerfile.v7',
+  'harnesses/dotagents/.dockerignore',
+  'harnesses/dotagents/runtime-tools-sandbox-v7.patch',
+  'harnesses/dotagents/enable-max-reasoning.mjs',
+]);
 export const DOTAGENTS_PROFILE_ID = 'agentbattler-benchmark';
 export const DOTAGENTS_RUNTIME_TOOLS = Object.freeze(['execute_command', 'mark_work_complete']);
 export const DOTAGENTS_DEFAULT_MAX_ITERATIONS = 12;
@@ -14,6 +29,102 @@ export const DOTAGENTS_V6_MAX_ITERATIONS = 32;
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+const execFileAsync = promisify(execFile);
+const MODULE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+export async function dotAgentsV7ImageSourceDescriptor({ repositoryRoot = MODULE_ROOT } = {}) {
+  invariant(typeof repositoryRoot === 'string' && path.isAbsolute(repositoryRoot), 'DotAgents V7 source root must be absolute');
+  const files = [];
+  for (const relative of DOTAGENTS_V7_SOURCE_PATHS) {
+    const absolute = path.join(repositoryRoot, ...relative.split('/'));
+    const stat = await lstat(absolute);
+    invariant(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1, `DotAgents V7 image source is not one regular file: ${relative}`);
+    files.push({ path: relative, sha256: await sha256File(absolute) });
+  }
+  return Object.freeze({
+    schemaVersion: DOTAGENTS_V7_IMAGE_SOURCE_SCHEMA,
+    image: DOTAGENTS_V7_IMAGE,
+    files: Object.freeze(files.map((file) => Object.freeze(file))),
+    sourceSha256: canonicalJsonSha256(files),
+  });
+}
+
+export function validateDotAgentsV7ImageInspection(document, {
+  image = DOTAGENTS_V7_IMAGE,
+  expectedImageId = null,
+  expectedSourceSha256,
+} = {}) {
+  invariant(/^[0-9a-f]{64}$/.test(expectedSourceSha256 ?? ''), 'DotAgents V7 expected source hash is invalid');
+  const inspected = Array.isArray(document) ? document[0] : document;
+  invariant(inspected && typeof inspected === 'object', 'DotAgents V7 image inspection is missing');
+  invariant(/^sha256:[0-9a-f]{64}$/.test(inspected.Id ?? ''), 'DotAgents V7 image ID is invalid');
+  invariant(expectedImageId === null || inspected.Id === expectedImageId, 'DotAgents V7 image ID does not match the sealed runtime');
+  invariant(inspected.Os === 'linux' && inspected.Architecture === 'arm64', 'DotAgents V7 image must be the Linux arm64 release runtime');
+  const labels = inspected.Config?.Labels ?? {};
+  invariant(labels['org.opencontainers.image.revision'] === DOTAGENTS_COMMIT, 'DotAgents V7 image commit label changed');
+  invariant(labels['org.opencontainers.image.version'] === DOTAGENTS_VERSION, 'DotAgents V7 image version label changed');
+  invariant(labels['io.agentbattler.command-sandbox'] === DOTAGENTS_V7_SANDBOX_REVISION, 'DotAgents V7 command-sandbox label changed');
+  invariant(labels[DOTAGENTS_V7_SOURCE_LABEL] === expectedSourceSha256, 'DotAgents V7 reviewed source label changed');
+  invariant(Array.isArray(inspected.RepoTags) && inspected.RepoTags.includes(image), 'DotAgents V7 image tag does not resolve to the inspected image');
+  return Object.freeze({
+    schemaVersion: DOTAGENTS_V7_IMAGE_SCHEMA,
+    image,
+    imageId: inspected.Id,
+    os: inspected.Os,
+    architecture: inspected.Architecture,
+    commit: DOTAGENTS_COMMIT,
+    version: DOTAGENTS_VERSION,
+    sandboxRevision: DOTAGENTS_V7_SANDBOX_REVISION,
+    sourceSha256: expectedSourceSha256,
+  });
+}
+
+export async function inspectDotAgentsV7Image({
+  image = DOTAGENTS_V7_IMAGE,
+  expectedImageId = null,
+  repositoryRoot = MODULE_ROOT,
+  dockerBinary = 'docker',
+} = {}) {
+  invariant(typeof image === 'string' && image.length > 0 && !image.includes('\0'), 'DotAgents V7 image reference is invalid');
+  invariant(typeof dockerBinary === 'string' && dockerBinary.length > 0 && !dockerBinary.includes('\0'), 'DotAgents V7 Docker binary is invalid');
+  const source = await dotAgentsV7ImageSourceDescriptor({ repositoryRoot });
+  const result = await execFileAsync(dockerBinary, ['image', 'inspect', image], {
+    encoding: 'utf8',
+    timeout: 30_000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  return validateDotAgentsV7ImageInspection(JSON.parse(result.stdout), {
+    image,
+    expectedImageId,
+    expectedSourceSha256: source.sourceSha256,
+  });
+}
+
+export async function buildDotAgentsV7Image({
+  repositoryRoot = MODULE_ROOT,
+  dockerBinary = 'docker',
+} = {}) {
+  const source = await dotAgentsV7ImageSourceDescriptor({ repositoryRoot });
+  const contextRoot = path.join(repositoryRoot, 'harnesses', 'dotagents');
+  await execFileAsync(dockerBinary, [
+    'build',
+    '--file', 'Dockerfile.v7',
+    '--build-arg', `AGENTBATTLER_V7_SOURCE_SHA256=${source.sourceSha256}`,
+    '--tag', DOTAGENTS_V7_IMAGE,
+    '.',
+  ], {
+    cwd: contextRoot,
+    encoding: 'utf8',
+    timeout: 30 * 60 * 1000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return inspectDotAgentsV7Image({
+    image: DOTAGENTS_V7_IMAGE,
+    repositoryRoot,
+    dockerBinary,
+  });
 }
 
 function json(value) {
@@ -282,13 +393,14 @@ export function summarizeDotAgentsTrace(events, expectedModel, { maxIterations =
   };
 }
 
-export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPort, home, configRoot, workspace, network = null }) {
+export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPort, home, configRoot, workspace, network = null, readOnlyControl = false }) {
   invariant(typeof name === 'string' && /^[a-z0-9][a-z0-9_.-]+$/.test(name), 'Invalid DotAgents container name');
   invariant(Number.isSafeInteger(hostPort) && hostPort > 0 && hostPort <= 65_535, 'Invalid DotAgents host port');
   for (const [label, value] of Object.entries({ home, configRoot, workspace })) {
     invariant(typeof value === 'string' && path.isAbsolute(value), `${label} must be an absolute path`);
   }
   if (network !== null) invariant(typeof network === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/.test(network), 'Invalid DotAgents Docker network');
+  invariant(typeof readOnlyControl === 'boolean', 'DotAgents readOnlyControl must be boolean');
   return [
     'run', '--rm', '--interactive',
     '--name', name,
@@ -311,6 +423,7 @@ export function buildDotAgentsDockerArgs({ image = DOTAGENTS_IMAGE, name, hostPo
     '--env', 'XDG_CACHE_HOME=/home/benchmark/.cache',
     '--env', 'XDG_DATA_HOME=/home/benchmark/.local/share',
     '--env', 'DOTAGENTS_WORKSPACE_DIR=/workspace',
+    ...(readOnlyControl ? ['--env', 'AGENTBATTLER_V7_CONTROL_ROOT=/workspace/.agentbattler'] : []),
     '--env', 'APP_ID=app.dotagents.agentbattler',
     '--env', 'DEBUG_LLM=0',
     '--env', 'DEBUG_TOOLS=0',

@@ -9,7 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const challengeVersion = process.env.AGENTBATTLER_TERMINAL_CHALLENGE_VERSION ?? 'v2';
 if (!/^v\d+$/.test(challengeVersion)) throw new Error('AGENTBATTLER_TERMINAL_CHALLENGE_VERSION must look like v2');
 const challengeSourceVersion = challengeVersion === 'v5' ? 'v4' : challengeVersion;
-const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion === 'v6' ? 'v6-luna-max-r14' : challengeVersion);
+const resultTag = process.env.AGENTBATTLER_TERMINAL_RESULT_TAG ?? (challengeVersion === 'v5' ? 'v5-r2' : challengeVersion === 'v6' ? 'v6-luna-max-r14' : challengeVersion === 'v7' ? 'v7-r1' : challengeVersion);
 if (!/^v\d+(?:-[a-z0-9-]+)?$/.test(resultTag)) throw new Error('AGENTBATTLER_TERMINAL_RESULT_TAG must look like v4-harbor');
 const RESULT_ROOT = path.join(ROOT, `results/terminal-mini-ledger-${resultTag}`);
 const CHALLENGE_ROOT = path.join(ROOT, `benchmark/challenges/mini-ledger-${challengeSourceVersion}`);
@@ -36,7 +36,9 @@ if (!adapterPath) throw new Error('Set --adapter MODULE or AGENTBATTLER_TERMINAL
 const adapter = await import(pathToFileURL(path.resolve(ROOT, adapterPath)).href);
 if (typeof adapter.runTerminalJob !== 'function') throw new Error(`Adapter ${adapterPath} must export runTerminalJob`);
 if (Array.isArray(adapter.harnesses)) {
-  const required = onlyHarnesses.length ? onlyHarnesses : schedule.coverage.map((entry) => entry.combo.harness.id);
+  const required = onlyHarnesses.length ? onlyHarnesses : schedule.coverage
+    ? schedule.coverage.map((entry) => entry.combo.harness.id)
+    : schedule.matrix.harnesses.map(({ id }) => id);
   const unsupported = [...new Set(required.filter((harness) => !adapter.harnesses.includes(harness)))];
   if (unsupported.length) throw new Error(`Adapter ${adapterPath} does not support harnesses: ${unsupported.join(', ')}; pass --harness for a supported subset or install the missing adapters`);
 }
@@ -53,6 +55,6 @@ const summary = await runTerminalSchedule({
   onlyGenerationIndices,
   concurrency,
   runTerminalJob: adapter.runTerminalJob,
-  onProgress: ({ job, status, error }) => console.log(`[${status}] ${job.artifactId}${error ? `: ${error}` : ''}`),
+  onProgress: ({ job, status, error }) => console.log(`[${status}] ${job.artifactId ?? `${job.instanceId}/${job.harness?.id ?? 'unknown-harness'}`}${error ? `: ${error}` : ''}`),
 });
 console.log(`Terminal matrix execution: ${summary.completed} completed, ${summary.invalid} infrastructure-invalid, ${summary.skipped} skipped, ${summary.failed} persisted-result failures (concurrency ${concurrency})`);

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { summarizeDroidRpcTurn } from '../src/droid-jsonrpc.mjs';
+import { DroidJsonRpcSession, summarizeDroidRpcTurn } from '../src/droid-jsonrpc.mjs';
+import { DROID_RESTRICTED_TOOLS, DROID_V7_RESTRICTED_TOOLS } from '../src/droid-harness.mjs';
 
 function notification(event) {
   return { type: 'notification', method: 'droid.session_notification', params: { notification: event } };
@@ -28,4 +29,14 @@ test('Droid JSON-RPC summary records native tools, token usage, and compaction',
     beforeContext: { used: 200_000, limit: 206_720 },
     afterContext: { used: 25_000, limit: 206_720 },
   });
+});
+
+test('Droid JSON-RPC supports an Execute-only V7 catalog without changing the V6 default', () => {
+  const common = { workspace: '/workspace', model: 'gpt-5.6-luna', env: {} };
+  const legacy = new DroidJsonRpcSession(common);
+  const v7 = new DroidJsonRpcSession({ ...common, allowedTools: DROID_V7_RESTRICTED_TOOLS });
+  assert.deepEqual(legacy.allowedTools, DROID_RESTRICTED_TOOLS);
+  assert.deepEqual(v7.allowedTools, ['Execute']);
+  assert.throws(() => new DroidJsonRpcSession({ ...common, allowedTools: ['Read', 'Read'] }), /duplicates/);
+  assert.throws(() => new DroidJsonRpcSession({ ...common, allowedTools: ['UnsealedTool'] }), /unsupported tool/);
 });

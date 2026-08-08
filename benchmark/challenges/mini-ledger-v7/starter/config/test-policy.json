@@ -1,0 +1,14 @@
+{
+  "schema": "northstar.test-policy.v1",
+  "status": "active",
+  "selected": [
+    "test/args.test.mjs",
+    "test/canonical.test.mjs"
+  ],
+  "excluded": [
+    {
+      "pattern": "test/legacy/**",
+      "reason": "retired v0 behavior; documentation only"
+    }
+  ]
+}
